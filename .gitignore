@@ -9,3 +9,11 @@ __pycache__/
 _site/
 .qa/
 node_modules/
+
+# Temporary local typography comparison (not part of the site)
+tests/type-study/
+
+# Local Cloudflare credentials and generated runtime state
+.dev.vars
+.dev.vars.*
+.wrangler/

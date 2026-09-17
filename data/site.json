@@ -7,12 +7,12 @@
   "currency": "USD",
   "timezone": "America/New_York",
   "status": "coming_soon",
-  "statusNote": "A little bakery. A shiny little trailer. Coming your way soon.",
+  "statusNote": "Opening date and first location to be announced.",
   "heroHeading": "Good things.\nSmall batches.",
-  "heroText": "Something sweet, something buttery, something worth stopping for. Meet Whisk, Cindy’s little bakery on wheels.",
-  "aboutHeading": "A little flour.\nA lot of Cindy.",
-  "aboutText": "Whisk is a small bakery with a shiny little home: a polished silver trailer. Cindy is getting ready to open the service window and share what’s baking. We can’t wait to meet you there.",
-  "aboutNote": "Cindy’s story is still being written. Come back soon for a proper hello.",
+  "heroText": "Whisk is Cindy’s bakery on wheels. The opening menu and first stops will be posted here.",
+  "aboutHeading": "Meet Cindy.",
+  "aboutText": "Whisk is Cindy’s bakery, based in a polished silver trailer. Cindy is preparing the opening menu.",
+  "aboutNote": "Cindy’s story will be shared here soon.",
   "email": "",
   "phone": "",
   "instagram": "",
@@ -29,5 +29,5 @@
   "allergens": "Ingredient and allergen details will be confirmed before ordering opens. If you have a food allergy, please contact Cindy before ordering. Dietary labels do not guarantee the absence of cross-contact.",
   "socialImage": "",
   "socialImageAlt": "",
-  "footerNote": "A little bakery, going places."
+  "footerNote": "Bakery on wheels."
 }

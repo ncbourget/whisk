@@ -1,4 +1,4 @@
-/* Local form editor. The hosted version exports JSON; it never writes to a public server. */
+/* Privileged editor. Every data request requires server-side authorization. No credentials live here. */
 'use strict';
 let data, current = 'site', local = false, dirty = false, revision = '', removeAction;
 const fields = document.getElementById('editor-fields');
@@ -92,11 +92,12 @@ document.getElementById('import').addEventListener('change',async event=>{
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
 (async()=>{
  try{
-  if(['127.0.0.1','localhost'].includes(location.hostname)){
-   try{const res=await fetch('/api/content');if(res.ok&&res.headers.get('Content-Type')?.includes('application/json')){const result=await res.json();data=result.data;revision=result.revision;local=true;}}catch{}
-  }
-  if(!data){const values=await Promise.all(['site','menu','events'].map(async key=>{const res=await fetch('../data/'+key+'.json');if(!res.ok)throw Error('Could not load '+key+'.json');return res.json();}));data=Object.fromEntries(['site','menu','events'].map((k,i)=>[k,values[i]]));}
-  document.getElementById('editor-mode').textContent=local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Download mode · Edit here, download each changed file, and upload it into the repository’s data folder. To save directly, open the notebook using Start Whisk.command on your computer.';
+  // Authorization is enforced by the server, never inferred from the hostname.
+  // No public JSON fallback: an expired/absent session must fail closed.
+  const res=await fetch('/api/content',{credentials:'same-origin',cache:'no-store'});
+  if(!res.ok||!res.headers.get('Content-Type')?.includes('application/json'))throw Error('Sign in again through Cloudflare Access, or reopen Start Whisk.command for local editing.');
+  const result=await res.json();data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;
+  document.getElementById('editor-mode').textContent=local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
   document.getElementById('save').disabled=!local;document.getElementById('download').disabled=false;render();
  }catch(error){say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();

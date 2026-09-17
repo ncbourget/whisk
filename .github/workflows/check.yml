@@ -13,10 +13,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
       - name: Validate content and commerce behavior
         run: python3 -m unittest discover -s tests -v
-      - name: Build portable static website
-        run: python3 scripts/build.py --output _site
+      - name: Build Cloudflare website and Access boundary
+        run: npm run build
       - uses: actions/upload-artifact@v4
         with:
           name: whisk-website

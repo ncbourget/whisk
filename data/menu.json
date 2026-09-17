@@ -1,8 +1,8 @@
 [
   {
     "id": "morning-bun",
-    "name": "The morning bun",
-    "description": "A buttery swirl with cinnamon sugar tucked into every fold.",
+    "name": "Morning bun",
+    "description": "Cinnamon sugar folded into a buttery bun.",
     "price": 4.5,
     "category": "Pastries",
     "available": true,
@@ -24,7 +24,7 @@
   {
     "id": "chocolate-cookie",
     "name": "Chocolate chunk cookie",
-    "description": "Crisp edges, a soft middle, and a generous handful of chocolate.",
+    "description": "Chocolate chunks, crisp edges, and a soft center.",
     "price": 3.5,
     "category": "Cookies",
     "available": true,
@@ -45,8 +45,8 @@
   },
   {
     "id": "lemon-loaf",
-    "name": "A slice of sunshine",
-    "description": "A tender lemon loaf with a bright little drizzle of icing.",
+    "name": "Lemon loaf",
+    "description": "Lemon loaf with a light icing.",
     "price": 4,
     "category": "Cakes",
     "available": true,
@@ -67,8 +67,8 @@
   },
   {
     "id": "weekend-scone",
-    "name": "The weekend scone",
-    "description": "Crumbly, golden, and happy beside a cup of tea.",
+    "name": "Scone",
+    "description": "A golden, crumbly scone.",
     "price": 4,
     "category": "Pastries",
     "available": true,

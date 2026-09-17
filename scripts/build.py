@@ -42,10 +42,14 @@ def stamp(value):
     return dt
 
 def validate(data):
+    if not isinstance(data,dict) or set(data) != {'site','menu','events'}:
+        raise ValueError('Content must contain only site, menu, and events.')
     site, menu, events = data['site'], data['menu'], data['events']
     if not isinstance(site, dict) or not isinstance(menu, list) or not isinstance(events, list):
         raise ValueError('Site must be an object; menu and events must be lists.')
     required = ['name','tagline','status','statusNote','heroHeading','heroText','aboutHeading','aboutText','aboutNote','hours','pickup','cutoff','refunds','allergens','footerNote','domain','basePath','currency','timezone','email','phone','instagram','facebook','squareUrl','serviceArea','socialImage','socialImageAlt','orderOpens','orderCloses']
+    if set(site) != set(required) | {'demo','orderingEnabled'}:
+        raise ValueError('Unknown or missing site fields. Never store credentials in content.')
     for key in required:
         if not isinstance(site.get(key), str):
             raise ValueError(f'Site: {key} must be text.')
@@ -70,7 +74,7 @@ def validate(data):
         if site[key] and not https_url(site[key], key == 'squareUrl'):
             raise ValueError(f'Invalid {key} link. Square links must use square.link, squareup.com, or a square.site subdomain.')
     def asset(path):
-        if path and (not path.startswith('assets/') or '..' in path or not re.fullmatch(r'[A-Za-z0-9_./-]+',path) or not (ROOT/path).is_file()):
+        if path and (not path.startswith('assets/') or '..' in path or not re.fullmatch(r'[A-Za-z0-9_./-]+',path) or not (ROOT/path).is_file() or not (ROOT/path).resolve().is_relative_to(ROOT.resolve()) or Path(path).suffix.lower() not in {'.svg','.jpg','.jpeg','.png','.webp'}):
             raise ValueError(f'Image not found in assets: {path}')
     asset(site['socialImage'])
     if site['socialImage'] and not site['socialImageAlt'].strip():
@@ -84,6 +88,9 @@ def validate(data):
     for item in menu:
         if not isinstance(item, dict):
             raise ValueError('Each menu item must be an object.')
+        allowed = {'id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses','price','position','available','soldOut','featured','seasonal','dietary'}
+        if set(item) != allowed:
+            raise ValueError('Unknown or missing menu fields. Never store credentials in content.')
         for key in ['id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses']:
             if not isinstance(item.get(key),str):
                 raise ValueError(f'Menu item: {key} must be text.')
@@ -109,6 +116,8 @@ def validate(data):
         window(item)
     ids = set()
     for event in events:
+        if not isinstance(event,dict) or set(event) != {'id','name','address','start','end','mapUrl','description','status','menuNote'}:
+            raise ValueError('Unknown or missing event fields.')
         for key in ['id','name','address','start','end','mapUrl','description','status','menuNote']:
             if not isinstance(event.get(key),str):
                 raise ValueError(f'Event: {key} must be text.')
@@ -167,9 +176,9 @@ def render(data, now=None):
     def action(label,href,style='button',extra=''):
         return f'<a class="{style}" href="{e(href)}" {extra}>{e(label)}</a>'
     def order_action():
-        return action('Order on Square ↗',site['squareUrl'],extra='rel="external" data-global-checkout') if can_order(site,now) and site['squareUrl'] else action('Explore the menu',page('menu/'))
+        return action('Order on Square',site['squareUrl'],extra='rel="external" data-global-checkout') if can_order(site,now) and site['squareUrl'] else action('Explore menu',page('menu/'))
     def picture(item):
-        fallback = '<span class="photo-fallback"'+(' hidden' if item['image'] else '')+'><span aria-hidden="true">✳</span>Fresh photo coming soon</span>'
+        fallback = '<span class="photo-fallback"'+(' hidden' if item['image'] else '')+'><span aria-hidden="true">✳</span>Photo coming soon</span>'
         img = f'<img src="{page(item["image"])}" alt="{e(item["imageAlt"])}" width="600" height="500" loading="lazy" decoding="async">' if item['image'] else ''
         return f'<div class="food-photo {e(item["imageShape"])}">{fallback}{img}</div>'
     def product(item,detail=False):
@@ -177,15 +186,15 @@ def render(data, now=None):
         price = {'USD':'$','CAD':'CA$','AUD':'A$','GBP':'£','EUR':'€'}[site['currency']] + f'{item["price"]:.2f}'
         badges = ('<span class="tag">Seasonal</span>' if item['seasonal'] else '') + ''.join(f'<span class="tag">{e(t)}</span>' for t in item['dietary'])
         availability = '<span class="sold-stamp">Sold out</span>' if item['soldOut'] else ''
-        checkout = action(label+' ↗',url,'text-link',f'rel="external" data-item-checkout="{e(item["id"])}"') if url else f'<span class="availability">{e(label)}</span>'
-        details = f'<details><summary>Ingredients &amp; the little details</summary><p>{e(item["allergens"] or "Please ask Cindy about ingredients before ordering.")}</p>' + (f'<p>{e(item["notes"])}</p>' if item['notes'] else '') + (f'<p><strong>Keeping it fresh:</strong> {e(item["storage"])}</p>' if item['storage'] else '') + '</details>' if detail else ''
+        checkout = action(label+' →',url,'text-link',f'rel="external" data-item-checkout="{e(item["id"])}"') if url else f'<span class="availability">{e(label)}</span>'
+        details = f'<details><summary>Ingredients &amp; details</summary><p>{e(item["allergens"] or "Please ask Cindy about ingredients before ordering.")}</p>' + (f'<p>{e(item["notes"])}</p>' if item['notes'] else '') + (f'<p><strong>Keeping it fresh:</strong> {e(item["storage"])}</p>' if item['storage'] else '') + '</details>' if detail else ''
         return f'<article class="product" data-category="{e(item["category"])}" id="{e(item["id"])}"><div class="product-image">{picture(item)}{availability}</div><div class="product-copy"><div class="eyebrow">{e(item["category"])} {badges}</div><div class="product-title"><h3>{e(item["name"])}</h3><span class="price">{price}</span></div><p>{e(item["description"])}</p>{details}<div class="product-action">{checkout}</div></div></article>'
     def event_list(limit=None):
         upcoming = sorted((ev for ev in events if stamp(ev['end']) > now),key=lambda ev:stamp(ev['start']))
         if limit:
             upcoming = upcoming[:limit]
         if not upcoming:
-            return '<div class="empty-stop"><span class="big-star" aria-hidden="true">✳</span><div><h3>Our next stop is still in the oven.</h3><p>Dates and places coming soon. Check back here for our first pop-up.</p>'+socials()+'</div></div>'
+            return '<div class="empty-stop"><div><h3>First stop to be announced.</h3><p>We’ll post the location and hours here when they’re confirmed.</p>'+socials()+'</div></div>'
         result = ''
         for ev in upcoming:
             start,end = stamp(ev['start']).astimezone(ZoneInfo(site['timezone'])),stamp(ev['end']).astimezone(ZoneInfo(site['timezone']))
@@ -194,7 +203,7 @@ def render(data, now=None):
             if start.date() != end.date():
                 date_label += ' – '+end.strftime('%B %d, %Y')
             directions = action('Get directions ↗',ev['mapUrl'],'text-link','rel="external"') if ev['mapUrl'] and ev['status'] == 'confirmed' else ''
-            result += f'<article class="event" data-event-end="{e(ev["end"])}"><div class="event-date">{start.strftime("%b")}<strong>{start.day}</strong></div><div><p class="eyebrow">{e(ev["status"])} · {e(date_label)}</p><h3>{e(ev["name"])}</h3><p>{e(times)}<br>{e(ev["address"])}</p><p>{e(ev["description"])}</p><p>{e(ev["menuNote"])}</p>{directions}</div></article>'
+            result += f'<article class="event" data-event-end="{e(ev["end"])}"><div class="event-date">{start.strftime("%b")}<strong>{start.day}</strong></div><div><p class="eyebrow">{e(ev["status"])} · {e(date_label)}</p><h3>{e(ev["name"])}</h3><p class="event-time">{e(times)}</p><p>{e(ev["address"])}</p><p>{e(ev["description"])}</p><p>{e(ev["menuNote"])}</p>{directions}</div></article>'
         return result
     def socials():
         links = [action(name+' ↗',site[key],'text-link','rel="external"') for key,name in [('instagram','Instagram'),('facebook','Facebook')] if site[key]]
@@ -208,30 +217,62 @@ def render(data, now=None):
             links.append(action(site['phone'],'tel:'+phone,'text-link'))
         return '<div class="contact-links">'+''.join(links)+'</div>' if links else '<p>Cindy’s contact details will be shared here before ordering opens.</p>'
     def intro(kicker,title,text=''):
-        return f'<header class="page-heading"><p class="eyebrow">{e(kicker)}</p><h1>{e(title)}</h1>'+(f'<p class="lede">{e(text)}</p>' if text else '')+'</header>'
+        return '<header class="page-heading">'+(f'<p class="eyebrow">{e(kicker)}</p>' if kicker else '')+f'<h1>{e(title)}</h1>'+(f'<p class="lede">{e(text)}</p>' if text else '')+'</header>'
     def note():
-        return '<aside class="sample-note"><strong>A taste of what’s to come.</strong> This is a sample menu with illustrative artwork and example prices. Cindy’s opening menu is on its way.</aside>' if site['demo'] else ''
-    window_heading = {'coming_soon':'Something<br>good is coming.', 'sold_out':'That’s the<br>last crumb.', 'closed':'Until the<br>next batch.', 'preorders_closed':'Until the<br>next batch.'}.get(site['status'], 'Come see<br>what’s baking.')
-    trailer = f'<div class="trailer-scene"><p class="handwritten trailer-note">a tiny bakery with a big window of possibilities</p><img class="trailer" src="{page("assets/trailer/trailer.svg")}" width="900" height="530" alt="" fetchpriority="high"><a class="service-window" href="{page("menu/")}"><span class="eyebrow">At the window</span><strong>{window_heading}</strong><span>Take a peek at the menu <span aria-hidden="true">↗</span></span></a><span class="trailer-brand" aria-hidden="true">WHISK <small>BAKED BY CINDY</small></span><span class="trailer-caption">Little trailer. Lovely things.</span></div>'
-    home = f'<section class="hero"><div class="hero-copy"><p class="eyebrow">A small bakery on wheels</p><h1>{e(site["heroHeading"]).replace(chr(10),"<br>")}</h1><p class="lede">{e(site["heroText"])}</p><div class="actions">{order_action()}{action("Find the trailer",page("find-us/"),"text-link")}</div><div class="hero-signoff"><img src="{page("assets/illustrations/whisk.svg")}" width="33" height="50" alt=""><span>A little something<br><em>to make your day.</em></span></div></div>{trailer}</section>'
-    home += f'<section class="status-strip" aria-label="Bakery status"><div><span class="eyebrow">Fresh from Whisk</span><strong data-business-status>{e(STATUSES[site["status"]])}</strong></div><p>{e(site["statusNote"])}</p>{action("Where & when ↗",page("find-us/"),"text-link")}</section>'
+        return '<aside class="sample-note"><strong>Sample menu.</strong> Items, illustrations, and prices are examples. The opening menu is not yet confirmed.</aside>' if site['demo'] else ''
+    # Presentation only: keep all ordering gates and data contracts above unchanged.
+    trailer = f'''<div class="trailer-scene">
+      <img class="trailer" src="{page("assets/trailer/trailer.svg")}" width="900" height="530" alt="" fetchpriority="high">
+      <a class="service-window" href="{page("menu/")}" aria-label="View Whisk’s menu and ordering availability">
+        <span class="eyebrow" data-business-status>{e(STATUSES[site["status"]])}</span>
+        <strong>Menu<br>&amp; order</strong><span class="window-action" aria-hidden="true">View menu →</span>
+      </a>
+      <img class="trailer-brand" src="{page("assets/brand/whisk-wordmark.svg")}" width="240" height="84" alt="" aria-hidden="true">
+    </div>'''
+    next_events = sorted((ev for ev in events if ev['status'] == 'confirmed' and stamp(ev['end']) > now), key=lambda ev:stamp(ev['start']))
+    current_stop = e(site['statusNote'])
+    if next_events:
+        first = next_events[0]
+        start_local = stamp(first['start']).astimezone(ZoneInfo(site['timezone']))
+        current_stop = e(first['name'])+' · '+e(start_local.strftime('%b %d · %I:%M %p %Z').replace(' 0',' '))
+    home = f'''<section class="status-strip" aria-label="Bakery status">
+      <strong class="eyebrow" data-business-status>{e(STATUSES[site["status"]])}</strong>
+      <p>{current_stop}</p>{action("Locations & hours",page("find-us/"),"text-link")}
+    </section>
+    <section class="hero">
+      <div class="hero-copy"><h1>{e(site["heroHeading"]).replace(chr(10),"<br>")}</h1>
+      <p class="lede">{e(site["heroText"])}</p>
+      <div class="actions">{order_action()}{action("Find Whisk",page("find-us/"),"text-link")}</div></div>
+      {trailer}
+    </section>'''
     featured = [i for i in visible if i['featured']][:3]
-    home += f'<section class="section"><div class="section-heading"><div><p class="eyebrow">From Cindy’s recipe book</p><h2>A few sweet possibilities.</h2></div>{action("See the whole menu ↗",page("menu/"),"text-link")}</div>{note()}<div class="product-grid">'+(''.join(product(i) for i in featured) or '<p>The next batch is taking shape. Check back soon for the menu.</p>')+'</div></section>'
-    home += f'<section class="story-strip"><div class="story-mark" aria-hidden="true"><img src="{page("assets/illustrations/whisk.svg")}" width="100" height="150" alt=""><span>Baked by hand.<br>Shared with a smile.</span></div><div><p class="eyebrow">Hello from the little silver trailer</p><h2>{e(site["aboutHeading"]).replace(chr(10),"<br>")}</h2><p>{e(site["aboutText"])}</p>{action("A little about Whisk ↗",page("about/"),"text-link")}</div></section>'
-    home += f'<section class="section stop-section"><div><p class="eyebrow">Follow the flour</p><h2>See you<br>at the next stop.</h2>{action("Find Whisk ↗",page("find-us/"),"text-link")}</div><div>{event_list(1)}<p class="small muted">{e(site["hours"])}</p></div></section>'
+    home += f'''<section class="section featured-section" aria-labelledby="featured-heading">
+      <div class="featured-heading"><h2 id="featured-heading">On the menu.</h2><p class="eyebrow">Baked by Cindy</p></div>
+      {note()}<div class="product-grid featured-menu">'''+(''.join(product(i) for i in featured) or '<p>The menu will be posted here before opening.</p>')+f'''</div>
+      <div class="menu-endnote">{action("View the full menu →",page("menu/"),"text-link")}</div>
+    </section>'''
+    home += f'''<section class="story-strip" aria-labelledby="story-heading">
+      <div class="story-mark" aria-hidden="true"><img src="{page("assets/illustrations/whisk.svg")}" width="120" height="180" alt=""></div>
+      <h2 id="story-heading">{e(site["aboutHeading"]).replace(chr(10),"<br>")}</h2>
+      <div class="story-copy"><p>{e(site["aboutText"])}</p>{action("Our story",page("about/"),"text-link")}</div>
+    </section>
+    <section class="section stop-section">
+      <div class="stop-heading"><h2>See you at <br>the next stop.</h2>{action("All locations & hours",page("find-us/"),"text-link")}</div>
+      <div>{event_list(1)}<p class="hours-note">{e(site["hours"])}</p></div>
+    </section>'''
     categories = list(dict.fromkeys(i['category'] for i in visible))
     filters = '<div class="filters" role="group" aria-label="Filter menu" hidden><button type="button" data-filter="all" aria-pressed="true">Everything</button>'+''.join(f'<button type="button" data-filter="{e(c)}" aria-pressed="false">{e(c)}</button>' for c in categories)+'</div>'
-    menu_page = intro('Made in small batches','The good stuff.', 'A little sweet, a little buttery. Find your next favorite.') + note()+f'<div class="menu-topline"><p data-order-message>{"Choose an item below to continue to Square." if can_order(site,now) else "Online ordering isn’t open just yet." if site["status"]=="coming_soon" else "Online ordering is currently closed."}</p>{order_action() if can_order(site,now) and site["squareUrl"] else ""}</div>'+filters+'<p class="sr-only" id="filter-result" aria-live="polite"></p><section class="product-grid menu-grid" aria-label="Bakery menu"><h2 class="sr-only">Baked goods</h2>'+(''.join(product(i,True) for i in visible) or '<div class="empty-stop"><h2>A fresh menu is on its way.</h2><p>Check back for the next batch.</p></div>')+'</section>'
+    menu_page = intro('','The menu.', 'Availability and ordering details for each bake.') + note()+f'<div class="menu-topline"><p class="meta" data-order-message>{"Choose an item to order through Square." if can_order(site,now) else "Online ordering is not open yet." if site["status"]=="coming_soon" else "Online ordering is currently closed."}</p>{order_action() if can_order(site,now) and site["squareUrl"] else ""}</div>'+filters+'<p class="sr-only" id="filter-result" aria-live="polite"></p><section class="product-grid menu-grid" aria-label="Bakery menu"><h2 class="sr-only">Baked goods</h2>'+(''.join(product(i,True) for i in visible) or '<div class="empty-stop"><h2>A fresh menu is on its way.</h2><p>Check back before the next opening.</p></div>')+'</section>'
     if visible and all(i['soldOut'] for i in visible):
-        menu_page += '<aside class="sample-note">That’s the last crumb! Everything on this menu is sold out. Check back for the next batch.</aside>'
-    menu_page += f'<section class="info-pair"><div><p class="eyebrow">Collecting your treats</p><h2>A little pickup note.</h2><p>{e(site["pickup"])}</p><p>{e(site["cutoff"])}</p>{action("Pickup & ordering questions ↗",page("faq/"),"text-link")}</div><div><p class="eyebrow">Before you order</p><h2>Let’s talk ingredients.</h2><p>{e(site["allergens"])}</p>{action("Ask Cindy ↗",page("contact/"),"text-link")}</div></section>'
-    about = intro('The baker & the bakery',site['aboutHeading'].replace('\n',' '))+f'<section class="about-layout">{trailer}<div class="prose"><p class="lede">{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p><h2>A bakery that goes places.</h2><p>Look for the little silver trailer and stop by the window. That’s where you’ll find Whisk.</p>{action("Find our next stop",page("find-us/"))}</div></section>'
-    find = intro('Follow the flour','A little bakery, going places.','Our upcoming stops, all in one place.')+f'<section class="find-layout"><div><h2 class="sr-only">Upcoming stops</h2>{event_list()}</div><aside class="paper-note"><p class="eyebrow">Before you head over</p><h2>At the window</h2><strong data-business-status>{e(STATUSES[site["status"]])}</strong><p>{e(site["statusNote"])}</p><p>{e(site["hours"])}</p>'+ (f'<p>{e(site["serviceArea"])}</p>' if site['serviceArea'] else '')+socials()+'</aside></section>'
-    questions = [('How do I order?', 'When online ordering is open, follow an item’s Order on Square link, or use our Square shop if available. You’ll review the order and pay on Square. This website never asks for card details.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?',site['cutoff']),('Can I order several things together?','If our Square shop is linked, add your items to the basket there. Individual payment links may create separate orders. Check your pickup details before paying.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for keeping-it-fresh notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
-    faq = intro('A few useful crumbs','Good to know.','Ordering, pickup, and the little details.')+'<div class="faq-list">'+''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q,a in questions)+'</div>'+f'<div class="section-heading"><h2>Something else on your mind?</h2>{action("Say hello ↗",page("contact/"),"text-link")}</div>'
-    contact_page = intro('Straight from the kitchen','Say hello.','A question about a bake, a pickup, or an order? Here’s how to reach Cindy.')+f'<section class="info-pair"><div><h2>A note to Cindy</h2>{contact()}<p class="small muted">For an existing order, include your order number and pickup date. Please don’t send card details.</p></div><div><h2>A peek behind the window</h2><p>Follow along for new bakes and upcoming stops.</p>{socials()}<button class="text-link" type="button" id="share-site" hidden>Copy website link</button><p class="small" id="share-message" role="status"></p></div></section>'
-    order = intro('Save yourself something sweet','Order from Whisk.')+f'<section class="order-panel"><span class="big-star" aria-hidden="true">✳</span><h2>{"Let’s pick out something good." if can_order(site,now) else "The next batch is on its way."}</h2><p data-order-message>{"Payment and confirmation happen securely on Square." if can_order(site,now) else "Ordering is currently closed. You can still take a look at the menu."}</p>{order_action()}<p>{e(site["pickup"])}</p>{action("Trouble with checkout? Contact Cindy",page("contact/"),"text-link")}</section>'
-    missing = intro('A small detour','That page has wandered off.','Let’s get you back to the good stuff.')+action('Back to Whisk',page(''))+' '+action('See the menu',page('menu/'),'text-link')
+        menu_page += '<aside class="sample-note">Everything on this menu is sold out. The next menu will be posted here.</aside>'
+    menu_page += f'''<section class="info-pair"><div><h2>Pickup</h2><p>{e(site["pickup"])}</p><p>{e(site["cutoff"])}</p>{action("Pickup & ordering questions",page("faq/"),"text-link")}</div><div><h2>Ingredients & allergens</h2><p>{e(site["allergens"])}</p>{action("Ask Cindy",page("contact/"),"text-link")}</div></section>'''
+    about = intro('',site['aboutHeading'].replace('\n',' '))+f'''<section class="about-layout">{trailer}<div class="prose"><p class="lede">{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p>{action("Find the trailer",page("find-us/"))}</div></section>'''
+    find = intro('Locations & hours','Find Whisk.')+f'''<section class="find-layout"><div><h2 class="sr-only">Upcoming stops</h2>{event_list()}</div><aside class="paper-note"><h2>Before you visit</h2><strong class="meta" data-business-status>{e(STATUSES[site["status"]])}</strong><p>{e(site["statusNote"])}</p><p>{e(site["hours"])}</p>'''+ (f'<p>{e(site["serviceArea"])}</p>' if site['serviceArea'] else '')+socials()+'</aside></section>'
+    questions = [('How do I order?', 'When online ordering is open, follow an item’s Order on Square link, or use our Square shop if available. You’ll review the order and pay on Square. This website never asks for card details.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?',site['cutoff']),('Can I order several things together?','If our Square shop is linked, add your items to the basket there. Individual payment links may create separate orders. Check your pickup details before paying.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for storage notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
+    faq = intro('','Good to know.','Ordering, pickup, and ingredients.')+'<div class="faq-list">'+''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q,a in questions)+'</div>'+f'<div class="faq-contact"><p>Have another question?</p>{action("Contact Cindy",page("contact/"),"text-link")}</div>'
+    contact_page = intro('','Say hello.','For questions about the menu, pickup, or an existing order.')+f'''<section class="info-pair contact-info"><div><h2>Contact Cindy</h2>{contact()}<p class="small muted">For an existing order, include your order number and pickup date. Please don’t send card details.</p></div><div><h2>Follow Whisk</h2>{socials()}<button class="text-link" type="button" id="share-site" hidden>Copy website link</button><p class="small" id="share-message" role="status"></p></div></section>'''
+    order = intro('','Order from Whisk.')+f'''<section class="order-panel"><h2>{"Order through Square" if can_order(site,now) else "Ordering is closed."}</h2><p data-order-message>{"Payment and confirmation happen securely on Square." if can_order(site,now) else "You can browse the menu while ordering is closed."}</p>{order_action()}<p>{e(site["pickup"])}</p>{action("Trouble with checkout? Contact Cindy",page("contact/"),"text-link")}</section>'''
+    missing = intro('404','Page not found.','The page may have moved, or the link may be incorrect.')+f'<div class="actions">{action("Back to Whisk",page(""))} {action("See the menu",page("menu/"),"text-link")}</div>'
     bodies = {'':home,'menu/':menu_page,'about/':about,'find-us/':find,'faq/':faq,'contact/':contact_page,'order/':order,'404.html':missing}
     template = (ROOT/'templates'/'page.html').read_text()
     outputs = {}
@@ -255,8 +296,8 @@ def render(data, now=None):
         schema['sameAs'] = [site[k] for k in ['instagram','facebook'] if site[k]]
         if not site['demo'] and route == '':
             meta += '<script type="application/ld+json">'+json.dumps(schema).replace('<','\\u003c')+'</script>'
-        demo = '<div class="preview-ribbon">A little preview of Whisk <span>·</span> Sample menu · Ordering coming soon</div>' if site['demo'] else ''
-        runtime = {'demo':site['demo'],'orderingEnabled':site['orderingEnabled'],'status':site['status'],'orderOpens':site['orderOpens'],'orderCloses':site['orderCloses'],'menu':[{'id':i['id'],'orderOpens':i['orderOpens'],'orderCloses':i['orderCloses']} for i in menu]}
+        demo = '<div class="preview-ribbon">Preview <span>·</span> Sample menu · Ordering not yet open</div>' if site['demo'] else ''
+        runtime = {'demo':site['demo'],'orderingEnabled':site['orderingEnabled'],'status':site['status'],'orderOpens':site['orderOpens'],'orderCloses':site['orderCloses'],'menu':[{'id':i['id'],'orderOpens':i['orderOpens'],'orderCloses':i['orderCloses']} for i in menu if i['available']]}
         values = {'title':e(title+' | '+site['name']+' — '+site['tagline']),'description':e(DESCRIPTIONS[route]),'meta':meta,'base':base,'nav':nav,'body':bodies[route],'demo':demo,'brand':e(site['name']),'tagline':e(site['tagline']),'footer':e(site['footerNote']),'socials':socials(),'contact':contact(),'order':action('Menu & order',page('menu/'),'button small-button'),'runtime':json.dumps(runtime).replace('<','\\u003c'),'pageClass':'home' if not route else 'inner-page'}
         html = template
         for k,v in values.items():
@@ -271,13 +312,45 @@ def render(data, now=None):
         outputs['robots.txt'] = 'User-agent: *\nDisallow: /\n'
     return outputs
 
-def build(data=None, output=ROOT):
+PUBLIC_ASSETS = {
+    'assets/css/brand.css', 'assets/css/site.css',
+    'assets/js/site.js', 'assets/icons/favicon.svg',
+    'assets/brand/whisk-wordmark.svg', 'assets/brand/whisk-wordmark-reversed.svg',
+    'assets/illustrations/whisk.svg', 'assets/trailer/trailer.svg',
+    'assets/fonts/fraunces-latin-variable.woff2', 'assets/fonts/public-sans-latin-variable.woff2',
+    'assets/fonts/ibm-plex-mono-latin-regular.woff2',
+    'assets/fonts/fraunces-OFL.txt', 'assets/fonts/public-sans-OFL.txt', 'assets/fonts/ibm-plex-mono-OFL.txt',
+}
+
+def public_assets(data):
+    paths = PUBLIC_ASSETS | {i['image'] for i in data['menu'] if i['available'] and i['image']}
+    if data['site']['socialImage']:
+        paths.add(data['site']['socialImage'])
+    return paths
+
+def build(data=None, output=None):
     data = data or read_data()
     outputs = render(data)
-    output.mkdir(parents=True,exist_ok=True)
+    output = Path(output or ROOT).resolve()
     if output != ROOT:
-        for folder in ['assets','data','editor']:
-            shutil.copytree(ROOT/folder,output/folder,dirs_exist_ok=True)
+        # A fresh allowlisted artifact prevents old data/editor files surviving a rebuild.
+        # Do not recursively remove an arbitrary user-supplied directory.
+        if output.exists() and any(output.iterdir()):
+            if output != ROOT/'_site' and not (output/'.whisk-build').is_file():
+                raise ValueError('Use an empty output directory or the project _site directory.')
+            shutil.rmtree(output)
+        output.mkdir(parents=True,exist_ok=True)
+        (output/'.whisk-build').touch()
+        for asset in public_assets(data):
+            source = ROOT/asset
+            if not source.resolve().is_relative_to(ROOT.resolve()):
+                raise ValueError('Assets cannot point outside the project.')
+            target = output/asset
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(source,target)
+        # Admin HTML, JS and JSON deliberately have no static copy. Access failure,
+        # missing Worker, quota fallback, and encoded alternate paths cannot expose them.
+        (output/'_headers').write_text('/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n')
     for filename,content in outputs.items():
         path = output/filename
         path.parent.mkdir(parents=True,exist_ok=True)

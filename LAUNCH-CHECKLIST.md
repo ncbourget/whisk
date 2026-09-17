@@ -57,3 +57,15 @@
 - [ ] Create and physically test a static QR only after the final `/menu/` URL works.
 - [ ] Complete Cindy’s notebook/publishing walkthrough and “contact Nate” handoff.
 - [ ] Recheck live website and Square together immediately before announcing launch.
+
+## Administrative security release gate
+
+- [ ] Follow DEPLOYMENT.md sections 3–7; use the exact two-email OTP policy and matching runtime allowlist.
+- [ ] Protect `/editor`, `/api`, editor JS and raw-data paths in the same Access application; verify tokens server-side.
+- [ ] Fail closed enabled; no static editor/raw JSON in output; no caching override.
+- [ ] Public home/menu work anonymously; direct anonymous API reads/writes fail.
+- [ ] Forged identity headers cannot authorize; other hostnames and previews cannot bypass.
+- [ ] Both allowed owners tested; a non-allowlisted user denied.
+- [ ] Old deployment URLs, public repository/history and rollback versions reviewed.
+- [ ] No credentials in source, browser assets, content, logs, or Git history.
+- [ ] Local Save and Upload require session plus same origin; hosted writes remain disabled.

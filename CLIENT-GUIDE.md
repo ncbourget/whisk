@@ -1,3 +1,5 @@
+> **Security update:** Open the local notebook through **Start Whisk.command**, which signs this browser into an eight-hour local session. A bookmarked `/editor/` URL alone cannot sign you in. If expired, restart the launcher. The hosted notebook is only available after Nate configures Cloudflare Access and adds your exact email; sign in with Cloudflare’s emailed code. Hosted editing remains download-only. A plain public-only deployment has no hosted editor. Never share launch links, codes, cookies, or downloaded confidential drafts.
+
 # Cindy’s Whisk notebook
 
 This website has a little notebook where you can change your menu and tell people where you’ll be. You do not need to edit the website’s layout or understand code.
@@ -126,3 +128,7 @@ Avoid editing JSON directly using GitHub’s pencil unless Nate is helping; a mi
 ## Things you should contact Nate for
 
 Page redesigns, logo/fonts/colors, integration changes, major layouts, new functionality, hosting accounts, domain/DNS/HTTPS, a new time zone or currency, checkout problems, undoing a published mistake, new catering or newsletter systems, or anything involving credentials. Contact Nate before removing demo mode for the first time.
+
+## Refined website appearance
+
+The notebook uses the same navy and blue palette as the website, with readable form controls. Editing and publishing work as before. The plain Whisk logo and food drawings are temporary. Send final logo files to Nate; changing the bakery-name field updates text and accessibility labels but does not redraw the logo artwork.

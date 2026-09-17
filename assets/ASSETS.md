@@ -11,3 +11,7 @@ All SVG artwork currently in this repository was authored specifically as provis
 | brand/ | Reserved for final identity / social sharing image | Add assets and document source/permission. |
 
 No paid typefaces or remote fonts are used. Record creator, original source, license scope, and any required attribution when adding third-party assets. Do not copy assets out of the packaging preview unless the license and original export permit that use.
+
+## Refinement assets
+
+Three locally hosted OFL font families and their licenses/source URLs are in fonts/. Brand SVG slots and replacement instructions are in brand/README.md. The neutral wordmark, W mark, badge placeholder, existing food drawings, and trailer remain provisional. No supplied identity, licensed packaging artwork, or real trailer reference photographs were available for this pass.

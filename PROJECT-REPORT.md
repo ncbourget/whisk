@@ -100,3 +100,11 @@ DEPLOYMENT.md includes GoDaddy Domain Portfolio navigation, preserving email rec
 ## 15. Pre-launch procedure
 
 Follow LAUNCH-CHECKLIST.md in order: real content and asset/license review; Square purchase/refund/notification/pickup tests; device/accessibility/performance checks; eligible hosting and domain setup; metadata and HTTPS checks; Cindy’s editing/publishing walkthrough; then QR printing and public announcement. The full checklist includes failure states and direct-Square cutoff/sold-out tests so a cached website does not create a false sense of protection.
+
+## Subsequent visual refinement
+
+The original implementation report above is historical. See ART-DIRECTION-REPORT.md for the current typography, provisional identity, compositions, and checks. Business logic and deployment architecture remain the same.
+
+## Administrative security update
+
+ARCHITECTURE.md now inventories every read/write boundary. Local content/photo writes require a server-side session plus same-origin checks. Hosted administration is prepared for Cloudflare Access OTP with independent signed-JWT and exact-email verification; hosted writes remain disabled. Public output excludes raw JSON, admin files and unpublished images. DEPLOYMENT.md supersedes earlier hosting/editor notes. Cloudflare configuration and live login verification remain deployment steps, not completed account changes.

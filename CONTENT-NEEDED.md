@@ -36,3 +36,7 @@ No business facts below have been silently invented. In configuration, missing l
 Gift cards, catering/custom cakes, private events, newsletter, testimonials with permission, press, merchandise, recipe stories, multiple trailers, privacy-conscious analytics, or automated Square catalog synchronization.
 
 The project intentionally contains **no permanent QR code**. Generate one only after the production `/menu/` URL is confirmed and tested.
+
+## Approved identity handoff
+
+Please supply the daughter’s original AI/PDF masters plus web-ready SVG wordmark, reversed wordmark, abbreviated mark, and any approved badge; font names/files and web licenses; RGB/HEX values (with Pantone/CMYK for reference); minimum-size, clear-space, and background rules. Also needed: actual trailer reference photographs and the licensed packaging illustration source/usage permission. No screenshot or these source assets accompanied the refinement brief. Replacement paths are documented in assets/brand/README.md.

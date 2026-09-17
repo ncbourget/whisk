@@ -1,6 +1,6 @@
 # WHISK — Baked by Cindy
 
-A small bakery website built for a polished silver trailer. Plain HTML, CSS, and vanilla JavaScript, with a Python-standard-library content publisher and a local form editor. No npm install, database, account system, analytics, or paid website dependency.
+A small bakery website built for a polished silver trailer. Plain HTML, CSS, and vanilla JavaScript, with a Python-standard-library content publisher and a local form editor. No database, analytics, or paid website dependency. Local editing and public-only builds use Python; the optional authenticated Cloudflare editor adds a small Node build with jose and esbuild.
 
 **Current state: local design preview, not ready to take orders.** All products, prices, illustrations, and draft copy are samples. No trailer photographs or licensed packaging assets were provided. Square payments are deliberately blocked in demo mode. No deployment, DNS changes, commits, or pushes have been performed by this implementation.
 
@@ -15,10 +15,10 @@ python3 scripts/serve.py --open
 ```
 
 - Website: http://127.0.0.1:8000/
-- Cindy’s notebook: http://127.0.0.1:8000/editor/
+- Cindy’s notebook: opened by the launcher; a fresh browser must use its one-use authentication link.
 - Alternate port: `python3 scripts/serve.py --port 8001 --open`
 
-The editor saves locally, backs up the previous content in ignored `.backups/`, validates it, and regenerates the pages. GitHub Desktop is used to review and publish the changes. A hosted editor has **download-only** functionality; it cannot modify the public site.
+The launcher authenticates local editing with a one-use link and an HttpOnly session cookie. The editor saves locally, backs up previous content in ignored `.backups/`, validates it, and regenerates the pages. GitHub Desktop publishes changes. The hosted editor requires Cloudflare Access plus server-side JWT/email verification and remains **download-only**. See DEPLOYMENT.md for exact setup; a missing configuration denies access.
 
 ## Content and design
 
@@ -27,7 +27,9 @@ The editor saves locally, backs up the previous content in ignored `.backups/`, 
 | Business status, copy, hours, contact, Square shop | `data/site.json` |
 | Products, categories, prices, photos, availability | `data/menu.json` |
 | Upcoming locations, times, cancellations | `data/events.json` |
-| Colors, type, spacing, responsive layout | `assets/css/site.css` |
+| Brand colors, fonts, type scale | `assets/css/brand.css` |
+| Compositions, spacing, responsive layout | `assets/css/site.css` |
+| Approved logo replacement slots | `assets/brand/README.md` |
 | Shared HTML shell | `templates/page.html` |
 | Page compositions and content validation | `scripts/build.py` |
 | Small browser enhancements | `assets/js/site.js` |
@@ -41,7 +43,15 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build.py --output _site
 ```
 
-`_site/` is the deployable output. It includes only public assets, content, editor, HTML, robots, and sitemap. It excludes local backups, scripts, tests, and developer documents. The hosted editor contains no secrets and provides downloads only. You can omit `editor/` from hosting if desired; Cindy can use it locally.
+`python3 scripts/build.py --output _site` builds the **public website only**, excluding all editor content, raw JSON, and unreferenced uploads. For Cloudflare Pages with the authenticated hosted editor, use:
+
+```sh
+npm ci
+npm test
+npm run build
+```
+
+This second build includes a server-only `_worker.js`; deploy it only to Cloudflare Pages advanced mode. Never serve it as a static download. Configure the Access application and runtime allowlist exactly as described in [DEPLOYMENT.md](DEPLOYMENT.md). [ARCHITECTURE.md](ARCHITECTURE.md) inventories every endpoint and the full authentication boundary.
 
 ## Square
 
@@ -66,3 +76,7 @@ The repository remote is `https://github.com/ncbourget/whisk.git`. No final doma
 - **DEPLOYMENT.md** — host and GoDaddy setup
 - **LAUNCH-CHECKLIST.md** — release and order testing
 - **PROJECT-REPORT.md** — implementation summary and verification results
+
+## Art direction refinement
+
+The current provisional system uses self-hosted Fraunces, Public Sans, and IBM Plex Mono with paper, navy, periwinkle blue, and silver. No paid font service is required. See [ART-DIRECTION-AUDIT.md](ART-DIRECTION-AUDIT.md) for the initial audit and [ART-DIRECTION-REPORT.md](ART-DIRECTION-REPORT.md) for decisions and verification. Logo placeholders are neutral stand-ins pending approved artwork.

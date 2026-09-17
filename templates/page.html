@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <meta name="description" content="{{description}}">
-<meta name="theme-color" content="#f7f5ec">
+<meta name="theme-color" content="#f8f7f2">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{brand}} — {{tagline}}">
 <meta property="og:title" content="{{title}}">
 <meta property="og:description" content="{{description}}">
 {{meta}}
 <link rel="icon" href="{{base}}/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="{{base}}/assets/fonts/fraunces-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{base}}/assets/css/brand.css">
 <link rel="stylesheet" href="{{base}}/assets/css/site.css">
 <script defer src="{{base}}/assets/js/site.js"></script>
 </head>
@@ -19,11 +21,18 @@
 <a class="skip-link" href="#main">Skip to content</a>
 {{demo}}
 <header class="site-header wrap">
-<a class="brand" href="{{base}}/" aria-label="{{brand}} — {{tagline}}, home"><span>{{brand}}</span><small>{{tagline}}</small></a>
+<a class="brand" href="{{base}}/" aria-label="{{brand}} — {{tagline}}, home"><img src="{{base}}/assets/brand/whisk-wordmark.svg" width="240" height="84" alt=""></a>
 <nav aria-label="Main navigation">{{nav}}</nav>
 {{order}}
 </header>
 <main id="main" class="wrap" tabindex="-1">{{body}}</main>
-<footer class="site-footer"><div class="wrap footer-top"><div><a class="brand" href="{{base}}/"><span>{{brand}}</span><small>{{tagline}}</small></a><p class="handwritten">{{footer}}</p></div><div><p class="eyebrow">Come by the window</p><a href="{{base}}/menu/">Menu &amp; order</a><a href="{{base}}/find-us/">Find Whisk</a><a href="{{base}}/about/">Our story</a></div><div><p class="eyebrow">A few useful things</p><a href="{{base}}/faq/">Pickup &amp; FAQs</a><a href="{{base}}/contact/">Contact Cindy</a>{{socials}}</div></div><div class="wrap footer-bottom"><span>© WHISK · Baked by Cindy</span><span>Small batches. Happy detours.</span></div></footer>
+<footer class="site-footer">
+  <div class="wrap footer-top">
+    <div><a class="brand" href="{{base}}/" aria-label="{{brand}} — {{tagline}}, home"><img src="{{base}}/assets/brand/whisk-wordmark-reversed.svg" width="240" height="84" alt=""></a><p class="footer-note">{{footer}}</p></div>
+    <nav aria-label="Footer menu"><p class="eyebrow">Visit</p><a href="{{base}}/menu/">Menu &amp; order</a><a href="{{base}}/find-us/">Find Whisk</a><a href="{{base}}/about/">Our story</a></nav>
+    <div><p class="eyebrow">Information</p><a href="{{base}}/faq/">Pickup &amp; FAQs</a><a href="{{base}}/contact/">Contact Cindy</a>{{socials}}</div>
+  </div>
+  <div class="wrap footer-bottom"><span>© {{brand}} · {{tagline}}</span></div>
+</footer>
 <script type="application/json" id="ordering-data">{{runtime}}</script>
 </body></html>
