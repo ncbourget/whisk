@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="theme-color" content="#f7f5ec">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{brand}} — {{tagline}}">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+{{meta}}
+<link rel="icon" href="{{base}}/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{base}}/assets/css/site.css">
+<script defer src="{{base}}/assets/js/site.js"></script>
+</head>
+<body class="{{pageClass}}">
+<a class="skip-link" href="#main">Skip to content</a>
+{{demo}}
+<header class="site-header wrap">
+<a class="brand" href="{{base}}/" aria-label="{{brand}} — {{tagline}}, home"><span>{{brand}}</span><small>{{tagline}}</small></a>
+<nav aria-label="Main navigation">{{nav}}</nav>
+{{order}}
+</header>
+<main id="main" class="wrap" tabindex="-1">{{body}}</main>
+<footer class="site-footer"><div class="wrap footer-top"><div><a class="brand" href="{{base}}/"><span>{{brand}}</span><small>{{tagline}}</small></a><p class="handwritten">{{footer}}</p></div><div><p class="eyebrow">Come by the window</p><a href="{{base}}/menu/">Menu &amp; order</a><a href="{{base}}/find-us/">Find Whisk</a><a href="{{base}}/about/">Our story</a></div><div><p class="eyebrow">A few useful things</p><a href="{{base}}/faq/">Pickup &amp; FAQs</a><a href="{{base}}/contact/">Contact Cindy</a>{{socials}}</div></div><div class="wrap footer-bottom"><span>© WHISK · Baked by Cindy</span><span>Small batches. Happy detours.</span></div></footer>
+<script type="application/json" id="ordering-data">{{runtime}}</script>
+</body></html>

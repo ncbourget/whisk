@@ -1,0 +1,1 @@
+Place approved brand assets here. The social image slot is configured in data/site.json (socialImage + socialImageAlt). Use a real 1200 × 630 JPG, PNG, or WebP; no raster placeholder was fabricated. Set the path only after the file exists.
