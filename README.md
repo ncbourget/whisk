@@ -53,6 +53,8 @@ npm run build
 
 This second build includes a server-only `_worker.js`; deploy it only to Cloudflare Pages advanced mode. Never serve it as a static download. Configure the Access application and runtime allowlist exactly as described in [DEPLOYMENT.md](DEPLOYMENT.md). [ARCHITECTURE.md](ARCHITECTURE.md) inventories every endpoint and the full authentication boundary.
 
+In Cloudflare Pages, set the production build command to `npm ci && npm run build`, the output directory to `_site`, and the production branch to `main`. After reconnecting GitHub, push a new commit to trigger a deployment and confirm that Cloudflare lists that commit in its deployment details.
+
 ## Square
 
 Public hosted checkout URLs only. Add Cindy’s Square shop URL under Bakery details, or an item payment link under its menu entry. A missing item link does not silently substitute an unrelated general payment link. For multi-item baskets, use Cindy’s Square Online shop. Keep actual stock, pickup settings, taxes, cutoffs, and notifications in Square. The custom website does not collect card details or verify payment.
