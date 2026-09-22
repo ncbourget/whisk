@@ -310,10 +310,12 @@ def render(data, now=None):
     else:
         outputs['sitemap.xml'] = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
         outputs['robots.txt'] = 'User-agent: *\nDisallow: /\n'
+    from concept import render_concept
+    outputs['concept/index.html'] = render_concept(data)
     return outputs
 
 PUBLIC_ASSETS = {
-    'assets/css/brand.css', 'assets/css/site.css',
+    'assets/css/brand.css', 'assets/css/site.css', 'assets/css/concept.css',
     'assets/js/site.js', 'assets/icons/favicon.svg',
     'assets/brand/whisk-wordmark.svg', 'assets/brand/whisk-wordmark-reversed.svg',
     'assets/illustrations/whisk.svg', 'assets/trailer/trailer.svg',

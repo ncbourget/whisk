@@ -98,7 +98,7 @@ class Handler(SimpleHTTPRequestHandler):
         # raw JSON, source files, backups, symlink escapes, or encoded traversal.
         public = set(build.ROUTES)
         public = {r+'index.html' if not r or r.endswith('/') else r for r in public}
-        public |= {'robots.txt','sitemap.xml'} | build.public_assets(data)
+        public |= {'robots.txt','sitemap.xml','concept/index.html'} | build.public_assets(data)
         if admin and not self.authorized():
             return self.answer(401,{'error':'Open Start Whisk.command to authenticate the local editor.'})
         if self.authorized():
