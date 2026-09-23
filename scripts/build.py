@@ -222,7 +222,7 @@ def render(data, now=None):
         return '<aside class="sample-note"><strong>Sample menu.</strong> Items, illustrations, and prices are examples. The opening menu is not yet confirmed.</aside>' if site['demo'] else ''
     # Presentation only: keep all ordering gates and data contracts above unchanged.
     trailer = f'''<div class="trailer-scene">
-      <img class="trailer" src="{page("assets/trailer/trailer.svg")}" width="900" height="530" alt="" fetchpriority="high">
+      <img class="trailer" src="{page("assets/splashscreen/trailer.svg")}" width="900" height="530" alt="" fetchpriority="high">
       <a class="service-window" href="{page("menu/")}" aria-label="View Whisk’s menu and ordering availability">
         <span class="eyebrow" data-business-status>{e(STATUSES[site["status"]])}</span>
         <strong>Menu<br>&amp; order</strong><span class="window-action" aria-hidden="true">View menu →</span>
@@ -315,10 +315,11 @@ def render(data, now=None):
     return outputs
 
 PUBLIC_ASSETS = {
-    'assets/css/brand.css', 'assets/css/site.css', 'assets/css/concept.css',
+    'assets/css/brand.css', 'assets/css/site.css', 'assets/css/concept.css', 'assets/splashscreen/airstream.WebP', 'assets/splashscreen/bottom.jpg', 'assets/logo/SVG/Asset 1.svg',
+    'assets/food/morning_bun.jpg', 'assets/food/choc_cookie.jpg', 'assets/food/Lemon_loaf.jpg', 'assets/food/scone.jpg',
     'assets/js/site.js', 'assets/icons/favicon.svg',
     'assets/brand/whisk-wordmark.svg', 'assets/brand/whisk-wordmark-reversed.svg',
-    'assets/illustrations/whisk.svg', 'assets/trailer/trailer.svg',
+    'assets/illustrations/whisk.svg', 'assets/splashscreen/trailer.svg',
     'assets/fonts/fraunces-latin-variable.woff2', 'assets/fonts/public-sans-latin-variable.woff2',
     'assets/fonts/ibm-plex-mono-latin-regular.woff2',
     'assets/fonts/fraunces-OFL.txt', 'assets/fonts/public-sans-OFL.txt', 'assets/fonts/ibm-plex-mono-OFL.txt',

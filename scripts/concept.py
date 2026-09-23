@@ -1,25 +1,37 @@
-"""Isolated concept renderer; no ordering, editor or persistence logic."""
+"""Isolated composition; ordering remains on the existing menu."""
 from html import escape as e
 from pathlib import Path
 
 def render_concept(data):
-    site = data['site']
-    base = site['basePath'].rstrip('/')
+    site=data['site']; base=site['basePath'].rstrip('/')
     def url(path): return e(base+'/'+path)
-    def shot(code, title, notes, cls=''):
-        return f'<div class="photo-brief {cls}"><span class="mono">PHOTO NEEDED / {code}</span><strong>{title}</strong><p>{notes}</p><span class="frame-corner" aria-hidden="true"></span></div>'
-    trailer = (Path(__file__).resolve().parents[1]/'assets/trailer/trailer.svg').read_text()
-    trailer = trailer.replace('<defs>', '<defs><clipPath id="environment"><path d="M117 396V183C117 92 166 52 265 52H635C725 52 772 116 772 201V402H117Z"/></clipPath>')
-    marker = '<path d="M135 394'
-    reflection = '''<g clip-path="url(#environment)"><path d="M100 50H800V245Q560 204 100 252Z" fill="#8dd1f5"/><path d="M100 185Q420 120 800 200L800 232Q480 188 100 244Z" fill="#fffdf3"/><path d="M100 250Q330 202 520 259T800 241V332H100Z" fill="#244c32"/><path d="M100 298Q390 347 800 283V410H100Z" fill="#a9c943"/><path d="M100 356Q380 311 800 365" stroke="#faffde" stroke-width="12"/><path d="M168 75Q126 235 172 400M709 65Q766 240 710 403" stroke="white" stroke-width="19" opacity=".65"/></g>'''
-    trailer = trailer.replace(marker, reflection+marker).replace('<svg ', '<svg role="img" aria-label="Provisional schematic trailer reflecting the blue sky and green ground" ',1)
-    items = sorted((i for i in data['menu'] if i['available']),key=lambda i:i['position'])[:4]
-    products = ''
-    for n,i in enumerate(items,1):
-        label = 'Sample product' if site['demo'] else 'Menu selection'
-        products += f'<article>{shot(f"M{n:02}",e(i["name"]),"4:3 · close crop<br>Daylight / plain paper / real bake")}<span class="mono item-label">{label}</span><h3>{e(i["name"])}</h3><p>{e(i["description"])}</p><a href="{url("menu/#"+i["id"])}">View menu details ↗</a></article>'
-    nav = ''.join(f'<a href="{url(p)}">{t}</a>' for p,t in [('menu/','Menu'),('about/','About'),('find-us/','Find us'),('faq/','FAQ'),('contact/','Contact')])
-    template = (Path(__file__).resolve().parents[1]/'templates/concept.html').read_text()
-    values = {'base':e(base),'nav':nav,'trailer':trailer,'products':products,'status':e(site['statusNote']), 'heroShot':shot('H01','The trailer, in its element.','Landscape 3:2 · camera at waist height<br>Open window / blue sky / grass foreground<br>Keep the left third quiet for typography','wide-brief'), 'detailShot':shot('D01','At the service window.','Landscape 3:2 · counter height<br>One real bake / paper / reflected sky'), 'sample':'Sample menu · not for sale' if site['demo'] else 'Current selections · see menu for availability'}
-    for k,v in values.items(): template=template.replace('{{'+k+'}}',v)
+    items=sorted((i for i in data['menu'] if i['available']),key=lambda i:i['position'])[:4]
+    photos={
+        'morning-bun':('morning_bun.jpg',1200,1200,'Sugar-coated morning buns on white plates'),
+        'chocolate-cookie':('choc_cookie.jpg',500,500,'Chocolate chip cookies on baking paper'),
+        'lemon-loaf':('Lemon_loaf.jpg',1200,1800,'Slices of glazed lemon loaf'),
+        'weekend-scone':('scone.jpg',1200,1799,'Glazed scones on baking paper'),
+    }
+    products=''
+    for n,item in enumerate(items,1):
+        photo=photos.get(item['id'])
+        visual=(f'<img class="food-photo" src="{url("assets/food/"+photo[0])}" width="{photo[1]}" height="{photo[2]}" alt="{e(photo[3])}" loading="lazy" decoding="async">' if photo else '<div class="food-space" aria-hidden="true"></div>')
+        products+=f'''<article class="bake bake-{n}">{visual}<div class="bake-copy"><h3><a href="{url('menu/#'+item['id'])}">{e(item['name'].rstrip('.'))}</a></h3><p>{e(item['description'])}</p><span class="sample-price" aria-label="Sample price: {item['price']:.2f} {e(site['currency'])}">${item['price']:.2f}</span></div></article>'''
+    nav=''.join(f'<a href="{url(p)}">{t}</a>' for p,t in [('menu/','Menu'),('about/','About'),('find-us/','Find us'),('faq/','FAQ'),('contact/','Contact')])
+    icons={
+        'instagram':'<rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/>',
+        'facebook':'<path fill="currentColor" d="M24 12A12 12 0 1 0 10 23.8v-8.3H7v-3.5h3V9.3C10 6.3 11.8 4.7 14.4 4.7c1.3 0 2.6.2 2.6.2V8h-1.5c-1.5 0-1.9.9-1.9 1.8V12h3.3l-.5 3.5h-2.8v8.3A12 12 0 0 0 24 12Z"/>',
+    }
+    socials=''
+    for name,shapes in icons.items():
+        icon=f'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">{shapes}</svg>'
+        if site[name]:
+            socials+=f'<a class="social-icon" href="{e(site[name])}" aria-label="Whisk on {name.title()}">{icon}</a>'
+        else:
+            socials+=f'<span class="social-icon" role="img" aria-label="{name.title()} — profile link pending" title="Profile link pending">{icon}</span>'
+    nav_left=''.join(f'<a href="{url(path)}">{label}</a>' for path,label in [('menu/','Menu'),('about/','About'),('find-us/','Find us')])
+    nav_right=''.join(f'<a href="{url(path)}">{label}</a>' for path,label in [('faq/','FAQ'),('contact/','Contact')])+socials
+    template=(Path(__file__).resolve().parents[1]/'templates/concept.html').read_text()
+    for key,value in {'base':e(base),'nav':nav,'nav_left':nav_left,'nav_right':nav_right,'products':products,'status':e(site['statusNote']),'sample':'A taste of the sample menu. Ordering is not open yet.' if site['demo'] else 'See the menu for current availability and ordering.'}.items():
+        template=template.replace('{{'+key+'}}',value)
     return template

@@ -39,3 +39,25 @@ Evaluate the page with Cindy's real wide trailer photo, actual logo and two lice
 ## Verification
 
 Cloudflare build succeeded. Existing 18 Python and 5 server authorization tests passed. Original generated pages and shared styles have no git changes. Desktop and mobile browser review checks layout and menu navigation. No deployment or push was performed for this experiment.
+
+## September 23 — authored render composition pass (supersedes schematic layout above)
+
+Nate supplied a non-AI, custom 3D render based on Cindy's trailer. The source on disk was lowercase `airstream.webp`; its casing was corrected to the requested `assets/trailer/airstream.WebP` without recompression or duplication. Dimensions are 2560 × 1440. The build allowlist explicitly copies this exact path, including on case-sensitive hosts.
+
+The hero now uses this image edge-to-edge with eager/high-priority loading and explicit dimensions. Transparent navigation and oversized Whisk typography occupy the sky; offset supporting text and an underlined CTA replace the rigid heading stack. The image supplies the landscape and chrome, replacing the schematic SVG and separate sky/ground blocks. On phones the crop favors the trailer (67% horizontal position); a mobile `<source>` is ready for a dedicated portrait render. The supplementary hero phrase is omitted on phones to keep functional text in the sky.
+
+Removed visitor-facing design-study ribbon, numbered environment labels, schematic/photo-pending captions, artwork-slot labels and all PHOTO NEEDED boxes. One short sample-menu disclosure remains because current products are not a confirmed live offering. No fictional prices, availability or locations were added.
+
+The recipe composition alternates widths, offsets and oversized low-contrast recipe numerals behind real menu text. These typographic compositions stand in for missing photographs without pretending to depict food. Two simple replaceable SVG marks (`data-art="butter"` and `data-art="rolling-pin"`) reserve compositional positions for licensed artwork; they are abstract strokes, not fake hand drawings. The existing illustration assets were not treated as licensed originals. Replace these nodes with supplied licensed exports when available.
+
+The location section returns to an angled crop of the same render. It references the same file, with no copied image. The only motion is a short white underline glint on CTA hover/focus, disabled for reduced motion. Existing production pages, shared CSS, editor, backend, content records and Cloudflare configuration were not redesigned. The one shared build change only includes the concept image in the public asset allowlist.
+
+## Photo menu and meadow refinement
+
+The concept uses the four user-supplied food JPEGs, with existing sample prices ($4.50, $3.50, $4.00, $4.00). Prices remain prototype content; ordering and production menu data are unchanged. The visible sample notice and product-title punctuation were removed as requested. Desktop has a single-line Georgia heading followed by a 0.5pt rule, with VIEW FULL MENU sitting above its right end. Mobile wraps the heading and puts the link on a separate full-width rule, keeping a 2×2 menu.
+
+The lower section uses the supplied `assets/splashscreen/bottom.jpg` as a continuous meadow image; no date or venue was invented. Fine, uneven SVG tears replace the larger zigzags. Assets now follow the user-renamed splashscreen directory. Main/about page image references were repaired for the moved existing trailer SVG; their visual design did not change.
+
+## Logo and caption correction
+
+The supplied `assets/logo/SVG/Asset 1.svg` replaces the serif hero wordmark, with its existing Baked by Cindy lettering retained inside the SVG. The navigation W. has been removed without adding another logo there. All concept captions, navigation, functional links and prices now use 15px Courier New Bold (700), including mobile. Georgia product headings remain headings. Removed the underline glint pseudo-element, hover animation and keyframes; the other site styles have no active animations. Static focus outlines remain for keyboard access.
