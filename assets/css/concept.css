@@ -80,3 +80,5 @@ a:not(.footer-word):not(.nav-brand):not(h3 a),.mono,.intro,.bake p,.sample-price
 header .split-nav{width:100%;max-width:none;display:flex;justify-content:space-between;align-items:center;gap:20px}
 .nav-left,.nav-right{display:flex;align-items:center;gap:28px}.social-icon{display:inline-flex;width:24px;height:28px;align-items:center;justify-content:center;color:#000;flex-shrink:0}.social-icon svg{display:block}
 @media(max-width:650px){header .split-nav{align-items:flex-start;flex-wrap:nowrap;gap:16px}.nav-left,.nav-right{gap:10px 14px;flex-wrap:wrap}.nav-left{justify-content:flex-start;max-width:150px}.nav-right{justify-content:flex-end;max-width:150px}.hero-copy{top:112px}}
+/* Lower the meadow framing by 30px while keeping the section fully covered. */
+.field-image{height:calc(100% + 30px)}

@@ -151,3 +151,11 @@ GitHub Pages preparation is retained, but its current commerce restriction makes
 - Square catalog sync: an adapter can normalize public catalog data to this same menu shape. See SQUARE.md; no token ever belongs in browser code.
 
 A free Git-backed CMS such as Decap could provide a hosted authoring experience but would add GitHub OAuth/auth-proxy setup, maintenance, and image workflows. It is not installed. Square as the product source is usually the more useful next investment if double entry becomes burdensome. The local notebook needs no paid service. Hosted notebook authentication is prepared for Cloudflare Access; hosted publication remains Git-backed and explicit.
+
+## Storefront migration and cart boundary — September 24, 2026
+
+`scripts/storefront.py` generates the promoted homepage, shared inner-page design, item pages and cart. `snapshots/` contains frozen public design references with their own asset copies. The public build and local server explicitly allowlist these outputs; they do not expose editor source, raw content JSON, backups or Worker source.
+
+`assets/js/cart.js` is a non-authoritative browser cart. Its public data is limited to visible item IDs, names, prices, sold-out status and public image information. It holds no customer/payment/admin credentials. It cannot place orders, reserve stock or publish edits. There is no new public write endpoint. The existing Access verification and hosted 405 write refusals remain intact.
+
+Hosted phone publishing and Square order creation are NOT implemented by this migration. See BACKEND-NEXT-STEPS.md for the required server boundaries, configuration and acceptance tests. Future customer checkout belongs on a dedicated public commerce route, separate from privileged `/api/` editor routes; admin Access must never be bypassed to make customer checkout work.

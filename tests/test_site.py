@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from html.parser import HTMLParser
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import build
 
@@ -87,7 +87,7 @@ class SiteTests(unittest.TestCase):
                 for link in parsed.links:
                     if not link.startswith('/'):continue
                     self.assertTrue(link.startswith(base+'/'))
-                    relative=urlsplit(link).path[len(base):].lstrip('/')
+                    relative=unquote(urlsplit(link).path[len(base):]).lstrip('/')
                     if not relative or relative.endswith('/'):relative+='index.html'
                     self.assertTrue(relative in outputs or (build.ROOT/relative).is_file(),f'{filename}: {link}')
             self.assertIn('The morning bun',outputs['menu/index.html'])

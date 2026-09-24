@@ -1,0 +1,59 @@
+/* WHISK BRAND — provisional system, ready for Cindy's daughter's approved assets.
+   Exactly three text roles. The logo is an SVG asset, never a UI font.
+   All fonts are self-hosted, SIL OFL; see assets/fonts/. */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../fonts/fraunces-latin-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Public Sans';
+  src: url('../fonts/public-sans-latin-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../fonts/ibm-plex-mono-latin-regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+:root {
+  /* WHISK BRAND: replace with final approved color values. Not screenshot samples. */
+  --whisk-blue: #b7c4e8;
+  --ink: #20283f;
+  --paper: #f8f7f2;
+  --white: #ffffff;
+  --silver: #c8cdd3;
+  --silver-dark: #7b8592;
+  --silver-light: #e9eced;
+  --muted: #596175;
+  --border: #c4c8d0;
+  --focus: var(--ink);
+  --accent: var(--ink); /* Compatibility alias; no separate accent color. */
+  /* WHISK BRAND: font roles. Update these and @font-face together. */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-heading: var(--font-display);
+  --font-body: 'Public Sans', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --display-axes: 'SOFT' 40, 'WONK' 1;
+  --type-hero: clamp(2.625rem, 5.6vw, 5.4rem);
+  --type-page: clamp(2.625rem, 5vw, 4.5rem);
+  --type-section: clamp(2rem, 3.2vw, 3.1rem);
+  --type-item: clamp(1.4rem, 1.7vw, 1.7rem);
+  --type-body: 1rem;
+  --type-meta: .8125rem;
+  --type-small: .875rem;
+  --space-1: .5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 3rem;
+  --space-6: 4.5rem;
+  --radius-small: 2px;
+  --shadow-paper: none;
+}

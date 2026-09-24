@@ -268,7 +268,7 @@ def render(data, now=None):
     menu_page += f'''<section class="info-pair"><div><h2>Pickup</h2><p>{e(site["pickup"])}</p><p>{e(site["cutoff"])}</p>{action("Pickup & ordering questions",page("faq/"),"text-link")}</div><div><h2>Ingredients & allergens</h2><p>{e(site["allergens"])}</p>{action("Ask Cindy",page("contact/"),"text-link")}</div></section>'''
     about = intro('',site['aboutHeading'].replace('\n',' '))+f'''<section class="about-layout">{trailer}<div class="prose"><p class="lede">{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p>{action("Find the trailer",page("find-us/"))}</div></section>'''
     find = intro('Locations & hours','Find Whisk.')+f'''<section class="find-layout"><div><h2 class="sr-only">Upcoming stops</h2>{event_list()}</div><aside class="paper-note"><h2>Before you visit</h2><strong class="meta" data-business-status>{e(STATUSES[site["status"]])}</strong><p>{e(site["statusNote"])}</p><p>{e(site["hours"])}</p>'''+ (f'<p>{e(site["serviceArea"])}</p>' if site['serviceArea'] else '')+socials()+'</aside></section>'
-    questions = [('How do I order?', 'When online ordering is open, follow an item’s Order on Square link, or use our Square shop if available. You’ll review the order and pay on Square. This website never asks for card details.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?',site['cutoff']),('Can I order several things together?','If our Square shop is linked, add your items to the basket there. Individual payment links may create separate orders. Check your pickup details before paying.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for storage notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
+    questions = [('How do I order?', 'Ordering is not open yet. You can try the cart on Whisk; no order is sent and no payment is taken. Once connected, checkout will send your complete order to Square for payment and pickup confirmation.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?',site['cutoff']),('Can I order several things together?','Yes. Add items to your Whisk cart, then review everything together. Checkout is not open yet. Pickup availability and preparation time will be confirmed before payment.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for storage notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
     faq = intro('','Good to know.','Ordering, pickup, and ingredients.')+'<div class="faq-list">'+''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q,a in questions)+'</div>'+f'<div class="faq-contact"><p>Have another question?</p>{action("Contact Cindy",page("contact/"),"text-link")}</div>'
     contact_page = intro('','Say hello.','For questions about the menu, pickup, or an existing order.')+f'''<section class="info-pair contact-info"><div><h2>Contact Cindy</h2>{contact()}<p class="small muted">For an existing order, include your order number and pickup date. Please don’t send card details.</p></div><div><h2>Follow Whisk</h2>{socials()}<button class="text-link" type="button" id="share-site" hidden>Copy website link</button><p class="small" id="share-message" role="status"></p></div></section>'''
     order = intro('','Order from Whisk.')+f'''<section class="order-panel"><h2>{"Order through Square" if can_order(site,now) else "Ordering is closed."}</h2><p data-order-message>{"Payment and confirmation happen securely on Square." if can_order(site,now) else "You can browse the menu while ordering is closed."}</p>{order_action()}<p>{e(site["pickup"])}</p>{action("Trouble with checkout? Contact Cindy",page("contact/"),"text-link")}</section>'''
@@ -304,14 +304,15 @@ def render(data, now=None):
             html = html.replace('{{'+k+'}}',v)
         outputs[route+'index.html' if route.endswith('/') or not route else route] = html
     if origin and not site['demo']:
-        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in ROUTES if r != '404.html')
+        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in list(ROUTES)+['menu/'+i['id']+'/' for i in visible] if r != '404.html')
         outputs['sitemap.xml'] = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls+'</urlset>'
         outputs['robots.txt'] = 'User-agent: *\nAllow: /\nDisallow: '+page('editor/')+'\nSitemap: '+origin+page('sitemap.xml')+'\n'
     else:
         outputs['sitemap.xml'] = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
         outputs['robots.txt'] = 'User-agent: *\nDisallow: /\n'
     from concept import render_concept
-    outputs['concept/index.html'] = render_concept(data)
+    from storefront import render_storefront
+    outputs.update(render_storefront(data, outputs))
     return outputs
 
 PUBLIC_ASSETS = {
@@ -326,7 +327,7 @@ PUBLIC_ASSETS = {
 }
 
 def public_assets(data):
-    paths = PUBLIC_ASSETS | {i['image'] for i in data['menu'] if i['available'] and i['image']}
+    paths = {'assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] if i['available'] and i['image']}
     if data['site']['socialImage']:
         paths.add(data['site']['socialImage'])
     return paths

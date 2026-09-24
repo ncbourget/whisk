@@ -1,0 +1,48 @@
+.storefront-inner{background:#faf3e3}.storefront-inner header{position:relative;background:#faf3e3}.store-page{padding:65px 8% 100px;min-height:65vh}.store-page h1{font:400 clamp(42px,6vw,76px)/1.06 Georgia,serif;margin:20px 0 42px}.store-page h2{font:400 32px/1.15 Georgia,serif}.store-page p,.store-page label,.store-page button,.store-page input,.cart-row,.store-page>a{font:400 15px/1.65 'Courier New',monospace}.store-page p,.store-page label,.store-page button,.store-page>a{text-transform:uppercase}.store-page a{color:#000}.store-page .bakes{padding:0;gap:28px}.store-page .bake{width:auto}.store-page .bake h3{font:400 25px/1.2 Georgia,serif}.store-page .bake h3 a{text-transform:none}.store-page .food-photo{width:100%;aspect-ratio:4/3;object-fit:cover}.store-note{border-top:.5pt solid #000;margin-top:40px;padding-top:24px;max-width:800px}.item-detail{display:grid;grid-template-columns:1fr 1fr;gap:6%;margin-top:36px}.item-detail h1{font-size:48px;margin:16px 0}.store-page button{border:1px solid #000;background:transparent;padding:12px 20px;cursor:pointer}.store-page button:disabled{opacity:.55;cursor:not-allowed}.store-page input{width:70px;padding:8px;border:1px solid #000;background:transparent;margin:0 12px}.cart-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:.5pt solid #000;padding:24px 0}.cart-row>a{flex:1;min-width:180px}.cart-link{white-space:nowrap}.store-page .about-layout{display:grid;grid-template-columns:1fr 1fr;gap:6%}.store-page .about-layout img{width:100%;height:auto}.store-page .find-layout{display:grid;grid-template-columns:2fr 1fr;gap:6%}.store-page details{padding:20px 0;border-bottom:.5pt solid #000}.store-page summary{font:400 24px Georgia,serif;cursor:pointer}.store-page .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.store-page .page-heading{margin-bottom:40px}.store-page .event-card{padding:24px 0;border-bottom:.5pt solid #000}
+@media(max-width:700px){.store-page{padding:40px 6% 70px}.item-detail,.store-page .about-layout,.store-page .find-layout{grid-template-columns:1fr}.item-detail{gap:24px}.item-detail h1{font-size:38px}.store-page .bakes{gap:24px 16px}.store-page .bake h3{font-size:23px}.cart-row{gap:16px}.cart-row>a{flex-basis:100%}.split-nav .nav-right{max-width:190px}}
+.store-page .page-heading{display:block;position:static;padding:0;text-align:left;background:none}.store-page .eyebrow,.store-page .meta{font:400 15px/1.65 'Courier New',monospace;text-transform:uppercase}.store-page h3{font:400 26px/1.2 Georgia,serif}.store-page .find-layout{border-top:.5pt solid #000;padding-top:30px}
+/* Fine, static underlines across the current storefront. */
+a,a:hover,.bake h3 a:hover{ text-decoration-thickness:.5pt; }
+.sun-link{border-bottom-width:.5pt}
+.hero-copy>.sun-link{padding-bottom:0;line-height:1.3}
+.store-page .ingredients{border:0;margin-top:24px;padding:0}
+.store-page .ingredients summary{font:700 15px/1.65 'Courier New',Courier,monospace;text-transform:uppercase;list-style:none}
+.store-page .ingredients summary::-webkit-details-marker{display:none}
+.store-page .ingredients summary:focus-visible{outline:2px solid #000;outline-offset:4px}
+.store-page .ingredients p{font:400 15px/1.65 'Courier New',Courier,monospace;text-transform:none;margin-top:12px}
+/* Keep the product quantity and purchase controls aligned at every viewport. */
+.item-detail #quantity,
+.item-detail [data-add-item]{box-sizing:border-box;height:48px;vertical-align:middle}
+/* Compact mobile navigation and centered signature footer. */
+.mobile-brand,.menu-toggle{display:none}
+.main-footer{flex-direction:column;justify-content:center;align-items:center;gap:24px;padding:35px 5%}
+.footer-logo{display:block;width:140px;line-height:0}
+.footer-logo img{display:block;width:100%;height:auto}
+.main-footer nav{justify-content:center;max-width:none;flex-wrap:wrap}
+#mobile-menu{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:85px 24px 30px;border:0;background:#faf3e3;color:#000;z-index:100;overflow:auto}
+#mobile-menu::backdrop{background:#faf3e3}
+#mobile-menu[open]{animation:menu-appear 140ms ease-out}
+#mobile-menu nav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,3vh,30px);min-height:calc(100% - 30px);max-width:none}
+#mobile-menu nav a{font:400 19px/1.4 'Courier New',monospace!important;padding:8px 24px;text-transform:uppercase;text-decoration:none}
+.menu-close,.menu-toggle{border:0;background:transparent;color:#000;width:48px;height:48px;cursor:pointer;align-items:center;justify-content:center}
+.menu-close{position:absolute;right:5%;top:12px;display:flex;font:400 42px/1 Arial,sans-serif}
+body.menu-open{overflow:hidden}
+@keyframes menu-appear{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){
+ .main-header,.storefront-inner .main-header{height:72px;padding:8px 5%;display:flex;justify-content:space-between;align-items:center;background:#faf3e3}
+ .main-header .split-nav{display:none}
+ .mobile-brand{display:block;width:74px;line-height:0}
+ .mobile-brand img{width:100%;height:auto;display:block}
+ .menu-toggle{display:flex}
+ .main-footer{padding:30px 4% 35px;gap:22px}
+ .main-footer .footer-home{display:none}
+ .main-footer nav{width:100%;gap:clamp(10px,3vw,22px);flex-wrap:nowrap;align-items:center;justify-content:center}
+ .main-footer nav a{font-size:12px!important;white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){#mobile-menu[open]{animation:none}}
+/* Keep mobile navigation available while scrolling every storefront page. */
+@media(max-width:700px){
+ .main-header,.storefront-inner .main-header{position:fixed;top:0;left:0;right:0;z-index:20}
+ body{padding-top:72px}
+ html{scroll-padding-top:84px}
+}

@@ -16,7 +16,9 @@ def render_concept(data):
     for n,item in enumerate(items,1):
         photo=photos.get(item['id'])
         visual=(f'<img class="food-photo" src="{url("assets/food/"+photo[0])}" width="{photo[1]}" height="{photo[2]}" alt="{e(photo[3])}" loading="lazy" decoding="async">' if photo else '<div class="food-space" aria-hidden="true"></div>')
-        products+=f'''<article class="bake bake-{n}">{visual}<div class="bake-copy"><h3><a href="{url('menu/#'+item['id'])}">{e(item['name'].rstrip('.'))}</a></h3><p>{e(item['description'])}</p><span class="sample-price" aria-label="Sample price: {item['price']:.2f} {e(site['currency'])}">${item['price']:.2f}</span></div></article>'''
+        if item['image']:
+            visual=f'<img class="food-photo" src="{url(item["image"])}" width="800" height="600" alt="{e(item["imageAlt"])}" loading="lazy">'
+        products+=f'''<article class="bake bake-{n}"><a href="{url('menu/'+item['id']+'/')}" aria-label="{e(item['name'])}">{visual}</a><div class="bake-copy"><h3><a href="{url('menu/'+item['id']+'/')}">{e(item['name'].rstrip('.'))}</a></h3><p>{e(item['description'])}</p><span class="sample-price" aria-label="Sample price: {item['price']:.2f} {e(site['currency'])}">${item['price']:.2f}</span></div></article>'''
     nav=''.join(f'<a href="{url(p)}">{t}</a>' for p,t in [('menu/','Menu'),('about/','About'),('find-us/','Find us'),('faq/','FAQ'),('contact/','Contact')])
     icons={
         'instagram':'<rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/>',
@@ -29,7 +31,7 @@ def render_concept(data):
             socials+=f'<a class="social-icon" href="{e(site[name])}" aria-label="Whisk on {name.title()}">{icon}</a>'
         else:
             socials+=f'<span class="social-icon" role="img" aria-label="{name.title()} — profile link pending" title="Profile link pending">{icon}</span>'
-    nav_left=''.join(f'<a href="{url(path)}">{label}</a>' for path,label in [('menu/','Menu'),('about/','About'),('find-us/','Find us')])
+    nav_left=''.join(f'<a href="{url(path)}">{label}</a>' for path,label in [('','Home'),('menu/','Menu'),('about/','About'),('find-us/','Find us')])
     nav_right=''.join(f'<a href="{url(path)}">{label}</a>' for path,label in [('faq/','FAQ'),('contact/','Contact')])+socials
     template=(Path(__file__).resolve().parents[1]/'templates/concept.html').read_text()
     for key,value in {'base':e(base),'nav':nav,'nav_left':nav_left,'nav_right':nav_right,'products':products,'status':e(site['statusNote']),'sample':'A taste of the sample menu. Ordering is not open yet.' if site['demo'] else 'See the menu for current availability and ordering.'}.items():

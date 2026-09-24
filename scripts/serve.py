@@ -96,7 +96,7 @@ class Handler(SimpleHTTPRequestHandler):
         admin = relative in {'editor/index.html','assets/js/editor.js','assets/css/editor.css'}
         # Allowlisting applies equally to GET and HEAD; no directory listings,
         # raw JSON, source files, backups, symlink escapes, or encoded traversal.
-        public = set(build.ROUTES)
+        public = set(build.render(data))
         public = {r+'index.html' if not r or r.endswith('/') else r for r in public}
         public |= {'robots.txt','sitemap.xml','concept/index.html'} | build.public_assets(data)
         if admin and not self.authorized():
