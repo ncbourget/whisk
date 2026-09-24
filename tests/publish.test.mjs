@@ -8,6 +8,7 @@ function mock({conflict=false}={}){
  const calls=[];let committed;
  const transport=async(url,options)=>{
   assert.ok(url.startsWith('https://api.github.com/repos/ncbourget/whisk/'));
+  assert.equal(options.redirect,'manual');
   const path=url.split('/whisk')[1];const body=options.body?JSON.parse(options.body):null;calls.push({path,method:options.method,body});
   if(path==='/git/ref/heads/main')return Response.json({object:{sha:'head'}});
   if(path==='/git/commits/head')return Response.json({tree:{sha:'tree'}});
@@ -45,4 +46,9 @@ test('Uploads are size limited, disallow SVG, and use content-derived paths',asy
  const {service,calls}=mock();const result=await service.photo(new Request('https://example.com/api/photo',{method:'POST',headers:{'Content-Type':'image/png','X-File-Name':'../../injected.js'},body:new Uint8Array([137,80,78,71,13,10,26,10,0])}));
  assert.match(result.path,/^assets\/food\/upload-[a-f0-9]{64}\.png$/);
  assert.equal(calls.find(c=>c.path==='/git/trees'&&c.method==='POST').body.tree[0].path,result.path);
+});
+
+test('GitHub redirects are rejected without forwarding the publishing credential',async()=>{
+ let calls=0;const service=publisher({GITHUB_CONTENT_TOKEN:'test'},async(url,options)=>{calls++;assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{Location:'https://untrusted.example/'}});});
+ await assert.rejects(service.snapshot(),e=>e.status===503);assert.equal(calls,1);
 });

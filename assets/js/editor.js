@@ -95,11 +95,13 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   // Authorization is enforced by the server, never inferred from the hostname.
   // No public JSON fallback: an expired/absent session must fail closed.
   const res=await fetch('/api/content',{credentials:'same-origin',cache:'no-store'});
-  if(!res.ok||!res.headers.get('Content-Type')?.includes('application/json'))throw Error('Sign in again through Cloudflare Access, or reopen Start Whisk.command for local editing.');
-  const result=await res.json();data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  if(!res.headers.get('Content-Type')?.includes('application/json'))throw Error('The content request did not return editor data. Open /api/content in this signed-in browser to check its Access login or error page.');
+  const result=await res.json();
+  if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
+  data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
   document.getElementById('save').disabled=!local;document.getElementById('download').disabled=false;render();
- }catch(error){say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
+ }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();

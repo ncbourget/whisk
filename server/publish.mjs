@@ -3,9 +3,9 @@ import {PublishError,validateContent,readLimited,digest,imageExtension} from './
 const root='https://api.github.com/repos/ncbourget/whisk';
 const encoder=new TextEncoder();
 export const publishingEnabled=env=>env.EDITOR_PUBLISH_ENABLED==='true'&&typeof env.GITHUB_CONTENT_TOKEN==='string'&&env.GITHUB_CONTENT_TOKEN.length>20;
-export function publisher(env,transport=fetch){
+export function publisher(env,transport=(url,options)=>globalThis.fetch(url,options)){
  async function api(path,method='GET',body){
-  let response;try{response=await transport(root+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+env.GITHUB_CONTENT_TOKEN,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'Whisk-editor','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});}catch{throw new PublishError(503,'Publishing service unavailable. Reload to check whether your previous publish completed before trying again.');}
+  let response;try{response=await transport(root+path,{method,redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+env.GITHUB_CONTENT_TOKEN,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'Whisk-editor','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});}catch{throw new PublishError(503,'Publishing service unavailable. Reload to check whether your previous publish completed before trying again.');}
   if(!response.ok)throw new PublishError([409,422].includes(response.status)?409:503,[409,422].includes(response.status)?'The website changed while you were editing. Download your draft, reload, and merge your changes.':'Publishing is unavailable. Ask Nate to check the repository credential and branch permissions.');
   return response.json();
  }
