@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--type-body)/1.65 var(--font-body); -webkit-font-smoothing: antialiased; }
-a { color: inherit; text-underline-offset: .25em; text-decoration-thickness: 1px; }
+a { color: inherit; text-underline-offset: .25em; text-decoration-thickness: .5pt; }
 button, input, select, textarea { font: inherit; }
 a, button, summary { touch-action: manipulation; }
 button { cursor: pointer; }
@@ -28,8 +28,8 @@ p { margin-bottom: 1rem; }
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 24px; border: 1px solid var(--ink); border-radius: var(--radius-small); background: var(--ink); color: var(--white); font-size: .9375rem; font-weight: 550; line-height: 1.5; text-decoration: none; text-align: center; }
 .button:hover { background: var(--paper); color: var(--ink); }
 .small-button { min-height: 44px; padding: 10px 20px; }
-.text-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: .9375rem; font-weight: 500; line-height: 1.5; text-decoration: underline; text-decoration-thickness: 1px; }
-.text-link:hover { text-decoration-thickness: 2px; }
+.text-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: .9375rem; font-weight: 500; line-height: 1.5; text-decoration: underline solid .5pt; text-decoration-thickness: .5pt; }
+.text-link:hover { text-decoration-thickness: .5pt; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
 /* Logo files are intentionally neutral placeholders, never general-purpose script. */
 .brand { display: inline-flex; align-items: center; text-decoration: none; flex-shrink: 0; }
@@ -39,7 +39,7 @@ p { margin-bottom: 1rem; }
 .site-header { display: flex; justify-content: space-between; align-items: center; gap: 28px; padding-block: 20px; }
 .site-header nav { display: flex; gap: 34px; margin-left: auto; margin-right: 22px; }
 .site-header nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: .9375rem; text-decoration: none; }
-.site-header nav a:hover, .site-header nav a[aria-current] { text-decoration: underline; }
+.site-header nav a:hover, .site-header nav a[aria-current] { text-decoration: underline solid .5pt; }
 /* Status belongs in the first screen, before the expressive hero. */
 .status-strip { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px 28px; padding: 12px 0; border-top: 1px solid var(--border); }
 .status-strip strong { white-space: nowrap; }
@@ -55,7 +55,7 @@ p { margin-bottom: 1rem; }
 .service-window .eyebrow { font-size: .75rem; margin-bottom: 2px; }
 .service-window strong { font-family: var(--font-display); font-variation-settings: var(--display-axes); font-size: clamp(1.125rem, 2.6vw, 2.5rem); line-height: 1; font-weight: 500; letter-spacing: -.025em; }
 .service-window .window-action { font-family: var(--font-body); font-size: .8125rem; line-height: 1.4; margin-top: 8px; }
-.service-window:hover strong { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.service-window:hover strong { text-decoration: underline solid .5pt; text-decoration-thickness: .5pt; text-underline-offset: 3px; }
 .service-window:focus-visible { outline-color: var(--white); outline-offset: -3px; }
 .trailer-brand { position: absolute; left: 44%; top: 62.6%; width: 16%; height: auto; }
 /* Featured menu: a lead image and two quieter companions, no enclosing cards. */
@@ -114,7 +114,7 @@ p { margin-bottom: 1rem; }
 .footer-note:empty { display: none; }
 .footer-top .eyebrow { color: var(--whisk-blue); margin-bottom: 12px; }
 .footer-top > div > a:not(.brand), .footer-top nav a { display: flex; align-items: center; min-height: 44px; font-size: .9375rem; text-decoration: none; }
-.footer-top a:hover { text-decoration: underline; }
+.footer-top a:hover { text-decoration: underline solid .5pt; }
 .footer-top .muted { color: var(--silver-light); }
 .footer-bottom { border-top: 1px solid var(--silver-dark); padding-block: 16px; font-size: .75rem; color: var(--silver-light); }
 /* Normal pages: direct titles, useful measures, and no automatic kicker everywhere. */
@@ -127,7 +127,7 @@ p { margin-bottom: 1rem; }
 .menu-topline p { margin: 0; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 15px 0 22px; margin-bottom: 24px; border-bottom: 1px solid var(--ink); }
 .filters button { min-height: 44px; padding: 8px 17px; border: 1px solid transparent; border-radius: 0; background: transparent; color: var(--ink); font-size: .9375rem; }
-.filters button:hover { text-decoration: underline; }
+.filters button:hover { text-decoration: underline solid .5pt; }
 .filters button[aria-pressed='true'] { border-color: var(--ink); background: var(--ink); color: var(--white); }
 .menu-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 40px 50px; }
 .menu-grid .product { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: 24px; align-items: start; }
@@ -160,7 +160,7 @@ p { margin-bottom: 1rem; }
 .faq-list details:last-child { border-bottom: 1px solid var(--border); }
 summary { cursor: pointer; min-height: 44px; padding: 20px 0; font-weight: 550; }
 summary::marker { font-size: .75em; }
-details[open] summary { text-decoration: underline; text-underline-offset: 4px; }
+details[open] summary { text-decoration: underline solid .5pt; text-underline-offset: 4px; }
 .faq-list details p { max-width: 70ch; padding-bottom: 14px; }
 .faq-contact { display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap; margin-top: 26px; }
 .faq-contact p { margin: 0; }
@@ -294,3 +294,6 @@ details[open] summary { text-decoration: underline; text-underline-offset: 4px; 
   .product { break-inside: avoid; }
   .inner-page main { padding: 0; }
 }
+
+/* Keep brand artwork from being selected or dragged; home links remain clickable. */
+.brand,.brand img,.trailer-brand{-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
