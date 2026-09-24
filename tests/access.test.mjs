@@ -67,6 +67,16 @@ test('Missing configuration and alternate hostnames fail closed even with valid 
     assert.equal((await request('/api/content',{jwt,config:{...env,ADMIN_EMAILS:emails}})).status,503);
   for(const host of ['whisk.pages.dev','preview.whisk.pages.dev','other.example']) assert.equal((await request('/api/content',{jwt,host})).status,403);
 });
+test('Enabled publishing still requires signed authorization and exact same-origin writes',async()=>{
+  const config={...env,EDITOR_PUBLISH_ENABLED:'true',GITHUB_CONTENT_TOKEN:'not-a-real-token-for-testing'};
+  for(const path of ['/api/content','/api/photo']){
+    assert.equal((await request(path,{method:'POST',config})).status,401);
+    const jwt=await token();
+    for(const headers of [{},{Origin:'https://attacker.example'},{Origin:'https://bakery.example','Sec-Fetch-Site':'cross-site'}])
+      assert.equal((await request(path,{jwt,method:'POST',config,headers})).status,403);
+    assert.equal((await request(path,{jwt,method:'DELETE',config,headers:{Origin:'https://bakery.example'}})).status,405);
+  }
+});
 test('JWKS outage fails closed and public assets do not need authentication',async()=>{
   globalThis.fetch=async()=>{throw new Error('network unavailable');};
   try {assert.equal((await request('/api/content',{jwt:await token(),config:{...env,ACCESS_TEAM_DOMAIN:'https://offline.cloudflareaccess.com'}})).status,401);}

@@ -1,6 +1,6 @@
 /* Privileged editor. Every data request requires server-side authorization. No credentials live here. */
 'use strict';
-let data, current = 'site', local = false, dirty = false, revision = '', removeAction;
+let data, current = 'site', local = false, hosted = false, dirty = false, revision = '', removeAction;
 const fields = document.getElementById('editor-fields');
 const message = document.getElementById('editor-message');
 const form = document.getElementById('content-form');
@@ -16,7 +16,7 @@ const menuFields = [['name','Item name','text'],['category','Category','text'],[
 const eventFields = [['name','Location / venue name','text'],['address','Street address or venue details','text'],['start','Starts','datetime'],['end','Ends','datetime'],['status','Status','select',{confirmed:'Confirmed',tentative:'Tentative',cancelled:'Cancelled'}],['mapUrl','Directions link','url'],['description','A note about this stop','textarea'],['menuNote','Special menu note','textarea']];
 function say(text,error=false){message.textContent=text;message.className=error?'error':'';}
 function el(tag, text, cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
-function markDirty(){dirty=true;say('Unsaved changes. Save & preview when you’re ready.');}
+function markDirty(){dirty=true;say(hosted?'Unsaved changes. Publish when you’re ready.':'Unsaved changes. Save & preview when you’re ready.');}
 function localDate(value){
  if(!value)return '';
  const parts=new Intl.DateTimeFormat('en-US',{timeZone:data.site.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(value));
@@ -53,7 +53,7 @@ function field(def, object, prefix){
   if(local){const upload=el('input',undefined,'upload-button');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.setAttribute('aria-label',`Upload photo for ${object.name}`);upload.addEventListener('change',async()=>{
    const file=upload.files[0];if(!file)return;
    if(file.size>5*1024*1024){say('Choose a JPG, PNG, or WebP smaller than 5 MB.',true);return;}
-   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await res.json();if(!res.ok)throw Error(result.error);object.image=result.path;markDirty();render();say('Photo uploaded. Add a description of the photo, then save.');}catch(error){say(error.message,true);}
+   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await res.json();if(!res.ok)throw Error(result.error);object.image=result.path;markDirty();render();say('Photo uploaded. Add a description, then save or publish the item. A new photo may take a few minutes to appear in the preview.');}catch(error){say(error.message,true);}
   });wrapper.append(upload);}
   else wrapper.append(el('small','Upload the photo to assets/food in GitHub, then enter its path here.'));
  }
@@ -81,7 +81,7 @@ document.getElementById('cancel-remove').addEventListener('click',()=>document.g
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(!local||!data)return;
  const save=document.getElementById('save');save.disabled=true;say('Saving and checking your content…');
- try{const res=await fetch('/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision})});const result=await res.json();if(!res.ok)throw Error(result.error);revision=result.revision;dirty=false;say('Saved! Your local preview is ready. Open View website above to check it. Publish with GitHub Desktop when you’re happy.');}
+ try{const res=await fetch('/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision})});const result=await res.json();if(!res.ok)throw Error(result.error);revision=result.revision;dirty=false;say(hosted?(result.published?'Published to the repository. Cloudflare is rebuilding the website; allow a few minutes, then open View website to check. If it does not update, ask Nate to check the deployment.':'No content changes to publish.'):'Saved! Your local preview is ready. Open View website above to check it. Publish with GitHub Desktop when you’re happy.');}
  catch(error){say(error.message,true);}finally{save.disabled=false;}
 });
 document.getElementById('download').addEventListener('click',()=>{if(!form.reportValidity())return;const blob=new Blob([JSON.stringify(data[current],null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const a=el('a');a.href=url;a.download=current+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say(`Downloaded ${current}.json. This is a draft, not a published change. If you edited other tabs, download each of those too.`);});
@@ -96,8 +96,10 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   // No public JSON fallback: an expired/absent session must fail closed.
   const res=await fetch('/api/content',{credentials:'same-origin',cache:'no-store'});
   if(!res.ok||!res.headers.get('Content-Type')?.includes('application/json'))throw Error('Sign in again through Cloudflare Access, or reopen Start Whisk.command for local editing.');
-  const result=await res.json();data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;
-  document.getElementById('editor-mode').textContent=local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
+  const result=await res.json();data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
+  document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
+  document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
   document.getElementById('save').disabled=!local;document.getElementById('download').disabled=false;render();
  }catch(error){say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();

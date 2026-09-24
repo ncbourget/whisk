@@ -8,9 +8,9 @@ The four earlier pages are frozen at `/index-concept/`, `/menu-concept/`, `/abou
 
 The Whisk cart stores only item IDs and quantities in the customer's browser. It supports adding, quantity changes, removal and a sample subtotal. It does not reserve stock, create a Square order, accept payment or notify Cindy. Checkout is intentionally disabled everywhere. Changing an editor ordering toggle cannot enable this new checkout.
 
-## Remaining implementation: phone publishing
+## Phone publishing: code implemented, live setup pending
 
-Hosted `/editor/` remains authenticated download-only. Local editor saves/uploads still work. A mobile layout alone does not make hosted publishing functional.
+Hosted `/editor/` supports authenticated Git-backed publishing when its runtime settings are configured. Until then it remains download-only. Follow DEPLOYMENT.md for setup; no live publishing verification has happened yet. Local saves/uploads still work.
 
 Recommended next implementation: authenticated server-side Git publishing, keeping GitHub invisible to Cindy. It fits the existing static build and avoids adding a metered image-storage subscription.
 

@@ -41,7 +41,7 @@ def render_storefront(data, legacy):
         if route=='about':
             body=f'<p class="mono">Cindy’s bakery on wheels</p><h1>{e(site["aboutHeading"])}</h1><section class="about-layout"><img src="{e(base)}/assets/splashscreen/about.webp" width="5712" height="4284" alt="Cindy serving visitors from the open window of the silver Whisk bakery trailer"><div><p>{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p><a href="{e(base)}/find-us/">Find the trailer →</a></div></section>'
         if route=='find-us':
-            visit=f'<aside class="paper-note"><h2>Before you stop by</h2><p><a href="{e(base)}/faq/">Frequently asked questions →</a></p><p><a href="{e(base)}/contact/">Contact Cindy →</a></p></aside>'
+            visit=f'<aside class="paper-note"><h2>Before you stop by</h2><p><a href="{e(base)}/faq/">Frequently asked questions →</a></p><p><a href="mailto:{e(site["email"])}">Contact Cindy →</a></p></aside>'
             body=re.sub(r'<aside class="paper-note">.*?</aside>',lambda match:visit,body,flags=re.S)
             body=body.replace('<p class="small muted">Social links coming soon.</p>','')
         outputs[route+'/index.html']=page(title,body,'/'+route+'/')
