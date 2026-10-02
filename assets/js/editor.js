@@ -12,7 +12,7 @@ const siteGroups = [
  ['Your story', [['name','Bakery name','text'],['tagline','Tagline','text'],['heroHeading','Homepage headline','textarea'],['heroText','Homepage introduction','textarea'],['aboutHeading','Story headline','textarea'],['aboutText','About Cindy & Whisk','textarea'],['aboutNote','A little more of your story','textarea'],['footerNote','Footer note','text']]],
  ['Launch settings · ask Nate if unsure', [['demo','Sample / demo mode (blocks all payments)','checkbox'],['domain','Production domain','url','Leave empty until confirmed, e.g. https://example.com'],['basePath','Website subfolder','text','Usually blank. Use /whisk only for a repository-subfolder preview.'],['currency','Currency','select',{USD:'US dollars',CAD:'Canadian dollars',GBP:'British pounds',AUD:'Australian dollars',EUR:'Euros'}],['timezone','Business time zone','text','For example America/New_York. Confirm your actual location.'],['socialImage','Social sharing image path','text','Upload a 1200 × 630 image under assets/brand; use its path here.'],['socialImageAlt','Describe the sharing image','text']]]
 ];
-const menuFields = [['name','Item name','text'],['category','Category','text'],['description','Description','textarea'],['price','Price','number'],['available','Show on the menu','checkbox'],['soldOut','Sold out','checkbox'],['featured','Feature on the homepage','checkbox'],['seasonal','Seasonal item','checkbox'],['dietary','Dietary tags, separated by commas','tags'],['allergens','Ingredients & allergens','textarea'],['notes','Extra notes / limited quantity message','textarea'],['storage','Storage or reheating advice','textarea'],['image','Photo file path','photo'],['imageAlt','Describe the photo','text'],['imageShape','Photo shape','select',{square:'Square',portrait:'Portrait',landscape:'Landscape'}],['squareUrl','This item’s Square link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime']];
+const menuFields = [['name','Item name','text'],['category','Category','select',{Pastries:'Pastries',Cookies:'Cookies',Cakes:'Cakes'}],['description','Description','textarea'],['price','Price','number'],['available','Show on the menu','checkbox'],['soldOut','Sold out','checkbox'],['featured','Feature on the homepage','checkbox'],['seasonal','Seasonal item','checkbox'],['dietary','Dietary tags, separated by commas','tags'],['allergens','Ingredients & allergens','textarea'],['notes','Extra notes / limited quantity message','textarea'],['storage','Storage or reheating advice','textarea'],['image','Photo file path','photo'],['imageAlt','Describe the photo','text'],['squareUrl','This item’s Square link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime']];
 const eventFields = [['name','Location / venue name','text'],['address','Street address or venue details','text'],['start','Starts','datetime'],['end','Ends','datetime'],['status','Status','select',{confirmed:'Confirmed',tentative:'Tentative',cancelled:'Cancelled'}],['mapUrl','Directions link','url'],['description','A note about this stop','textarea'],['menuNote','Special menu note','textarea']];
 function say(text,error=false){message.textContent=text;message.className=error?'error':'';}
 function el(tag, text, cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
@@ -60,19 +60,44 @@ function field(def, object, prefix){
  return wrapper;
 }
 function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));return grid;}
+const expandedItems=new Set();
 function render(){
  fields.replaceChildren();
  if(current==='site')siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});
  else{
   data[current].forEach((object,index)=>{
-   const section=el('section',undefined,'editor-entry');const head=el('div',undefined,'entry-header');head.append(el('h2',object.name||'New entry'));const controls=el('div',undefined,'entry-controls');
-   [['Move up',-1],['Move down',1]].forEach(([text,step])=>{const b=el('button',text);b.type='button';b.disabled=index+step<0||index+step>=data[current].length;b.addEventListener('click',()=>{[data[current][index],data[current][index+step]]=[data[current][index+step],data[current][index]];if(current==='menu')data.menu.forEach((v,i)=>v.position=i+1);markDirty();render();});controls.append(b);});
-   const remove=el('button','Remove');remove.type='button';remove.addEventListener('click',()=>{removeAction=()=>{data[current].splice(index,1);markDirty();render();};document.getElementById('remove-dialog').showModal();});controls.append(remove);head.append(controls);section.append(head,addFields(current==='menu'?menuFields:eventFields,object,object.id));fields.append(section);
+   const section=el('section',undefined,'editor-entry');
+   const head=el('div',undefined,'entry-header');
+   const panel=el('div',undefined,'entry-panel');panel.id=object.id+'-panel';
+   const isMenu=current==='menu';
+   let toggle;
+   if(isMenu){
+    section.classList.add('menu-entry');
+    const thumb=el('img',undefined,'entry-thumbnail');thumb.alt='';thumb.src=object.image?'../'+object.image:'';thumb.hidden=!object.image;head.append(thumb);
+    const heading=el('h2');toggle=el('button',undefined,'entry-toggle');toggle.type='button';toggle.setAttribute('aria-controls',panel.id);
+    const title=el('span',object.name||'New bake');const arrow=el('span','▸','entry-arrow');arrow.setAttribute('aria-hidden','true');toggle.append(title,arrow);heading.append(toggle);head.append(heading);
+    const setOpen=open=>{panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)expandedItems.add(object.id);else expandedItems.delete(object.id);};
+    setOpen(expandedItems.has(object.id));toggle.addEventListener('click',()=>setOpen(panel.hidden));
+    panel.addEventListener('invalid',()=>setOpen(true),true);
+    panel.addEventListener('input',()=>{title.textContent=object.name||'New bake';thumb.hidden=!object.image;if(object.image)thumb.src='../'+object.image;});
+   }else head.append(el('h2',object.name||'New entry'));
+   const controls=el('div',undefined,'entry-controls');
+   if(isMenu){
+    const visibility=el('label',undefined,'entry-visibility');
+    const check=el('input');check.type='checkbox';check.checked=object.available;check.id=object.id+'-available';check.name=check.id;
+    check.setAttribute('aria-label','Show on menu — '+object.name);
+    section.classList.toggle('item-hidden',!object.available);
+    check.addEventListener('change',()=>{object.available=check.checked;section.classList.toggle('item-hidden',!check.checked);markDirty();});
+    visibility.append(check,el('span','Show on menu'));controls.append(visibility);
+   }
+   [['Move up',-1],['Move down',1]].forEach(([text,step])=>{const b=el('button',isMenu?(step<0?'↑':'↓'):text);b.type='button';b.setAttribute('aria-label',text+' — '+object.name);b.title=text;b.disabled=index+step<0||index+step>=data[current].length;b.addEventListener('click',()=>{[data[current][index],data[current][index+step]]=[data[current][index+step],data[current][index]];if(current==='menu')data.menu.forEach((v,i)=>v.position=i+1);markDirty();render();document.getElementById(object.id+'-panel')?.closest('.editor-entry').querySelector('.entry-toggle')?.focus();});controls.append(b);});
+   const remove=el('button','Remove');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>{removeAction=()=>{data[current].splice(index,1);markDirty();render();};document.getElementById('remove-dialog').showModal();});
+   head.append(controls);panel.append(addFields(isMenu?menuFields.filter(def=>def[0]!=='available'):eventFields,object,object.id),remove);section.append(head,panel);fields.append(section);
   });
   if(!data[current].length)fields.append(el('p',current==='menu'?'No menu items yet. Add your first bake below.':'No stops planned yet. The website will show a friendly coming-soon note.'));
   const add=el('button',current==='menu'?'Add a baked good':'Add a stop','secondary');add.type='button';add.addEventListener('click',()=>{
    const id=(current==='menu'?'bake-':'stop-')+crypto.randomUUID().slice(0,8);
-   data[current].push(current==='menu'?{id,name:'New bake',description:'',price:0,category:'Pastries',available:true,soldOut:false,featured:false,seasonal:false,dietary:[],allergens:'',image:'',imageAlt:'',imageShape:'square',squareUrl:'',notes:'',storage:'',orderOpens:'',orderCloses:'',position:data.menu.length+1}:{id,name:'New stop',address:'',start:'',end:'',mapUrl:'',description:'',status:'tentative',menuNote:''});markDirty();render();const cards=fields.querySelectorAll('.editor-entry');cards[cards.length-1].querySelector('input').focus();});fields.append(add);
+   data[current].push(current==='menu'?{id,name:'New bake',description:'',price:0,category:'Pastries',available:true,soldOut:false,featured:false,seasonal:false,dietary:[],allergens:'',image:'',imageAlt:'',imageShape:'square',squareUrl:'',notes:'',storage:'',orderOpens:'',orderCloses:'',position:data.menu.length+1}:{id,name:'New stop',address:'',start:'',end:'',mapUrl:'',description:'',status:'tentative',menuNote:''});expandedItems.add(id);markDirty();render();const cards=fields.querySelectorAll('.editor-entry');cards[cards.length-1].querySelector('.entry-panel input').focus();});fields.append(add);
  }
 }
 document.querySelector('.editor-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(!button||!data)return;current=button.dataset.tab;document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();});

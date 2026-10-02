@@ -88,3 +88,17 @@ header .split-nav{width:100%;max-width:none;display:flex;justify-content:space-b
 
 /* Keep the splashscreen image from being selected or dragged. */
 .hero-image,.hero-image img{-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
+
+/* Frame the hydrangeas lower, keeping the pale fence behind the heading. */
+.field-image{height:100%;object-position:center top}
+@media(max-width:650px){.field-image{object-position:43% top}}
+
+/* White highlights only for the captions over the hydrangea photograph. */
+.find-copy .mono,.find-copy .stop-details p,.find-copy .sun-link{
+ background:#fff;
+ box-shadow:4px 0 #fff,-4px 0 #fff;
+ -webkit-box-decoration-break:clone;
+ box-decoration-break:clone;
+}
+.find-copy .mono,.find-copy .stop-details p{display:table;width:fit-content}
+.field-image{top:-48px;bottom:auto;height:calc(100% + 48px)}

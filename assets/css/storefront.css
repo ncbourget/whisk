@@ -46,3 +46,30 @@ body.menu-open{overflow:hidden}
  body{padding-top:72px}
  html{scroll-padding-top:84px}
 }
+
+/* Category dropdown shares the menu's simple Courier treatment. */
+.menu-filter{display:flex;align-items:center;gap:12px;margin:0 0 28px}
+.menu-filter[hidden],#menu-items .bake[hidden]{display:none}
+.menu-filter select{max-width:100%;min-height:44px;padding:10px 36px 10px 14px;border:.5pt solid #000;border-radius:0;background:#faf3e3;color:#000;font:400 15px/1.45 'Courier New',Courier,monospace;text-transform:uppercase;cursor:pointer}
+.menu-filter select:focus-visible{outline:2px solid #000;outline-offset:4px}
+
+/* Each feed occupies two columns of the six-column content grid. */
+.social-feeds{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:28px;margin-top:48px}
+.social-feed{grid-column:span 2;min-width:0}
+.social-feed h2{margin-bottom:18px}
+.social-feed iframe{display:block;width:100%;height:560px;border:0;background:#fff}
+.social-feed>a{display:inline-block;margin-top:12px;font:400 15px/1.45 'Courier New',Courier,monospace;text-transform:uppercase}
+@media(max-width:1100px){.social-feeds{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:700px){.social-feeds{grid-template-columns:minmax(0,1fr);gap:36px}.social-feed{grid-column:1}}
+
+.social-feeds-heading{grid-column:span 4;display:flex;align-items:baseline;gap:24px}
+.social-feeds-heading h2{margin:0;white-space:nowrap}
+.social-feeds-heading span{flex:1;border-bottom:.5pt solid #000}
+.social-feeds-heading + .social-feed{grid-column:1 / span 2}
+@media(max-width:700px){.social-feeds-heading{grid-column:1;gap:16px}.social-feeds-heading h2{font-size:28px}.social-feeds-heading + .social-feed{grid-column:1}}
+
+/* Match the three Find Us sections to the same four-of-six-column width. */
+.store-page .find-layout{display:block;width:calc((100% - 28px) * 2 / 3)}
+.visit-bottom{width:calc((100% - 28px) * 2 / 3);margin-top:48px;padding-top:28px;border-top:.5pt solid #000}
+.visit-bottom h2{margin-bottom:16px}
+@media(max-width:1100px){.store-page .find-layout,.visit-bottom{width:100%}}

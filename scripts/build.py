@@ -316,9 +316,9 @@ def render(data, now=None):
     return outputs
 
 PUBLIC_ASSETS = {
-    'assets/css/brand.css', 'assets/css/site.css', 'assets/css/concept.css', 'assets/splashscreen/airstream.WebP', 'assets/splashscreen/bottom.jpg', 'assets/logo/SVG/Asset 1.svg',
+    'assets/css/brand.css', 'assets/css/site.css', 'assets/css/concept.css', 'assets/splashscreen/airstream.WebP', 'assets/splashscreen/bottom.jpg', 'assets/splashscreen/bottom2.webp', 'assets/logo/SVG/Asset 1.svg',
     'assets/food/morning_bun.jpg', 'assets/food/choc_cookie.jpg', 'assets/food/Lemon_loaf.jpg', 'assets/food/scone.jpg',
-    'assets/js/site.js', 'assets/icons/favicon.svg',
+    'assets/js/site.js', 'assets/icons/favicon.svg', 'assets/logo/favicon.png',
     'assets/brand/whisk-wordmark.svg', 'assets/brand/whisk-wordmark-reversed.svg',
     'assets/illustrations/whisk.svg', 'assets/splashscreen/trailer.svg',
     'assets/fonts/fraunces-latin-variable.woff2', 'assets/fonts/public-sans-latin-variable.woff2',

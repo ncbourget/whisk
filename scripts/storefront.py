@@ -2,6 +2,7 @@
 from html import escape as e
 import json
 import re
+from urllib.parse import urlencode
 from pathlib import Path
 from concept import render_concept
 
@@ -30,8 +31,10 @@ def render_storefront(data, legacy):
         return f'<img class="food-photo" src="{e(base+"/"+i["image"])}" width="800" height="600" alt="{e(i["imageAlt"])}" loading="lazy">' if i['image'] else '<div class="food-space" aria-hidden="true"></div>'
     def card(i):
         link=f'{base}/menu/{i["id"]}/'
-        return f'<article class="bake"><a href="{e(link)}" aria-label="{e(i["name"])}">{photo(i)}</a><div class="bake-copy"><h3><a href="{e(link)}">{e(i["name"].rstrip("."))}</a></h3><p>{e(i["description"])}</p><span class="sample-price">${i["price"]:.2f}'+(' · Sold out' if i['soldOut'] else '')+'</span></div></article>'
-    menu='<p class="mono">From Cindy’s recipe book</p><h1>The menu.</h1><div class="bakes">'+''.join(map(card,items))+'</div>'
+        return f'<article class="bake" data-category="{e(i["category"])}"><a href="{e(link)}" aria-label="{e(i["name"])}">{photo(i)}</a><div class="bake-copy"><h3><a href="{e(link)}">{e(i["name"].rstrip("."))}</a></h3><p>{e(i["description"])}</p><span class="sample-price">${i["price"]:.2f}'+(' · Sold out' if i['soldOut'] else '')+'</span></div></article>'
+    categories=sorted({i['category'] for i in items})
+    filters='<div class="menu-filter" hidden><label for="menu-category">Filter by</label><select id="menu-category" aria-controls="menu-items"><option value="">All baked goods</option>'+''.join(f'<option value="{e(category)}">{e(category)}</option>' for category in categories)+'</select></div>'
+    menu='<p class="mono">From Cindy’s recipe book</p><h1>The menu.</h1>'+filters+'<div class="bakes" id="menu-items">'+''.join(map(card,items))+'</div><p class="sr-only" id="menu-filter-status" role="status"></p>'
     if not items: menu+='<h2>A fresh menu is on its way.</h2>'
     if items and all(i['soldOut'] for i in items):menu+='<p>Everything on this menu is sold out.</p>'
     menu+=f'<section class="store-note"><h2>Made to enjoy.</h2><p>{e(site["allergens"])}</p><p>{e(site["pickup"])}</p></section>'
@@ -42,8 +45,18 @@ def render_storefront(data, legacy):
             body=f'<p class="mono">Cindy’s bakery on wheels</p><h1>{e(site["aboutHeading"])}</h1><section class="about-layout"><img src="{e(base)}/assets/splashscreen/about.webp" width="5712" height="4284" alt="Cindy serving visitors from the open window of the silver Whisk bakery trailer"><div><p>{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p><a href="{e(base)}/find-us/">Find the trailer →</a></div></section>'
         if route=='find-us':
             visit=f'<aside class="paper-note"><h2>Before you stop by</h2><p><a href="{e(base)}/faq/">Frequently asked questions →</a></p><p><a href="mailto:{e(site["email"])}">Contact Cindy →</a></p></aside>'
-            body=re.sub(r'<aside class="paper-note">.*?</aside>',lambda match:visit,body,flags=re.S)
+            body=re.sub(r'<aside class="paper-note">.*?</aside>','',body,flags=re.S)
             body=body.replace('<p class="small muted">Social links coming soon.</p>','')
+            body=re.sub(r'<div class="social-links">.*?</div>','',body,flags=re.S)
+            embeds=[]
+            if site['instagram']:
+                instagram=site['instagram'].rstrip('/')+'/'
+                embeds.append(f'<section class="social-feed" aria-label="Instagram"><iframe src="{e(instagram+"embed/")}" title="Whisk Instagram profile and recent posts" loading="lazy" width="400" height="560" referrerpolicy="strict-origin-when-cross-origin"></iframe><a href="{e(instagram)}" target="_blank" rel="noopener noreferrer">Open Instagram ↗</a></section>')
+            if site['facebook']:
+                facebook='https://www.facebook.com/plugins/page.php?'+urlencode({'href':site['facebook'],'tabs':'timeline','width':500,'height':560,'small_header':'true','adapt_container_width':'true','hide_cover':'false','show_facepile':'false'})
+                embeds.append(f'<section class="social-feed" aria-label="Facebook"><iframe src="{e(facebook)}" title="Whisk Facebook timeline" loading="lazy" width="500" height="560" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture"></iframe><a href="{e(site["facebook"])}" target="_blank" rel="noopener noreferrer">Open Facebook ↗</a></section>')
+            body+='<div class="social-feeds"><div class="social-feeds-heading"><h2>What’s cooking?</h2><span aria-hidden="true"></span></div>'+''.join(embeds)+'</div>'+visit.replace('class="paper-note"','class="paper-note visit-bottom"')
+
         outputs[route+'/index.html']=page(title,body,'/'+route+'/')
     for i in items:
         disabled=' disabled' if i['soldOut'] else ''
