@@ -86,5 +86,27 @@
     "orderOpens": "",
     "orderCloses": "",
     "position": 4
+  },
+  {
+    "id": "bake-f950bbee",
+    "name": "Pies",
+    "description": "",
+    "price": 0,
+    "category": "Pastries",
+    "available": true,
+    "soldOut": false,
+    "featured": false,
+    "seasonal": false,
+    "dietary": [],
+    "allergens": "",
+    "image": "",
+    "imageAlt": "",
+    "imageShape": "square",
+    "squareUrl": "",
+    "notes": "",
+    "storage": "",
+    "orderOpens": "",
+    "orderCloses": "",
+    "position": 5
   }
 ]
