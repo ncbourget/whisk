@@ -7,11 +7,11 @@
   "currency": "USD",
   "timezone": "America/New_York",
   "status": "coming_soon",
-  "statusNote": "Opening date and first location to be announced.",
-  "heroHeading": "Good things.\nSmall batches.",
+  "statusNote": "Opening date and first location to be announced. Pre-orders will be available for Thanksgiving and Christmas, before the trailer is ready for the public.",
+  "heroHeading": "Good things.\nSmall batches.\nTree nut free.",
   "heroText": "Whisk is Cindy’s bakery on wheels. The opening menu and first stops will be posted here.",
   "aboutHeading": "Meet Cindy.",
-  "aboutText": "<section id=\"about\">\n  <div class=\"about-container\">\n    <h2>About Cindy — Baker & Founder of Whisk</h2>\n\n    <p>I’m Cindy, the baker behind Whisk. Baking has always been my happy place — the quiet moment when chocolate melts smoothly in a bowl, or when the scent of vanilla fills the kitchen and everything feels a little calmer. I’ve been baking for more than 20 years, sharing treats with friends, coworkers, and anyone who loves a good homemade dessert.</p>\n\n    <p>During the pandemic, baking became my creative outlet. I experimented with new recipes, new techniques, and just about every sweet idea that crossed my mind. Without colleagues to share my creations with, my kitchen became both my sanctuary and my test kitchen — and yes, I gained 20 pounds in the process. Worth it.</p>\n\n    <p>Fast-forward six years. After nearly three decades in the technology world, I took an early retirement package and decided it was time to bring my long‑imagined dream to life. <strong>Whisk</strong> is that dream — a traveling bakery trailer offering special‑occasion orders, office treats, holiday pies, and custom desserts for just about anything you can think of.</p>\n\n    <p>Whisk is about joy, comfort, and connection. It’s about bringing homemade goodness to the places and people I love. And I can’t wait to share it with you.</p>\n  </div>\n</section>\n",
+  "aboutText": "<section id=\"about\">\n  <div class=\"about-container\">\n    <h2>About Cindy — Baker & Founder of Whisk</h2>\n\n    <p>I’m Cindy, the baker behind Whisk. Baking has always been my happy place — the quiet moment when chocolate melts smoothly in a pan, or when the scent of vanilla fills the kitchen and everything feels a little calmer. I’ve been baking for more than 20 years, sharing treats with friends, coworkers, and anyone who loves a good homemade dessert.</p>\n\n    <p>During the pandemic, baking became my outlet. I experimented with new recipes, new techniques, and just about every sweet idea that crossed my mind. Without colleagues to share my creations with, my kitchen became my test kitchen — and yes, I gained 20 pounds in the process. Worth it.</p>\n\n    <p>Fast-forward six years. After nearly three decades in the technology world, I took an early retirement package and decided it was time to bring my long‑imagined dream to life. <strong>Whisk</strong> is that dream — a traveling bakery trailer offering every day treats, special‑occasion orders, goodies for your office, holiday pies, and custom desserts for just about anything you can think of.</p>\n\n    <p>Whisk is about joy, comfort, and connection. It’s about bringing homemade goodness to the places and people I love. And I can’t wait to share it with you.</p>\n  </div>\n</section>\n",
   "aboutNote": "\n",
   "email": "baker@whiskbakedbycindy.com",
   "phone": "978-866-2609",
@@ -29,5 +29,5 @@
   "allergens": "Ingredient and allergen details will be confirmed before ordering opens. If you have a food allergy, please contact Cindy before ordering. Dietary labels do not guarantee the absence of cross-contact.",
   "socialImage": "",
   "socialImageAlt": "",
-  "footerNote": "Bakery on wheels."
+  "footerNote": "Goodness on wheels."
 }
