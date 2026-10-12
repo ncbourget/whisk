@@ -6,10 +6,10 @@ const message = document.getElementById('editor-message');
 const form = document.getElementById('content-form');
 const statuses = {coming_soon:'Coming soon',open_today:'Open today',preorders_open:'Preorders open',preorders_closed:'Preorders closed',sold_out:'Sold out',closed:'Closed for the day',next_popup:'Next pop-up'};
 const siteGroups = [
- ['At the window', [['status','Business status','select',statuses],['statusNote','Status note','textarea'],['hours','Opening hours','textarea'],['serviceArea','Town or service area','text']]],
- ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen note','textarea']]],
+ ['Homepage · Find Whisk', [['status','Business status','select',statuses],['statusNote','Status note','textarea'],['hours','Opening hours','textarea'],['serviceArea','Town or service area','text']]],
+ ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown above the menu)','textarea']]],
  ['Contact & social', [['email','Contact email','email'],['phone','Phone','text'],['instagram','Instagram profile link','url'],['facebook','Facebook profile link','url']]],
- ['Your story', [['name','Bakery name','text'],['tagline','Tagline','text'],['heroHeading','Homepage headline','textarea'],['heroText','Homepage introduction','textarea'],['aboutHeading','Story headline','textarea'],['aboutText','About Cindy & Whisk','textarea'],['aboutNote','A little more of your story','textarea'],['footerNote','Footer note','text']]],
+ ['Homepage · About Cindy', [['name','Bakery name','text'],['tagline','Tagline','text'],['heroHeading','Homepage headline','textarea'],['heroText','Homepage introduction','textarea'],['aboutHeading','Story headline','textarea'],['aboutText','About Cindy & Whisk','textarea'],['aboutNote','Additional story paragraph (optional)','textarea'],['footerNote','Footer note','text']]],
  ['Launch settings · ask Nate if unsure', [['demo','Sample / demo mode (blocks all payments)','checkbox'],['domain','Production domain','url','Leave empty until confirmed, e.g. https://example.com'],['basePath','Website subfolder','text','Usually blank. Use /whisk only for a repository-subfolder preview.'],['currency','Currency','select',{USD:'US dollars',CAD:'Canadian dollars',GBP:'British pounds',AUD:'Australian dollars',EUR:'Euros'}],['timezone','Business time zone','text','For example America/New_York. Confirm your actual location.'],['socialImage','Social sharing image path','text','Upload a 1200 × 630 image under assets/brand; use its path here.'],['socialImageAlt','Describe the sharing image','text']]]
 ];
 const menuFields = [['name','Item name','text'],['category','Category','select',{Pastries:'Pastries',Cookies:'Cookies',Cakes:'Cakes'}],['description','Description','textarea'],['price','Price','number'],['available','Show on the menu','checkbox'],['soldOut','Sold out','checkbox'],['featured','Feature on the homepage','checkbox'],['seasonal','Seasonal item','checkbox'],['dietary','Dietary tags, separated by commas','tags'],['allergens','Ingredients & allergens','textarea'],['notes','Extra notes / limited quantity message','textarea'],['storage','Storage or reheating advice','textarea'],['image','Photo file path','photo'],['imageAlt','Describe the photo','text'],['squareUrl','This item’s Square link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime']];
@@ -30,6 +30,7 @@ function zonedDate(value){
  if(candidates.length!==1)throw Error('That time falls in a daylight-saving clock change. Choose a time outside the repeated or skipped hour.');
  return candidates[0];
 }
+const extraCategories=new Set();
 function field(def, object, prefix){
  const [key,label,type,options]=def;
  const wrapper=el('div',undefined,'field'+(type==='textarea'?' wide':''));
@@ -37,7 +38,7 @@ function field(def, object, prefix){
  const title=el('label',label);title.htmlFor=id;wrapper.append(title);
  let input;
  if(type==='textarea')input=el('textarea');
- else if(type==='select'){input=el('select');Object.entries(options).forEach(([value,text])=>{const o=el('option',text);o.value=value;input.append(o);});}
+ else if(type==='select'){input=el('select');const choices=key==='category'?Object.fromEntries([...new Set([...Object.keys(options),...data.menu.map(item=>item.category),...extraCategories])].filter(Boolean).sort().map(value=>[value,value])):options;Object.entries(choices).forEach(([value,text])=>{const o=el('option',text);o.value=value;input.append(o);});}
  else{input=el('input');input.type= type==='datetime'?'datetime-local':['tags','photo'].includes(type)?'text':type;}
  input.id=id;input.name=id;
  if(type==='checkbox')input.checked=object[key];
@@ -46,6 +47,19 @@ function field(def, object, prefix){
  if(['name','category','start','end','timezone'].includes(key))input.required=true;
  input.addEventListener('input',()=>{try{input.setCustomValidity('');object[key]=type==='datetime'?zonedDate(input.value):type==='checkbox'?input.checked:type==='number'?Number(input.value):type==='tags'?input.value.split(',').map(t=>t.trim()).filter(Boolean):input.value;markDirty();}catch(error){input.setCustomValidity(error.message);say(error.message,true);}});
  wrapper.append(input);
+ if(key==='category'){
+  const add=el('button','Add category','secondary');add.type='button';
+  const row=el('div',undefined,'category-add');row.hidden=true;
+  const name=el('input');name.type='text';name.maxLength=80;name.setAttribute('aria-label','New category name');
+  const confirm=el('button','Use category','secondary');confirm.type='button';
+  const cancel=el('button','Cancel','secondary');cancel.type='button';
+  const apply=()=>{const value=name.value.trim().replace(/\s+/g,' ');if(!value){name.focus();return;}const existing=[...input.options].find(option=>option.value.toLowerCase()===value.toLowerCase());object.category=existing?existing.value:value;extraCategories.add(object.category);expandedItems.add(object.id);markDirty();render();document.getElementById(id)?.focus();};
+  confirm.addEventListener('click',apply);name.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();apply();}});
+  cancel.addEventListener('click',()=>{row.hidden=true;add.hidden=false;add.focus();});
+  add.addEventListener('click',()=>{row.hidden=false;add.hidden=true;name.focus();});
+  row.append(name,confirm,cancel);wrapper.append(add,row,el('small','Choose an existing category or add a new one. It appears in the website filter after a visible item uses it and you publish.'));
+ }
+
  if(type==='datetime')wrapper.append(el('small',`Time zone: ${data.site.timezone}. Optional ordering limits may be left empty. Configure the same limits in Square.`));
  if(typeof options==='string'){const help=el('small',options);help.id=id+'-help';input.setAttribute('aria-describedby',help.id);wrapper.append(help);}
  if(type==='photo'){

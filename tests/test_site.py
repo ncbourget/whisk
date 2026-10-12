@@ -59,9 +59,9 @@ class SiteTests(unittest.TestCase):
         self.assertIn('Everything on this menu is sold out',build.render(self.data,NOW)['menu/index.html'])
     def test_events_expired_cancelled_and_timezones(self):
         self.data['events']=[dict(id='stop',name='Future market',address='Venue details',start='2026-10-17T09:00:00-04:00',end='2026-10-17T12:00:00-04:00',status='cancelled',mapUrl='https://maps.google.com',description='',menuNote='')]
-        html=build.render(self.data,NOW)['find-us/index.html']
+        html=build.render(self.data,NOW)['index.html']
         self.assertIn('cancelled',html);self.assertIn('9:00 AM',html);self.assertNotIn('Get directions',html)
-        self.assertNotIn('Future market',build.render(self.data,datetime(2027,1,1,tzinfo=timezone.utc))['find-us/index.html'])
+        self.assertNotIn('Future market',build.render(self.data,datetime(2027,1,1,tzinfo=timezone.utc))['index.html'])
     def test_dangerous_urls_and_assets_rejected(self):
         for url in ['javascript:alert(1)','http://square.link/u/test','https://square.link.evil.test/u/test','https://square.link@evil.test','https://evil.test','https://square.link\\@evil.test']:
             self.assertFalse(build.https_url(url,True),url)

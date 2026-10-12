@@ -6,9 +6,7 @@ a,a:hover,.bake h3 a:hover{ text-decoration-thickness:.5pt; }
 .sun-link{border-bottom-width:.5pt}
 .hero-copy>.sun-link{padding-bottom:0;line-height:1.3}
 .store-page .ingredients{border:0;margin-top:24px;padding:0}
-.store-page .ingredients summary{font:700 15px/1.65 'Courier New',Courier,monospace;text-transform:uppercase;list-style:none}
-.store-page .ingredients summary::-webkit-details-marker{display:none}
-.store-page .ingredients summary:focus-visible{outline:2px solid #000;outline-offset:4px}
+.store-page .ingredients h2{font:700 15px/1.65 'Courier New',Courier,monospace;text-transform:uppercase;list-style:none}
 .store-page .ingredients p{font:400 15px/1.65 'Courier New',Courier,monospace;text-transform:none;margin-top:12px}
 /* Keep the product quantity and purchase controls aligned at every viewport. */
 .item-detail #quantity,
@@ -73,3 +71,56 @@ body.menu-open{overflow:hidden}
 .visit-bottom{width:calc((100% - 28px) * 2 / 3);margin-top:48px;padding-top:28px;border-top:.5pt solid #000}
 .visit-bottom h2{margin-bottom:16px}
 @media(max-width:1100px){.store-page .find-layout,.visit-bottom{width:100%}}
+
+/* Cindy's story and allergen notice preserve authored paragraph breaks. */
+.store-page .story-copy p{margin-bottom:22px;text-transform:none}
+.menu-allergens{max-width:850px;margin:0 0 36px;padding:24px 0;border-top:.5pt solid #000;border-bottom:.5pt solid #000}
+.menu-allergens h2{margin-bottom:18px}
+.menu-allergens p{margin-bottom:16px;text-transform:none}
+.menu-allergens p:last-child{margin-bottom:0}
+.find-plain{background:#eee3cc;border-top:.5pt solid #000}
+.find-plain .field-image{display:none}
+.find-plain .find-copy .mono,.find-plain .find-copy .stop-details p,.find-plain .find-copy .sun-link{background:none;box-shadow:none}
+
+/* Give the contact details and each section room to read separately. */
+.contact-page .page-heading h1{margin-bottom:18px}
+.contact-page .contact-info h2{margin-bottom:20px}
+.contact-page .contact-links,.contact-page .social-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px}
+.contact-page .contact-links{margin-bottom:16px}
+.contact-page .contact-links a[href^="mailto:"]{text-transform:lowercase}
+.contact-page .contact-info>div>p.small.muted{margin-bottom:40px}
+
+/* The full About story follows Find Whisk on the homepage. */
+.homepage-about{min-height:0;padding-top:65px}
+.homepage-about>h2{font:400 clamp(42px,6vw,76px)/1.06 Georgia,serif;margin:20px 0 42px}
+@media(max-width:700px){.homepage-about{padding-top:40px}}
+
+/* Homepage location information and two equal-height social previews. */
+html{scroll-behavior:smooth}
+#about,#find-whisk{scroll-margin-top:24px}
+.homepage-find{display:grid;grid-template-columns:minmax(250px,1fr) minmax(0,2fr);gap:40px;padding:60px 8%;align-items:stretch}
+.homepage-find-copy h2{font:400 clamp(36px,4vw,60px)/1.1 Georgia,serif;margin:16px 0 24px}
+.homepage-find-copy p{font:400 15px/1.65 'Courier New',Courier,monospace;margin-bottom:16px}
+.homepage-find-copy .paper-note{margin-top:56px}
+.homepage-find-copy .paper-note h2{font-size:26px;margin:0 0 16px}
+.homepage-feeds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;min-height:500px}
+.homepage-feeds .social-feed{grid-column:auto;display:flex;flex-direction:column;min-width:0}
+.homepage-feeds iframe{height:100%;min-height:460px;flex:1}
+.homepage-stops .event{padding:20px 0;border-top:.5pt solid #000}
+.homepage-stops h3{font:400 24px/1.2 Georgia,serif}
+.homepage-stops .sr-only{display:none}
+.homepage-stops .event-date strong{margin-left:8px}
+@media(max-width:1000px){.homepage-find{grid-template-columns:1fr}.homepage-feeds iframe{height:500px;flex:none}}
+@media(max-width:700px){#about,#find-whisk{scroll-margin-top:0}.homepage-find{padding:40px 6%}.homepage-feeds{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.store-page .about-layout{grid-template-columns:minmax(0,35fr) minmax(0,65fr);gap:4%;align-items:start}
+.about-photo-zoom{display:block;cursor:zoom-in;line-height:0}
+.about-photo-zoom img{display:block}
+.photo-lightbox{max-width:96vw;max-height:96vh;width:fit-content;margin:auto;border:0;padding:48px 12px 12px;background:#faf3e3;overflow:auto}
+.photo-lightbox::backdrop{background:rgb(0 0 0 / .75)}
+.photo-lightbox img{display:block;max-width:90vw;max-height:80vh;width:auto;height:auto;object-fit:contain}
+.photo-lightbox button{position:absolute;top:4px;right:8px;width:44px;height:44px;background:none;border:0;color:#000;font:32px/1 sans-serif;cursor:pointer}
+@media(max-width:700px){.homepage-feeds{width:100%}.store-page .about-layout{grid-template-columns:1fr;gap:28px}}
+
+.homepage-about{position:relative;background:var(--paper)}

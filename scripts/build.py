@@ -304,7 +304,7 @@ def render(data, now=None):
             html = html.replace('{{'+k+'}}',v)
         outputs[route+'index.html' if route.endswith('/') or not route else route] = html
     if origin and not site['demo']:
-        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in list(ROUTES)+['menu/'+i['id']+'/' for i in visible] if r != '404.html')
+        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in list(ROUTES)+['menu/'+i['id']+'/' for i in visible] if r not in ('404.html','about/','find-us/'))
         outputs['sitemap.xml'] = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls+'</urlset>'
         outputs['robots.txt'] = 'User-agent: *\nAllow: /\nDisallow: '+page('editor/')+'\nSitemap: '+origin+page('sitemap.xml')+'\n'
     else:
@@ -313,6 +313,9 @@ def render(data, now=None):
     from concept import render_concept
     from storefront import render_storefront
     outputs.update(render_storefront(data, outputs))
+    for retired in ('about/index.html','find-us/index.html'):
+        outputs.pop(retired,None)
+    outputs['404.html']=outputs['404.html'].replace(page('about/'),page('#about')).replace(page('find-us/'),page('#find-whisk'))
     return outputs
 
 PUBLIC_ASSETS = {
@@ -355,6 +358,8 @@ def build(data=None, output=None):
         # Admin HTML, JS and JSON deliberately have no static copy. Access failure,
         # missing Worker, quota fallback, and encoded alternate paths cannot expose them.
         (output/'_headers').write_text('/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n')
+    for retired in ('about/index.html','find-us/index.html'):
+        (output/retired).unlink(missing_ok=True)
     for filename,content in outputs.items():
         path = output/filename
         path.parent.mkdir(parents=True,exist_ok=True)
