@@ -27,7 +27,7 @@
     "description": "Chocolate chunks, homemade toffee in a vanilla cookie base. ",
     "price": 4,
     "category": "Cookies",
-    "available": false,
+    "available": true,
     "soldOut": false,
     "featured": true,
     "seasonal": false,
