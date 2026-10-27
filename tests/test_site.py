@@ -73,7 +73,7 @@ class SiteTests(unittest.TestCase):
         self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;',html)
         self.assertNotIn('<script>alert(1)</script>',html)
     def test_invalid_content_rejected(self):
-        for mutate in [lambda d:d['menu'][0].update(price=-1),lambda d:d['menu'][0].update(image='assets/icons/favicon.svg',imageAlt=''),lambda d:d['menu'][0].update(orderOpens='2026-10-01T09:00:00'),lambda d:d['site'].update(demo=False),lambda d:d['menu'][1].update(id=d['menu'][0]['id'])]:
+        for mutate in [lambda d:d['menu'][0].update(price=-1),lambda d:d['menu'][0].update(image='assets/logo/favicon.png',imageAlt=''),lambda d:d['menu'][0].update(orderOpens='2026-10-01T09:00:00'),lambda d:d['site'].update(demo=False),lambda d:d['menu'][1].update(id=d['menu'][0]['id'])]:
             data=copy.deepcopy(self.data);mutate(data)
             with self.assertRaises(ValueError):build.validate(data)
     def test_static_content_and_links_root_and_subfolder(self):

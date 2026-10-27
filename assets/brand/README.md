@@ -6,7 +6,7 @@ These are neutral temporary slots, not recreations of Cindy's daughter's artwork
 | --- | --- | --- |
 | Primary wordmark | `assets/brand/whisk-wordmark.svg` | Header, editor, trailer |
 | Reversed wordmark | `assets/brand/whisk-wordmark-reversed.svg` | Navy footer |
-| Abbreviated mark | `assets/brand/whisk-mark.svg` | Prepared slot; copy approved small-size version to `assets/icons/favicon.svg` |
+| Abbreviated mark | `assets/brand/whisk-mark.svg` | Current favicon is `assets/logo/favicon.png` |
 | Badge / alternate logo | `assets/brand/whisk-badge.svg` | Reserved; not displayed |
 | Social image | Approved 1200 × 630 JPG, PNG, or WebP in this directory | Set `socialImage` and `socialImageAlt` in the notebook after adding the file |
 
