@@ -4,9 +4,9 @@ import {readFile, writeFile, stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const read = file => readFile(resolve(root, file), 'utf8');
-const content = Object.fromEntries(await Promise.all(['site','menu','events'].map(async key => [key, JSON.parse(await read(`data/${key}.json`))])));
+const content = Object.fromEntries(await Promise.all(['site','menu','events','preorders'].map(async key => [key, JSON.parse(await read(`data/${key}.json`))])));
 if (content.site.basePath) throw new Error('Cloudflare Access deployment requires an empty basePath.');
-for (const file of ['editor/index.html','assets/js/editor.js','assets/css/editor.css','data/site.json','data/menu.json','data/events.json']) {
+for (const file of ['editor/index.html','assets/js/editor.js','assets/css/editor.css','data/site.json','data/menu.json','data/events.json','data/preorders.json']) {
   if (await stat(resolve(root, '_site', file)).then(()=>true,()=>false)) throw new Error(`Unsafe static administrative file: ${file}`);
 }
 const editorHtml = await read('editor/index.html');

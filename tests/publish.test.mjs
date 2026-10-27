@@ -26,7 +26,7 @@ const request=body=>new Request('https://bakery.example/api/content',{method:'PO
 test('Publishing validates content, writes only fixed files and advances without force',async()=>{
  const {service,calls}=mock();const initial=await service.snapshot();const data=structuredClone(content);data.menu[0].name='Updated bun';
  const result=await service.save(request({data,revision:initial.revision}));assert.equal(result.commit,'newcommit');assert.notEqual(result.revision,initial.revision);
- const tree=calls.find(c=>c.method==='POST'&&c.path==='/git/trees');assert.deepEqual(tree.body.tree.map(v=>v.path),['data/site.json','data/menu.json','data/events.json']);
+ const tree=calls.find(c=>c.method==='POST'&&c.path==='/git/trees');assert.deepEqual(tree.body.tree.map(v=>v.path),['data/site.json','data/menu.json','data/events.json','data/preorders.json']);
 });
 test('Stale editor content, invalid schema and concurrent branch updates fail closed',async()=>{
  const {service,calls}=mock();await assert.rejects(service.save(request({data:content,revision:'stale'})),e=>e.status===409);assert.ok(!calls.some(c=>c.method==='POST'));

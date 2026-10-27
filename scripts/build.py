@@ -42,11 +42,13 @@ def stamp(value):
     return dt
 
 def validate(data):
-    if not isinstance(data,dict) or set(data) != {'site','menu','events'}:
+    if not isinstance(data,dict) or set(data) not in ({'site','menu','events'}, {'site','menu','events','preorders'}):
         raise ValueError('Content must contain only site, menu, and events.')
     site, menu, events = data['site'], data['menu'], data['events']
     if not isinstance(site, dict) or not isinstance(menu, list) or not isinstance(events, list):
         raise ValueError('Site must be an object; menu and events must be lists.')
+    if not isinstance(data.get('preorders', []), list):
+        raise ValueError('Pre-orders must be a list.')
     required = ['name','tagline','status','statusNote','heroHeading','heroText','aboutHeading','aboutText','aboutNote','hours','pickup','cutoff','refunds','allergens','footerNote','domain','basePath','currency','timezone','email','phone','instagram','facebook','squareUrl','serviceArea','socialImage','socialImageAlt','orderOpens','orderCloses']
     if set(site) != set(required) | {'demo','orderingEnabled'}:
         raise ValueError('Unknown or missing site fields. Never store credentials in content.')
@@ -85,7 +87,7 @@ def validate(data):
             raise ValueError('Ordering must close after it opens.')
     window(site)
     ids = set()
-    for item in menu:
+    for item in menu + data.get('preorders', []):
         if not isinstance(item, dict):
             raise ValueError('Each menu item must be an object.')
         allowed = {'id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses','price','position','available','soldOut','featured','seasonal','dietary'}
@@ -139,7 +141,7 @@ def validate(data):
     return data
 
 def read_data():
-    return validate({name:json.loads((ROOT/'data'/f'{name}.json').read_text()) for name in ['site','menu','events']})
+    return validate({name:json.loads((ROOT/'data'/f'{name}.json').read_text()) for name in ['site','menu','events','preorders']})
 
 def open_window(obj, now):
     start,end = stamp(obj.get('orderOpens','')), stamp(obj.get('orderCloses',''))
@@ -268,7 +270,7 @@ def render(data, now=None):
     menu_page += f'''<section class="info-pair"><div><h2>Pickup</h2><p>{e(site["pickup"])}</p><p>{e(site["cutoff"])}</p>{action("Pickup & ordering questions",page("faq/"),"text-link")}</div><div><h2>Ingredients & allergens</h2><p>{e(site["allergens"])}</p>{action("Ask Cindy","mailto:"+site["email"],"text-link")}</div></section>'''
     about = intro('',site['aboutHeading'].replace('\n',' '))+f'''<section class="about-layout">{trailer}<div class="prose"><p class="lede">{e(site["aboutText"])}</p><p>{e(site["aboutNote"])}</p>{action("Find the trailer",page("find-us/"))}</div></section>'''
     find = intro('Locations & hours','Find Whisk.')+f'''<section class="find-layout"><div><h2 class="sr-only">Upcoming stops</h2>{event_list()}</div><aside class="paper-note"><h2>Before you visit</h2><strong class="meta" data-business-status>{e(STATUSES[site["status"]])}</strong><p>{e(site["statusNote"])}</p><p>{e(site["hours"])}</p>'''+ (f'<p>{e(site["serviceArea"])}</p>' if site['serviceArea'] else '')+socials()+'</aside></section>'
-    questions = [('How do I order?', 'Ordering is not open yet. You can try the cart on Whisk; no order is sent and no payment is taken. Once connected, checkout will send your complete order to Square for payment and pickup confirmation.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?',site['cutoff']),('Can I order several things together?','Yes. Add items to your Whisk cart, then review everything together. Checkout is not open yet. Pickup availability and preparation time will be confirmed before payment.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for storage notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
+    questions = [('How do I order?', 'Ordering is not open yet. You can try the cart on Whisk; no order is sent and no payment is taken. Once connected, checkout will send your complete order to Square for payment and pickup confirmation.'),('Where and when do I pick up?',site['pickup']),('How far ahead should I order?','Pre-orders require at least 3 days before pickup. You may pre-order up to a week in advance. Everyday stand items are not available to order online.'),('Can I order several things together?','Yes. Add items to your Whisk cart, then review everything together. Checkout is not open yet. Pickup availability and preparation time will be confirmed before payment.'),('What if I have a food allergy?',site['allergens']),('Can I cancel or change an order?',site['refunds']),('How do I know my order went through?','Look for Square’s confirmation and receipt. If checkout fails or you’re unsure whether you paid, check for a receipt and contact Cindy before trying again. A visit to this website is not proof of payment.'),('How should I store my baked goods?','Look for storage notes in each menu item’s details, or ask Cindy when you collect your order.'),('Does this website use tracking cookies?','We haven’t added advertising trackers, analytics, or tracking cookies. The hosting provider may keep standard security logs. Square and social platforms have their own privacy policies when you visit their websites.')]
     faq = intro('','Good to know.','Ordering, pickup, and ingredients.')+'<div class="faq-list">'+''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q,a in questions)+'</div>'+f'<div class="faq-contact"><p>Have another question?</p>{action("Contact Cindy","mailto:"+site["email"],"text-link")}</div>'
     contact_page = intro('','Say hello.','For questions about the menu, pickup, or an existing order.')+f'''<section class="info-pair contact-info"><div><h2>Contact Cindy</h2>{contact()}<p class="small muted">For an existing order, include your order number and pickup date. Please don’t send card details.</p></div><div><h2>Follow Whisk</h2>{socials()}<button class="text-link" type="button" id="share-site" hidden>Copy website link</button><p class="small" id="share-message" role="status"></p></div></section>'''
     order = intro('','Order from Whisk.')+f'''<section class="order-panel"><h2>{"Order through Square" if can_order(site,now) else "Ordering is closed."}</h2><p data-order-message>{"Payment and confirmation happen securely on Square." if can_order(site,now) else "You can browse the menu while ordering is closed."}</p>{order_action()}<p>{e(site["pickup"])}</p>{action("Trouble with checkout? Contact Cindy","mailto:"+site["email"],"text-link")}</section>'''
@@ -304,7 +306,7 @@ def render(data, now=None):
             html = html.replace('{{'+k+'}}',v)
         outputs[route+'index.html' if route.endswith('/') or not route else route] = html
     if origin and not site['demo']:
-        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in list(ROUTES)+['menu/'+i['id']+'/' for i in visible] if r not in ('404.html','about/','find-us/'))
+        urls = ''.join(f'<url><loc>{e(origin+page(r))}</loc></url>' for r in list(ROUTES)+['menu/'+i['id']+'/' for i in visible]+['preorder/']+['preorder/'+i['id']+'/' for i in data.get('preorders',[]) if i['available']] if r not in ('404.html','about/','find-us/'))
         outputs['sitemap.xml'] = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls+'</urlset>'
         outputs['robots.txt'] = 'User-agent: *\nAllow: /\nDisallow: '+page('editor/')+'\nSitemap: '+origin+page('sitemap.xml')+'\n'
     else:
@@ -330,7 +332,7 @@ PUBLIC_ASSETS = {
 }
 
 def public_assets(data):
-    paths = {'assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] if i['available'] and i['image']}
+    paths = {'assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] and i['image']}
     if data['site']['socialImage']:
         paths.add(data['site']['socialImage'])
     return paths
@@ -358,6 +360,11 @@ def build(data=None, output=None):
         # Admin HTML, JS and JSON deliberately have no static copy. Access failure,
         # missing Worker, quota fallback, and encoded alternate paths cannot expose them.
         (output/'_headers').write_text('/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n')
+    # Remove generated product pages for items hidden or deleted in either collection.
+    for collection in ('menu','preorder'):
+        for product in (output/collection).glob('*/index.html'):
+            if product.relative_to(output).as_posix() not in outputs:
+                product.unlink()
     for retired in ('about/index.html','find-us/index.html'):
         (output/retired).unlink(missing_ok=True)
     for filename,content in outputs.items():

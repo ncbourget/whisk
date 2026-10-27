@@ -74,7 +74,12 @@ body.menu-open{overflow:hidden}
 
 /* Cindy's story and allergen notice preserve authored paragraph breaks. */
 .store-page .story-copy p{margin-bottom:22px;text-transform:none}
-.menu-allergens{max-width:850px;margin:0 0 36px;padding:24px 0;border-top:.5pt solid #000;border-bottom:.5pt solid #000}
+.menu-allergens{position:relative;max-width:none;margin:64px -9.5238095238% 36px;padding:48px 9.5238095238%;background:#eee3cc;border:0}
+.allergen-copy{max-width:850px}
+.menu-allergens:before,.menu-allergens:after{background:#eee3cc}
+.menu-allergens:before{top:-23px}
+.menu-allergens:after{bottom:-23px;transform:rotate(180deg)}
+@media(max-width:700px){.menu-allergens{margin-left:-6.8181818182%;margin-right:-6.8181818182%;padding:32px 6.8181818182%;margin-top:48px}}
 .menu-allergens h2{margin-bottom:18px}
 .menu-allergens p{margin-bottom:16px;text-transform:none}
 .menu-allergens p:last-child{margin-bottom:0}
@@ -124,3 +129,22 @@ html{scroll-behavior:smooth}
 @media(max-width:700px){.homepage-feeds{width:100%}.store-page .about-layout{grid-template-columns:1fr;gap:28px}}
 
 .homepage-about{position:relative;background:var(--paper)}
+
+.preorder-section{padding-top:60px}.preorder-section>.bakes:empty{display:none}.preorder-section>p{font:400 15px/1.65 "Courier New",monospace;margin:24px 0}.preorder-section .menu-heading-line{flex-wrap:wrap}
+
+/* Four products and a half-width doorway into the full collection. */
+.homepage-menu-grid:has(.menu-more){grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,.5fr)}
+.menu-more{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:2/3;align-self:start;overflow:hidden;background:#70654d;color:#fff;text-decoration:none;isolation:isolate}
+.menu-more img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.menu-more img[hidden]{display:none}
+.menu-more::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,0,0,.65));z-index:-1;opacity:1;transition:opacity 320ms ease-in-out}
+.more-word{display:flex;flex-direction:column;align-items:center;font:400 clamp(16px,1.8vw,26px)/1.2 Georgia,serif;color:#fff;text-shadow:none}
+.menu-more:hover{text-decoration:none}.menu-more:focus-visible{outline:2px solid #000;outline-offset:4px}
+@media(max-width:800px){.homepage-menu-grid:has(.menu-more){grid-template-columns:repeat(2,minmax(0,1fr))}.menu-more{grid-column:1/-1;aspect-ratio:auto;min-height:120px}.more-word{flex-direction:row;gap:4px;font-size:20px}.more-word>span:last-child{margin-left:12px}}
+
+.menu-more:hover::before,.menu-more:focus-visible::before{opacity:.230769}
+
+@media(prefers-reduced-motion:reduce){.menu-more::before{transition:none}}
+
+.menu-more-card .menu-more{width:100%;margin-bottom:18px}
+@media(max-width:800px){.menu-more-card{grid-column:1/-1}}

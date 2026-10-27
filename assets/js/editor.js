@@ -7,12 +7,12 @@ const form = document.getElementById('content-form');
 const statuses = {coming_soon:'Coming soon',open_today:'Open today',preorders_open:'Preorders open',preorders_closed:'Preorders closed',sold_out:'Sold out',closed:'Closed for the day',next_popup:'Next pop-up'};
 const siteGroups = [
  ['Homepage · Find Whisk', [['status','Business status','select',statuses],['statusNote','Status note','textarea'],['hours','Opening hours','textarea'],['serviceArea','Town or service area','text']]],
- ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown above the menu)','textarea']]],
+ ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown below the menu)','textarea']]],
  ['Contact & social', [['email','Contact email','email'],['phone','Phone','text'],['instagram','Instagram profile link','url'],['facebook','Facebook profile link','url']]],
  ['Homepage · About Cindy', [['name','Bakery name','text'],['tagline','Tagline','text'],['heroHeading','Homepage headline','textarea'],['heroText','Homepage introduction','textarea'],['aboutHeading','Story headline','textarea'],['aboutText','About Cindy & Whisk','textarea'],['aboutNote','Additional story paragraph (optional)','textarea'],['footerNote','Footer note','text']]],
  ['Launch settings · ask Nate if unsure', [['demo','Sample / demo mode (blocks all payments)','checkbox'],['domain','Production domain','url','Leave empty until confirmed, e.g. https://example.com'],['basePath','Website subfolder','text','Usually blank. Use /whisk only for a repository-subfolder preview.'],['currency','Currency','select',{USD:'US dollars',CAD:'Canadian dollars',GBP:'British pounds',AUD:'Australian dollars',EUR:'Euros'}],['timezone','Business time zone','text','For example America/New_York. Confirm your actual location.'],['socialImage','Social sharing image path','text','Upload a 1200 × 630 image under assets/brand; use its path here.'],['socialImageAlt','Describe the sharing image','text']]]
 ];
-const menuFields = [['name','Item name','text'],['category','Category','select',{Pastries:'Pastries',Cookies:'Cookies',Cakes:'Cakes'}],['description','Description','textarea'],['price','Price','number'],['available','Show on the menu','checkbox'],['soldOut','Sold out','checkbox'],['featured','Feature on the homepage','checkbox'],['seasonal','Seasonal item','checkbox'],['dietary','Dietary tags, separated by commas','tags'],['allergens','Ingredients & allergens','textarea'],['notes','Extra notes / limited quantity message','textarea'],['storage','Storage or reheating advice','textarea'],['image','Photo file path','photo'],['imageAlt','Describe the photo','text'],['squareUrl','This item’s Square link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime']];
+const menuFields = [['name','Item name','text'],['category','Category','select',{Pastries:'Pastries',Cookies:'Cookies',Cakes:'Cakes',Pies:'Pies'}],['description','Description','textarea'],['price','Price','number'],['available','Show on the menu','checkbox'],['soldOut','Sold out','checkbox'],['featured','Feature on the homepage','checkbox'],['seasonal','Seasonal item','checkbox'],['dietary','Dietary tags, separated by commas','tags'],['allergens','Ingredients & allergens','textarea'],['notes','Extra notes / limited quantity message','textarea'],['storage','Storage or reheating advice','textarea'],['image','Photo file path','photo'],['imageAlt','Describe the photo','text'],['squareUrl','This item’s Square link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime']];
 const eventFields = [['name','Location / venue name','text'],['address','Street address or venue details','text'],['start','Starts','datetime'],['end','Ends','datetime'],['status','Status','select',{confirmed:'Confirmed',tentative:'Tentative',cancelled:'Cancelled'}],['mapUrl','Directions link','url'],['description','A note about this stop','textarea'],['menuNote','Special menu note','textarea']];
 function say(text,error=false){message.textContent=text;message.className=error?'error':'';}
 function el(tag, text, cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
@@ -38,7 +38,7 @@ function field(def, object, prefix){
  const title=el('label',label);title.htmlFor=id;wrapper.append(title);
  let input;
  if(type==='textarea')input=el('textarea');
- else if(type==='select'){input=el('select');const choices=key==='category'?Object.fromEntries([...new Set([...Object.keys(options),...data.menu.map(item=>item.category),...extraCategories])].filter(Boolean).sort().map(value=>[value,value])):options;Object.entries(choices).forEach(([value,text])=>{const o=el('option',text);o.value=value;input.append(o);});}
+ else if(type==='select'){input=el('select');const choices=key==='category'?Object.fromEntries([...new Set([...Object.keys(options),...[...data.menu,...(data.preorders||[])].map(item=>item.category),...extraCategories])].filter(Boolean).sort().map(value=>[value,value])):options;Object.entries(choices).forEach(([value,text])=>{const o=el('option',text);o.value=value;input.append(o);});}
  else{input=el('input');input.type= type==='datetime'?'datetime-local':['tags','photo'].includes(type)?'text':type;}
  input.id=id;input.name=id;
  if(type==='checkbox')input.checked=object[key];
@@ -63,6 +63,7 @@ function field(def, object, prefix){
  if(type==='datetime')wrapper.append(el('small',`Time zone: ${data.site.timezone}. Optional ordering limits may be left empty. Configure the same limits in Square.`));
  if(typeof options==='string'){const help=el('small',options);help.id=id+'-help';input.setAttribute('aria-describedby',help.id);wrapper.append(help);}
  if(type==='photo'){
+  wrapper.append(el('small','Website crop preview (4:3). Take a horizontal photo with the food centered and a little space around it. The website crops the edges to fit this same shape; your original photo is kept.'));
   if(object.image){const img=el('img',undefined,'photo-preview');img.src='../'+object.image;img.alt=object.imageAlt||'Current photo';wrapper.append(img);}
   if(local){const upload=el('input',undefined,'upload-button');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.setAttribute('aria-label',`Upload photo for ${object.name}`);upload.addEventListener('change',async()=>{
    const file=upload.files[0];if(!file)return;
@@ -77,13 +78,14 @@ function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid
 const expandedItems=new Set();
 function render(){
  fields.replaceChildren();
+ if(current==='preorders')fields.append(el('p','Pre-orders are separate from the stand menu and require at least 3 days’ notice, with orders accepted up to a week in advance. Add whole pies, loaves and other advance-order items here. Square checkout is not connected yet.'));
  if(current==='site')siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});
  else{
   data[current].forEach((object,index)=>{
    const section=el('section',undefined,'editor-entry');
    const head=el('div',undefined,'entry-header');
    const panel=el('div',undefined,'entry-panel');panel.id=object.id+'-panel';
-   const isMenu=current==='menu';
+   const isMenu=['menu','preorders'].includes(current);
    let toggle;
    if(isMenu){
     section.classList.add('menu-entry');
@@ -104,14 +106,14 @@ function render(){
     check.addEventListener('change',()=>{object.available=check.checked;section.classList.toggle('item-hidden',!check.checked);markDirty();});
     visibility.append(check,el('span','Show on menu'));controls.append(visibility);
    }
-   [['Move up',-1],['Move down',1]].forEach(([text,step])=>{const b=el('button',isMenu?(step<0?'↑':'↓'):text);b.type='button';b.setAttribute('aria-label',text+' — '+object.name);b.title=text;b.disabled=index+step<0||index+step>=data[current].length;b.addEventListener('click',()=>{[data[current][index],data[current][index+step]]=[data[current][index+step],data[current][index]];if(current==='menu')data.menu.forEach((v,i)=>v.position=i+1);markDirty();render();document.getElementById(object.id+'-panel')?.closest('.editor-entry').querySelector('.entry-toggle')?.focus();});controls.append(b);});
+   [['Move up',-1],['Move down',1]].forEach(([text,step])=>{const b=el('button',isMenu?(step<0?'↑':'↓'):text);b.type='button';b.setAttribute('aria-label',text+' — '+object.name);b.title=text;b.disabled=index+step<0||index+step>=data[current].length;b.addEventListener('click',()=>{[data[current][index],data[current][index+step]]=[data[current][index+step],data[current][index]];if(['menu','preorders'].includes(current))data[current].forEach((v,i)=>v.position=i+1);markDirty();render();document.getElementById(object.id+'-panel')?.closest('.editor-entry').querySelector('.entry-toggle')?.focus();});controls.append(b);});
    const remove=el('button','Remove');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>{removeAction=()=>{data[current].splice(index,1);markDirty();render();};document.getElementById('remove-dialog').showModal();});
-   head.append(controls);panel.append(addFields(isMenu?menuFields.filter(def=>def[0]!=='available'):eventFields,object,object.id),remove);section.append(head,panel);fields.append(section);
+   head.append(controls);panel.append(addFields(isMenu?menuFields.filter(def=>def[0]!=='available'&&(current==='preorders'||!['squareUrl','orderOpens','orderCloses'].includes(def[0]))):eventFields,object,object.id),remove);section.append(head,panel);fields.append(section);
   });
-  if(!data[current].length)fields.append(el('p',current==='menu'?'No menu items yet. Add your first bake below.':'No stops planned yet. The website will show a friendly coming-soon note.'));
-  const add=el('button',current==='menu'?'Add a baked good':'Add a stop','secondary');add.type='button';add.addEventListener('click',()=>{
-   const id=(current==='menu'?'bake-':'stop-')+crypto.randomUUID().slice(0,8);
-   data[current].push(current==='menu'?{id,name:'New bake',description:'',price:0,category:'Pastries',available:true,soldOut:false,featured:false,seasonal:false,dietary:[],allergens:'',image:'',imageAlt:'',imageShape:'square',squareUrl:'',notes:'',storage:'',orderOpens:'',orderCloses:'',position:data.menu.length+1}:{id,name:'New stop',address:'',start:'',end:'',mapUrl:'',description:'',status:'tentative',menuNote:''});expandedItems.add(id);markDirty();render();const cards=fields.querySelectorAll('.editor-entry');cards[cards.length-1].querySelector('.entry-panel input').focus();});fields.append(add);
+  if(!data[current].length)fields.append(el('p',['menu','preorders'].includes(current)?'No menu items yet. Add your first bake below.':'No stops planned yet. The website will show a friendly coming-soon note.'));
+  const add=el('button',['menu','preorders'].includes(current)?'Add a baked good':'Add a stop','secondary');add.type='button';add.addEventListener('click',()=>{
+   const id=(['menu','preorders'].includes(current)?'bake-':'stop-')+crypto.randomUUID().slice(0,8);
+   data[current].push(['menu','preorders'].includes(current)?{id,name:'New bake',description:'',price:0,category:'Pastries',available:true,soldOut:false,featured:false,seasonal:false,dietary:[],allergens:'',image:'',imageAlt:'',imageShape:'square',squareUrl:'',notes:'',storage:'',orderOpens:'',orderCloses:'',position:data[current].length+1}:{id,name:'New stop',address:'',start:'',end:'',mapUrl:'',description:'',status:'tentative',menuNote:''});expandedItems.add(id);markDirty();render();const cards=fields.querySelectorAll('.editor-entry');cards[cards.length-1].querySelector('.entry-panel input').focus();});fields.append(add);
  }
 }
 document.querySelector('.editor-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(!button||!data)return;current=button.dataset.tab;document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();});
@@ -126,7 +128,7 @@ form.addEventListener('submit',async event=>{
 document.getElementById('download').addEventListener('click',()=>{if(!form.reportValidity())return;const blob=new Blob([JSON.stringify(data[current],null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const a=el('a');a.href=url;a.download=current+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say(`Downloaded ${current}.json. This is a draft, not a published change. If you edited other tabs, download each of those too.`);});
 document.getElementById('import').addEventListener('change',async event=>{
  const file=event.target.files[0];if(!file)return;
- try{if(file.name!==current+'.json')throw Error(`Choose ${current}.json for this tab.`);const parsed=JSON.parse(await file.text());const valid=current==='site'?parsed&&typeof parsed==='object'&&!Array.isArray(parsed):Array.isArray(parsed);if(!valid)throw Error('That file has the wrong format.');if(current==='site'&&Object.keys(data.site).some(k=>!(k in parsed)))throw Error('That bakery file is missing fields.');if(current!=='site'&&parsed.some(item=>!item||typeof item!=='object'||typeof item.id!=='string'||typeof item.name!=='string'||(current==='menu'&&!Array.isArray(item.dietary))))throw Error('That file has incomplete entries.');data[current]=parsed;markDirty();render();say('Imported into your draft. Review the fields before saving.');}catch(error){say('Could not import: '+error.message,true);}event.target.value='';
+ try{if(file.name!==current+'.json')throw Error(`Choose ${current}.json for this tab.`);const parsed=JSON.parse(await file.text());const valid=current==='site'?parsed&&typeof parsed==='object'&&!Array.isArray(parsed):Array.isArray(parsed);if(!valid)throw Error('That file has the wrong format.');if(current==='site'&&Object.keys(data.site).some(k=>!(k in parsed)))throw Error('That bakery file is missing fields.');if(current!=='site'&&parsed.some(item=>!item||typeof item!=='object'||typeof item.id!=='string'||typeof item.name!=='string'||(['menu','preorders'].includes(current)&&!Array.isArray(item.dietary))))throw Error('That file has incomplete entries.');data[current]=parsed;markDirty();render();say('Imported into your draft. Review the fields before saving.');}catch(error){say('Could not import: '+error.message,true);}event.target.value='';
 });
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
 (async()=>{
@@ -137,7 +139,7 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   if(!res.headers.get('Content-Type')?.includes('application/json'))throw Error('The content request did not return editor data. Open /api/content in this signed-in browser to check its Access login or error page.');
   const result=await res.json();
   if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
-  data=result.data;revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  data=result.data;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';

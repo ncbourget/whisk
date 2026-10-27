@@ -21,7 +21,7 @@ ROOT = build.ROOT
 LOCK = threading.Lock()
 
 def revision():
-    return hashlib.sha256(b''.join((ROOT/'data'/f'{n}.json').read_bytes() for n in ['site','menu','events'])).hexdigest()
+    return hashlib.sha256(b''.join((ROOT/'data'/f'{n}.json').read_bytes() for n in ['site','menu','events','preorders'])).hexdigest()
 
 class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -102,7 +102,7 @@ class Handler(SimpleHTTPRequestHandler):
         if admin and not self.authorized():
             return self.answer(401,{'error':'Open Start Whisk.command to authenticate the local editor.'})
         if self.authorized():
-            public |= {i['image'] for i in data['menu'] if i['image']}
+            public |= {i['image'] for i in data['menu'] + data.get('preorders', []) if i['image']}
         if self.authorized() and relative.startswith('assets/food/') and Path(relative).suffix.lower() in {'.jpg','.jpeg','.png','.webp','.svg'} and '..' not in relative:
             public.add(relative)
         if relative not in public and not admin:
@@ -142,7 +142,7 @@ class Handler(SimpleHTTPRequestHandler):
                     build.render(data) # Check rendering before modifying source content.
                     backup=ROOT/'.backups'/datetime.now().strftime('%Y%m%d-%H%M%S-%f')
                     backup.mkdir(parents=True)
-                    old = {name:(ROOT/'data'/f'{name}.json').read_bytes() for name in ['site','menu','events']}
+                    old = {name:(ROOT/'data'/f'{name}.json').read_bytes() for name in ['site','menu','events','preorders']}
                     for name,content in old.items():
                         (backup/f'{name}.json').write_bytes(content)
                     try:

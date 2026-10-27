@@ -54,7 +54,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 dialog { max-width: min(500px,calc(100% - 32px)); background: var(--paper); color: var(--ink); border: 1px solid var(--ink); padding: 30px; }
 dialog h2 { font: 400 1.65rem/1.25 var(--font-display); letter-spacing: 0; }
 dialog::backdrop { background: #20283fbb; }
-.photo-preview { max-width: 200px; max-height: 180px; object-fit: contain; }
+.photo-preview { display: block; width: min(100%, 320px); height: auto; aspect-ratio: 4/3; object-fit: cover; object-position: center; }
 .upload-button { margin-top: 8px; max-width: 100%; }
 @media (max-width:600px) {
   .editor-header { flex-wrap: wrap; gap: 8px 16px; padding-inline: 16px; }
@@ -70,7 +70,7 @@ dialog::backdrop { background: #20283fbb; }
 
 /* Collapsible menu rows keep reorder controls separate from the disclosure. */
 .menu-entry .entry-header{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;margin:0;align-items:center;position:relative;padding-right:40px}
-.entry-thumbnail{width:64px;height:64px;object-fit:cover}
+.entry-thumbnail{width:64px;height:48px;object-fit:cover;object-position:center}
 .entry-thumbnail[hidden]{display:block;visibility:hidden}
 .menu-entry .entry-header h2{min-width:0}
 .editor-page .entry-toggle{display:block;width:100%;padding:10px 0;border:0;background:none;color:inherit;text-align:left;font:400 1.4rem/1.2 var(--font-display);text-transform:none;cursor:pointer}
@@ -81,7 +81,7 @@ dialog::backdrop { background: #20283fbb; }
 .entry-panel[hidden]{display:none}
 .entry-panel>.secondary{margin-top:20px}
 .menu-entry .entry-panel{border-top:.5pt solid var(--border);margin-top:18px;padding-top:20px}
-@media(max-width:600px){.menu-entry .entry-header{grid-template-columns:44px minmax(0,1fr) auto;gap:8px;padding-right:28px}.entry-thumbnail{width:44px;height:44px}.editor-page .entry-toggle{font-size:1.15rem}.entry-arrow{width:24px}.menu-entry .entry-controls{gap:3px}.menu-entry .entry-controls button{min-width:32px;padding:5px}}
+@media(max-width:600px){.menu-entry .entry-header{grid-template-columns:44px minmax(0,1fr) auto;gap:8px;padding-right:28px}.entry-thumbnail{width:44px;height:33px}.editor-page .entry-toggle{font-size:1.15rem}.entry-arrow{width:24px}.menu-entry .entry-controls{gap:3px}.menu-entry .entry-controls button{min-width:32px;padding:5px}}
 
 .menu-entry.item-hidden{background:#e9e8e4}
 .entry-visibility{display:flex;align-items:center;gap:8px;min-height:44px;margin-right:10px;cursor:pointer;font:400 .75rem/1.3 var(--font-mono)}

@@ -53,3 +53,20 @@
  dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
  dialog.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;link.focus({preventScroll:true});});
 })();
+
+// Decorative previews never change the link or product information.
+(()=>{
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ document.querySelectorAll('[data-more-tile]').forEach(tile=>{
+  const images=[...tile.querySelectorAll('img')];if(images.length<2)return;
+  let index=0,visible=false;
+  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;});observer.observe(tile);
+  setInterval(()=>{
+   if(reduced.matches||document.hidden||!visible||tile.matches(':hover,:focus-within'))return;
+   const next=(index+1)%images.length;
+   images[next].loading='eager';
+   if(!images[next].complete||!images[next].naturalWidth)return;
+   images[index].hidden=true;images[next].hidden=false;index=next;
+  },5000);
+ });
+})();

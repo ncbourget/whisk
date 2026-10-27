@@ -165,3 +165,14 @@ A free Git-backed CMS such as Decap could provide a hosted authoring experience 
 `assets/js/cart.js` is a non-authoritative browser cart. Its public data is limited to visible item IDs, names, prices, sold-out status and public image information. It holds no customer/payment/admin credentials. It cannot place orders, reserve stock or publish edits. There is no new public write endpoint. The existing Access verification remains intact; hosted publishing is gated separately by explicit runtime configuration.
 
 Hosted phone publishing now has a server implementation, pending live configuration and acceptance testing. Square order creation remains unimplemented. See BACKEND-NEXT-STEPS.md for the required server boundaries, configuration and acceptance tests. Future customer checkout belongs on a dedicated public commerce route, separate from privileged `/api/` editor routes; admin Access must never be bypassed to make customer checkout work.
+
+
+## Separate stand menu and pre-orders
+
+`data/menu.json` is the everyday stand menu. Its product pages have no purchase controls. `data/preorders.json` is an independent list using the same validated product fields; the editor’s Pre-orders tab supports adding products, uploading photos, show/hide, sold-out overrides and ordering. The homepage shows this section below the everyday menu; its full list is at `/preorder/` and item pages at `/preorder/<id>/`.
+
+Both lists pass the same server-side schema and image/link validation, Cloudflare Access authorization, origin checks and revision checks. The publishing service writes the four fixed content files atomically. The new JSON file is private and bundled only into the Worker; only visible pre-order products enter the public cart catalog. Existing everyday cart contents are isolated by a new cart storage key. Hidden/deleted generated product pages are removed during local builds as well as deployment builds.
+
+Pre-orders require at least three days before pickup and may be placed up to seven days in advance. This is currently communicated on pre-order pages, not an active payment promise: checkout remains disabled. Before enabling Square, connect only the pre-order catalog and implement server-side validation of the selected pickup time against the bakery time zone, a minimum three-day and maximum seven-day lead time, pickup schedule, inventory and order deadlines. Revalidate prices and availability at checkout and test paid order notifications. Public Square links in the editor are not currently rendered as checkout shortcuts, so they cannot bypass this future validation.
+
+Deploy the updated Worker and `data/preorders.json` together, then reload editor sessions. Existing products are not automatically moved or duplicated into pre-orders. Cindy can add her whole pies and loaves through the new tab. No additional Access policy or secret is required for the new content list. Square credentials are still not configured by this change.

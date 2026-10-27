@@ -22,8 +22,9 @@ function url(value,square=false){
 function date(value){if(!value)return null;if(!/T.*(?:Z|[+-]\d\d:\d\d)$/.test(value)||!Number.isFinite(Date.parse(value)))fail('Dates need a valid time-zone offset.');return Date.parse(value);}
 function window(obj){const start=date(obj.orderOpens),end=date(obj.orderCloses);if(start!==null&&end!==null&&start>=end)fail('Ordering must close after it opens.');}
 export function validateContent(data,files){
- if(!data||typeof data!=='object'||Object.keys(data).sort().join(',')!=='events,menu,site')fail('Content must contain site, menu and events only.');
- const {site,menu,events}=data;
+ if(!data||typeof data!=='object'||!['events,menu,site','events,menu,preorders,site'].includes(Object.keys(data).sort().join(',')))fail('Content must contain site, menu and events only.');
+ const {site,menu,events}=data;const preorders=data.preorders??[];
+ if(!Array.isArray(preorders)||preorders.length>200)fail('Keep pre-orders below 200 entries.');
  shape(site,siteStrings,['demo','orderingEnabled']);
  if(!Array.isArray(menu)||menu.length>200||!Array.isArray(events)||events.length>200)fail('Keep menu and events below 200 entries each.');
  if(!['coming_soon','open_today','preorders_open','preorders_closed','sold_out','closed','next_popup'].includes(site.status))fail('Invalid business status.');
@@ -36,7 +37,7 @@ export function validateContent(data,files){
  const asset=path=>{if(path&&(!/^assets\/[A-Za-z0-9_./-]+\.(svg|jpg|jpeg|png|webp)$/i.test(path)||path.includes('..')||!files.has(path)))fail('Choose an existing uploaded image.');};
  asset(site.socialImage);if(site.socialImage&&!site.socialImageAlt.trim())fail('Describe the sharing image.');window(site);
  let ids=new Set();
- for(const i of menu){shape(i,itemStrings,itemBools,['price','position'],['dietary']);if(!/^[a-z0-9-]+$/.test(i.id)||ids.has(i.id)||!i.name.trim()||!i.category.trim())fail('Each item needs a unique ID, name and category.');ids.add(i.id);
+ for(const i of [...menu,...preorders]){shape(i,itemStrings,itemBools,['price','position'],['dietary']);if(!/^[a-z0-9-]+$/.test(i.id)||ids.has(i.id)||!i.name.trim()||!i.category.trim())fail('Each item needs a unique ID, name and category.');ids.add(i.id);
  if(i.price<0||i.price>100000||!Number.isInteger(i.position))fail('Invalid price or position.');
  if(!['square','portrait','landscape'].includes(i.imageShape))fail('Invalid image shape.');asset(i.image);if(i.image&&!i.imageAlt.trim())fail('Describe each product photo.');url(i.squareUrl,true);window(i);}
  ids=new Set();for(const v of events){shape(v,eventStrings);if(!/^[a-z0-9-]+$/.test(v.id)||ids.has(v.id)||!v.name.trim())fail('Each stop needs a unique ID and name.');ids.add(v.id);const start=date(v.start),end=date(v.end);if(start===null||end===null||start>=end)fail('A stop needs a start and later end time.');if(!['confirmed','cancelled','tentative'].includes(v.status))fail('Invalid stop status.');url(v.mapUrl);}
