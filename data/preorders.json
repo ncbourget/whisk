@@ -139,13 +139,13 @@
     "category": "Pies",
     "available": true,
     "soldOut": false,
-    "featured": false,
+    "featured": true,
     "seasonal": false,
     "dietary": [
       "cream",
       "chocolate"
     ],
-    "allergens": "Whole milk, flour, sugar, cornstarch, eggs, salt, butter, heavy cream, flour\nAllergens: Flour, egg",
+    "allergens": "Whole milk, flour, sugar, cornstarch, eggs, salt, butter, heavy cream, flour\nAllergens: Wheat, milk, egg",
     "image": "assets/food/upload-1c7ae329c4998df824998ba789a05c1767eaa1c10dcaf232ed605d43e5635adb.jpg",
     "imageAlt": "Whole chocolate cream pie on photo boards",
     "imageShape": "square",
@@ -155,5 +155,30 @@
     "orderOpens": "",
     "orderCloses": "",
     "position": 7
+  },
+  {
+    "id": "bake-91c4aedd",
+    "name": "Shoofly pie",
+    "description": "Rich molasses based pie that's perfect with a holiday meal. This pie is not too sweet and is excellent topped with vanilla ice cream.",
+    "price": 18,
+    "category": "Pies",
+    "available": true,
+    "soldOut": false,
+    "featured": true,
+    "seasonal": true,
+    "dietary": [
+      "pie",
+      "holidays"
+    ],
+    "allergens": "Flour, molasses, light brown sugar, egg, butter, sugar, salt, baking soda\nAllergens: Wheat, egg",
+    "image": "assets/food/upload-9b35021936408ec5a3a89e52f7960131f1263bcc013c60e70ec6424c4973d320.jpg",
+    "imageAlt": "Entire pie on photo boards",
+    "imageShape": "square",
+    "squareUrl": "",
+    "notes": "",
+    "storage": "Store at room temperature. You can reheat if you prefer a warm pie. ",
+    "orderOpens": "",
+    "orderCloses": "",
+    "position": 8
   }
 ]
