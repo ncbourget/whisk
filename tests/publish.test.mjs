@@ -52,3 +52,13 @@ test('GitHub redirects are rejected without forwarding the publishing credential
  let calls=0;const service=publisher({GITHUB_CONTENT_TOKEN:'test'},async(url,options)=>{calls++;assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{Location:'https://untrusted.example/'}});});
  await assert.rejects(service.snapshot(),e=>e.status===503);assert.equal(calls,1);
 });
+
+test('Additional product photos require valid existing assets and descriptions',()=>{
+ const data=structuredClone(content);const files=new Set(data.menu.map(i=>i.image).filter(Boolean));
+ const image='assets/food/test.jpg';files.add(image);data.menu[0].photos=[{image,alt:'Another angle'}];
+ assert.doesNotThrow(()=>validateContent(data,files));
+ data.menu[0].photos[0].image='assets/../../secret.png';
+ assert.throws(()=>validateContent(data,files));
+ data.menu[0].photos=[{image,alt:''}];assert.throws(()=>validateContent(data,files));
+ data.menu[0].photos=Array.from({length:8},()=>({image,alt:'Photo'}));assert.throws(()=>validateContent(data,files));
+});

@@ -60,13 +60,43 @@
  document.querySelectorAll('[data-more-tile]').forEach(tile=>{
   const images=[...tile.querySelectorAll('img')];if(images.length<2)return;
   let index=0,visible=false;
+  tile.classList.add('more-ready');
+  images.forEach((image,n)=>{image.hidden=false;image.classList.toggle('is-active',n===0);});
   const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;});observer.observe(tile);
   setInterval(()=>{
    if(reduced.matches||document.hidden||!visible||tile.matches(':hover,:focus-within'))return;
    const next=(index+1)%images.length;
    images[next].loading='eager';
    if(!images[next].complete||!images[next].naturalWidth)return;
-   images[index].hidden=true;images[next].hidden=false;index=next;
+   images[index].classList.remove('is-active');images[next].classList.add('is-active');index=next;
   },5000);
+ });
+})();
+
+// Optional product photos share a three-second crossfade on cards and detail pages.
+(()=>{
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ document.querySelectorAll('[data-card-slideshow],[data-product-gallery]').forEach(gallery=>{
+  const images=[...gallery.querySelectorAll('.product-frames>img')];
+  const buttons=[...gallery.querySelectorAll('[data-photo-index]')];
+  if(images.length<2)return;
+  let index=0,visible=false,lastChange=0;
+  gallery.classList.add('gallery-ready');
+  const show=next=>{
+   images.forEach((image,n)=>{image.classList.toggle('is-active',n===next);image.setAttribute('aria-hidden',String(n!==next));});
+   buttons.forEach((button,n)=>button.setAttribute('aria-pressed',String(n===next)));
+   index=next;lastChange=performance.now();
+  };
+  images.forEach(image=>{image.hidden=false;});show(0);
+  buttons.forEach((button,n)=>button.addEventListener('click',()=>show(n)));
+  new IntersectionObserver(entries=>{
+   visible=entries[0].isIntersecting;
+   if(visible){images.forEach(image=>{image.loading='eager';});lastChange=performance.now();}
+  }).observe(gallery);
+  setInterval(()=>{
+   if(reduced.matches||document.hidden||!visible||gallery.closest('[hidden]')||performance.now()-lastChange<3000)return;
+   const next=(index+1)%images.length;
+   if(images[next].complete&&images[next].naturalWidth)show(next);
+  },100);
  });
 })();

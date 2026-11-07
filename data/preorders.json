@@ -180,5 +180,37 @@
     "orderOpens": "",
     "orderCloses": "",
     "position": 8
+  },
+  {
+    "id": "demo-preorders-gallery",
+    "name": "Demo — Whole-bake selection",
+    "description": "Demo only: a selection of bakes to preview the rotating photos and product gallery.",
+    "price": 60,
+    "category": "Demo",
+    "available": true,
+    "soldOut": false,
+    "featured": false,
+    "seasonal": false,
+    "dietary": [],
+    "allergens": "Demo only. Ingredients and allergens vary by bake; this is not an orderable product.",
+    "image": "assets/food/preorder-pumpkin-pie.jpg",
+    "imageAlt": "Stock placeholder: pumpkin pie in a baking tin",
+    "imageShape": "landscape",
+    "squareUrl": "",
+    "notes": "Demonstration item only. These photos show different bakes, not multiple views of one product. Not an actual offer.",
+    "storage": "",
+    "orderOpens": "",
+    "orderCloses": "",
+    "position": 9,
+    "photos": [
+      {
+        "image": "assets/food/preorder-apple-pie.jpg",
+        "alt": "Stock placeholder: apple cinnamon pie"
+      },
+      {
+        "image": "assets/food/preorder-lemon-pound-cake.jpg",
+        "alt": "Stock placeholder: frosted pound cake topped with lime slices"
+      }
+    ]
   }
 ]

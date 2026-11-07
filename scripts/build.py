@@ -91,7 +91,7 @@ def validate(data):
         if not isinstance(item, dict):
             raise ValueError('Each menu item must be an object.')
         allowed = {'id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses','price','position','available','soldOut','featured','seasonal','dietary'}
-        if set(item) != allowed:
+        if set(item) - {'photos'} != allowed:
             raise ValueError('Unknown or missing menu fields. Never store credentials in content.')
         for key in ['id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses']:
             if not isinstance(item.get(key),str):
@@ -110,6 +110,13 @@ def validate(data):
             raise ValueError('Dietary tags must be a list of text.')
         if item['imageShape'] not in {'square','portrait','landscape'}:
             raise ValueError('Photo shape must be square, portrait, or landscape.')
+        extra = item.get('photos', [])
+        if not isinstance(extra, list) or len(extra) > 7:
+            raise ValueError('Use at most seven additional photos.')
+        for photo in extra:
+            if not isinstance(photo, dict) or set(photo) != {'image','alt'} or not all(isinstance(v,str) for v in photo.values()) or not photo['image'] or not photo['alt'].strip():
+                raise ValueError('Each additional photo needs an image and description.')
+            asset(photo['image'])
         asset(item['image'])
         if item['image'] and not item['imageAlt'].strip():
             raise ValueError(f'{item["name"]}: describe the photo for visitors who cannot see it.')
@@ -333,6 +340,7 @@ PUBLIC_ASSETS = {
 
 def public_assets(data):
     paths = {str(p.relative_to(ROOT)) for p in (ROOT/'assets/brand/final').glob('*') if p.is_file()} | {'assets/css/identity.css','assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] and i['image']}
+    paths.update(p['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] for p in i.get('photos', []))
     if data['site']['socialImage']:
         paths.add(data['site']['socialImage'])
     return paths

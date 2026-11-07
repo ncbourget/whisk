@@ -96,3 +96,23 @@ body .store-page p:not(.eyebrow):not(.mono):not(.meta),
 body .bake p,body .stop-details p{font-weight:400!important;letter-spacing:0!important}
 body .main-footer nav a{font-size:12px!important}
 body #mobile-menu nav a{font-size:19px!important}
+.product-frames{aspect-ratio:4/3;overflow:hidden;margin-bottom:16px}
+.product-frames .food-photo{width:100%;height:100%;object-fit:cover;margin:0}
+.product-frames img[hidden]{display:none}
+.photo-deck{display:flex;gap:10px;overflow-x:auto;padding:4px 3px 12px}
+body .photo-deck button{padding:0;border:2px solid transparent;background:none;flex:0 0 72px;cursor:pointer}
+.photo-deck button[aria-pressed=true]{border-color:var(--ink)}
+.photo-deck img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.extra-photo-row{border-top:.5pt solid var(--border);padding:18px 0;display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.extra-photo-row img,.extra-photo-row label,.extra-photo-row input{grid-column:1/-1}
+/* Layer the photographs so the outgoing frame remains visible during the fade. */
+.gallery-ready .product-frames{position:relative}
+.gallery-ready .product-frames>.food-photo{position:absolute;inset:0;opacity:0;transition:opacity 550ms ease-in-out;pointer-events:none}
+.gallery-ready .product-frames>.food-photo.is-active{opacity:1}
+@media(prefers-reduced-motion:reduce){.gallery-ready .product-frames>.food-photo{transition:none}}
+/* Cross-links between the two catalogs sit immediately below their titles. */
+.store-page .catalog-note{margin-top:0;margin-bottom:28px;padding-top:20px}
+/* Crossfade the More tile photographs beneath the fixed lettering and gradient. */
+.menu-more.more-ready img{opacity:0;transition:opacity 650ms ease-in-out}
+.menu-more.more-ready img.is-active{opacity:1}
+@media(prefers-reduced-motion:reduce){.menu-more.more-ready img{transition:none}}

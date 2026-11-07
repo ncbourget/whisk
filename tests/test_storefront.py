@@ -8,6 +8,23 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import build
 
 class StorefrontTests(unittest.TestCase):
+    def test_optional_gallery_and_shared_categories(self):
+        data=build.read_data()
+        item=data['menu'][0];item['available']=True
+        item['photos']=[{'image':'assets/food/choc_cookie.jpg','alt':'Another view'}]
+        item['category']='Special seasonal bakes'
+        pages=build.render(data)
+        detail=pages['menu/'+item['id']+'/index.html']
+        self.assertIn('data-product-gallery',detail)
+        self.assertIn('data-photo-index="1"',detail)
+        self.assertIn('data-card-slideshow',pages['menu/index.html'])
+        self.assertIn('assets/food/choc_cookie.jpg',build.public_assets(data))
+        for route in ['menu/index.html','preorder/index.html']:
+            self.assertIn('<option value="Special seasonal bakes">',pages[route])
+            self.assertIn('id="menu-items"',pages[route])
+        del item['photos']
+        self.assertNotIn('data-product-gallery',build.render(data)['menu/'+item['id']+'/index.html'])
+
     def test_new_product_generates_page_and_link(self):
         data=build.read_data();item=copy.deepcopy(data['menu'][0]);item.update(id='new-test-bake',name='New test bake',available=True);data['menu'].append(item)
         pages=build.render(data)

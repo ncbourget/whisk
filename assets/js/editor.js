@@ -74,7 +74,28 @@ function field(def, object, prefix){
  }
  return wrapper;
 }
-function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));return grid;}
+function photoDeckEditor(object){
+ const section=el('section',undefined,'field wide');section.append(el('h3','Additional photos'),el('small','Optional: add up to seven more photos. The main photo appears first. Menu photos rotate automatically; product pages also show thumbnails.'));
+ const photos=object.photos||[];
+ photos.forEach((photo,index)=>{
+  const row=el('div',undefined,'extra-photo-row');const img=el('img',undefined,'photo-preview');img.src='../'+photo.image;img.alt=photo.alt;
+  const label=el('label',`Describe photo ${index+2}`);const input=el('input');input.type='text';input.required=true;input.value=photo.alt;input.id=object.id+'-extra-'+index;label.htmlFor=input.id;
+  input.addEventListener('input',()=>{photo.alt=input.value;markDirty();});
+  const remove=el('button','Remove photo','secondary');remove.type='button';remove.addEventListener('click',()=>{object.photos.splice(index,1);markDirty();render();});
+  const up=el('button','Move earlier','secondary');up.type='button';up.disabled=index===0;up.addEventListener('click',()=>{[photos[index-1],photos[index]]=[photos[index],photos[index-1]];markDirty();render();});
+  row.append(img,label,input,up,remove);section.append(row);
+ });
+ if(local&&photos.length<7){
+  const label=el('label','Add more photos');const upload=el('input');upload.type='file';upload.multiple=true;upload.accept='image/jpeg,image/png,image/webp';upload.id=object.id+'-extra-upload';label.htmlFor=upload.id;
+  upload.addEventListener('change',async()=>{
+   const files=[...upload.files];if(files.length+photos.length>7){say('Choose at most seven additional photos in total.',true);return;}
+   upload.disabled=true;
+   try{for(const file of files){if(file.size>5*1024*1024)throw Error('Each photo must be smaller than 5 MB.');const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await res.json();if(!res.ok)throw Error(result.error);object.photos??=[];object.photos.push({image:result.path,alt:''});markDirty();}say('Photos uploaded. Describe each photo, then save or publish.');}catch(error){say(error.message,true);}finally{render();}
+  });section.append(label,upload);
+ }
+ return section;
+}
+function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));if(defs.some(def=>def[2]==='photo'))grid.append(photoDeckEditor(object));return grid;}
 const expandedItems=new Set();
 function render(){
  fields.replaceChildren();
