@@ -1,0 +1,98 @@
+/* Meredith's final Whisk identity. Fonts are supplied brand assets, self-hosted. */
+@font-face{font-family:Bryant;src:url('../brand/final/bryant-regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:Bryant;src:url('../brand/final/bryant-medium.otf') format('opentype');font-weight:500;font-display:swap}
+@font-face{font-family:Bryant;src:url('../brand/final/bryant-bold.otf') format('opentype');font-weight:700;font-display:swap}
+@font-face{font-family:Bryant;src:url('../brand/final/bryant-italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Quincy CF';src:url('../brand/final/quincy-regular.otf') format('opentype');font-weight:400;font-display:swap}
+@font-face{font-family:'Quincy CF';src:url('../brand/final/quincy-black.otf') format('opentype');font-weight:900;font-display:swap}
+:root,.editor-page{--whisk-blue:#91aedb;--deep-blue:#00365d;--sand:#e7dfc6;--willow:#b2cb71;--apricot:#ffd085;--espresso:#73543a;--paper:#fff;--ink:#00365d;--border:#91aedb;--silver:#e7dfc6;--silver-dark:#73543a;--font-display:'Quincy CF',Georgia,serif;--font-body:Bryant,Arial,sans-serif;--font-mono:Bryant,Arial,sans-serif}
+body,.storefront-inner,.editor-page{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px}
+/* Override the former Courier treatments without changing page structure. */
+body a,body .mono,body p,body .sample-price,body label,body input,body textarea,body select,body button,body .meta,body .cart-row,body .editor-label{font-family:var(--font-body)!important;color:var(--ink);letter-spacing:0!important}
+body p,body .bake p,body .stop-details p,body .find-copy>p,body .intro{font-size:17px!important;line-height:1.6!important;text-transform:none;font-weight:400!important}
+body a,body .mono,body label,body button,body .meta,body .editor-label{font-weight:500!important}
+body nav a,body .sun-link,body .menu-rule a,body .mono,body .meta,body .editor-label,body label,body button{letter-spacing:.1em!important;text-transform:uppercase;font-size:13px!important;line-height:1.5!important}
+body h1,body h2,body h3,body h3 a,body .hero-phrase,body summary,body .more-tile-label,body .more-caption{font-family:var(--font-display)!important;letter-spacing:-.02em!important;font-weight:400!important;text-transform:none;color:var(--ink)}
+body h3 a{font-size:inherit!important;line-height:inherit!important}
+body .hero-phrase{line-height:1.12!important;font-size:clamp(28px,2.6vw,40px)!important}
+body .sample-price{font-size:16px!important;font-weight:500!important}
+body .hero-aside{font-size:14px!important;line-height:1.7!important}
+body .ingredients h2{font-family:var(--font-body)!important;font-size:14px;letter-spacing:.1em!important;text-transform:uppercase;font-weight:700!important}
+.storefront-inner header,#mobile-menu,#mobile-menu::backdrop{background:var(--paper);color:var(--ink)}
+body .find-plain,body .menu-allergens,body .menu-allergens:before,body .menu-allergens:after{background:var(--sand)}
+body .find-plain{border-top:0}
+body .menu-rule,body .sun-link,body .store-note,body .cart-row,body .store-page details,body .stop-details{border-color:var(--ink)}
+body .menu-toggle,body .menu-close,body .social-icon{color:var(--ink)}
+body .hero-logo{width:min(100%,440px);height:auto}
+body .main-footer{background:var(--paper);padding-top:48px;padding-bottom:48px}
+body .footer-logo{width:190px}
+body .food-space{background:var(--sand)}
+body input,body textarea,body select{font-size:17px;line-height:1.5}
+body input:focus-visible,body textarea:focus-visible,body select:focus-visible{outline:2px solid var(--deep-blue);outline-offset:3px}
+body .store-page button,body .store-page input,body .menu-filter select{border-color:var(--ink)}
+body .store-page [data-add-item],.editor-page .button,.editor-page .editor-tabs button[aria-pressed=true]{background:var(--deep-blue);color:white}
+.editor-page .editor-notice{background:var(--whisk-blue);color:var(--deep-blue)}
+.editor-page .editor-entry{background:white;border-color:var(--border)}
+.editor-page .editor-header{border-color:var(--sand)}
+.editor-page .editor-header .brand img{width:150px;height:auto}
+.editor-page .editor-actions{background:var(--paper)}
+.editor-page h1{font-size:clamp(38px,5vw,64px)}
+.editor-page .field label{font-size:12px!important}
+body #mobile-menu nav a{font-family:var(--font-body)!important;font-size:19px!important;letter-spacing:.1em!important}
+@media(max-width:700px){
+ body .main-header,body.storefront-inner .main-header{background:var(--paper)}
+ body .mobile-brand{width:92px}
+ body .hero-logo{width:235px}
+ body .main-footer nav{flex-wrap:wrap;gap:14px 20px}
+ body .main-footer nav a{font-size:12px!important}
+ body .bake p{font-size:15px!important}
+}
+/* Quiet surfaces keep the real trailer photograph and brand lettering legible. */
+body .main-header{background:var(--paper);min-height:76px}
+body .hero-copy{top:15%;left:6%;width:36%;max-width:470px;background:var(--sand);padding:24px 28px 32px}
+body .hero-copy .hero-logo{width:100%}
+body .hero-copy .hero-phrase{margin-top:10px}
+body .hero-copy>.sun-link{margin-left:0;margin-top:26px}
+body .hero-aside{background:var(--paper);padding:12px 18px;right:6%;top:17%}
+body .homepage-menu-grid .more-tile span{font-family:var(--font-display)!important;color:white}
+@media(max-width:700px){
+ body .hero-copy{top:28px;left:6%;width:64%;max-width:290px;padding:12px 18px 22px}
+ body .hero-copy .hero-logo{width:100%}
+ body .hero-copy .hero-phrase{display:block;font-size:24px!important}
+ body .hero-copy .hero-phrase span{margin-left:0}
+ body .hero-copy>.sun-link{margin-top:18px;font-size:12px!important}
+ body .hero-aside{display:none}
+}
+/* Vertical paper fibres sit outside the panels, leaving text and focus rings intact. */
+body .hero-copy::before,body .hero-copy::after,
+body .hero-aside::before,body .hero-aside::after{
+ content:"";position:absolute;top:0;bottom:0;width:8px;
+ background:inherit;pointer-events:none;
+ -webkit-mask:url('../brand/final/torn-side.svg') left top / 8px 240px repeat-y;
+ mask:url('../brand/final/torn-side.svg') left top / 8px 240px repeat-y;
+}
+body .hero-copy::before,body .hero-aside::before{left:-7px}
+body .hero-copy::after,body .hero-aside::after{right:-7px;transform:scaleX(-1)}
+/* A shorter mobile introduction reveals more of the trailer in the cover crop. */
+@media(max-width:700px){
+ body .hero{height:560px;min-height:0;max-height:none}
+ body .hero-image img{object-position:65% center}
+ body .hero-copy{top:22px;width:62%;max-width:260px;padding:10px 16px 20px}
+ body .hero-copy .hero-logo{width:180px;max-width:100%;margin-inline:auto}
+ body .hero-copy .hero-phrase{font-size:22px!important;margin-top:4px}
+ body .hero-copy>.sun-link{margin-top:14px;gap:12px}
+}
+/* Natural-case reading text; reserve tracked capitals for brief UI captions. */
+body p,body li,body .cart-row,body .story-copy,body .editor-help,
+body a:not(.button):not(.sun-link){text-transform:none!important}
+body p a{font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important}
+body nav a,body .sun-link,body .menu-rule a,body .social-feed>a,
+body .eyebrow,body .mono,body .meta,body .editor-label{
+ text-transform:uppercase!important;font-size:13px!important;
+ font-weight:700!important;letter-spacing:.1em!important;line-height:1.5!important;
+}
+body .hero-aside{font-size:14px!important;line-height:1.7!important}
+body .store-page p:not(.eyebrow):not(.mono):not(.meta),
+body .bake p,body .stop-details p{font-weight:400!important;letter-spacing:0!important}
+body .main-footer nav a{font-size:12px!important}
+body #mobile-menu nav a{font-size:19px!important}

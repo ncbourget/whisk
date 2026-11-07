@@ -332,7 +332,7 @@ PUBLIC_ASSETS = {
 }
 
 def public_assets(data):
-    paths = {'assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] and i['image']}
+    paths = {str(p.relative_to(ROOT)) for p in (ROOT/'assets/brand/final').glob('*') if p.is_file()} | {'assets/css/identity.css','assets/css/storefront.css','assets/js/cart.js','assets/js/navigation.js','assets/splashscreen/about.webp'} | {str(p.relative_to(ROOT)) for p in (ROOT/'snapshots/assets').rglob('*') if p.is_file()} | PUBLIC_ASSETS | {i['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] and i['image']}
     if data['site']['socialImage']:
         paths.add(data['site']['socialImage'])
     return paths

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #000a30;
+        font-family: Bryant-Bold, Bryant;
+        font-size: 30px;
+      }
+
+      .cls-1, .cls-2 {
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        font-family: LiebeLotte-Bold, LiebeLotte;
+        font-size: 242.91px;
+      }
+
+      .cls-3 {
+        letter-spacing: .02em;
+      }
+
+      .cls-4 {
+        letter-spacing: .05em;
+      }
+
+      .cls-5 {
+        letter-spacing: .03em;
+      }
+    </style>
+  </defs>
+  <text class="cls-2" transform="translate(140.81 330.34) rotate(-6.49) scale(.93 .97) skewX(-15.12)"><tspan x="0" y="0">Whisk</tspan></text>
+  <text class="cls-1" transform="translate(232.36 371.25)"><tspan class="cls-4" x="0" y="0">BAKED </tspan><tspan class="cls-5" x="117.39" y="0">B</tspan><tspan class="cls-4" x="138.09" y="0">Y CIN</tspan><tspan class="cls-3" x="222.36" y="0">D</tspan><tspan class="cls-4" x="244.02" y="0">Y</tspan></text>
+</svg>

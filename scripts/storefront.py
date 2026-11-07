@@ -18,7 +18,7 @@ def render_storefront(data, legacy):
     catalog=[{k:i[k] for k in ['id','name','price','soldOut','image','imageAlt']} for i in preorders]
     runtime=json.dumps({'items':catalog,'currency':site['currency'],'base':base,'demo':site['demo']}).replace('<','\\u003c')
     scripts=f'<script id="cart-data" type="application/json">{runtime}</script><script defer src="{e(base)}/assets/js/cart.js"></script>'
-    home=home.replace('</head>',f'<link rel="stylesheet" href="{e(base)}/assets/css/storefront.css"></head>')
+    home=home.replace('</head>',f'<link rel="stylesheet" href="{e(base)}/assets/css/storefront.css"><link rel="stylesheet" href="{e(base)}/assets/css/identity.css"></head>')
     home=home.replace('</body>',scripts+'</body>')
     home=home.replace('</div></nav></header>',f'<a class="cart-link" href="{e(base)}/cart/">Cart <span data-cart-count>0</span></a></div></nav></header>')
     if not site['demo'] and site['domain']:

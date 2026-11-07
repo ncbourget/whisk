@@ -1,13 +1,13 @@
-.storefront-inner{background:#faf3e3}.storefront-inner header{position:relative;background:#faf3e3}.store-page{padding:65px 8% 100px;min-height:65vh}.store-page h1{font:400 clamp(42px,6vw,76px)/1.06 Georgia,serif;margin:20px 0 42px}.store-page h2{font:400 32px/1.15 Georgia,serif}.store-page p,.store-page label,.store-page button,.store-page input,.cart-row,.store-page>a{font:400 15px/1.65 'Courier New',monospace}.store-page p,.store-page label,.store-page button,.store-page>a{text-transform:uppercase}.store-page a{color:#000}.store-page .bakes{padding:0;gap:28px}.store-page .bake{width:auto}.store-page .bake h3{font:400 25px/1.2 Georgia,serif}.store-page .bake h3 a{text-transform:none}.store-page .food-photo{width:100%;aspect-ratio:4/3;object-fit:cover}.store-note{border-top:.5pt solid #000;margin-top:40px;padding-top:24px;max-width:800px}.item-detail{display:grid;grid-template-columns:1fr 1fr;gap:6%;margin-top:36px}.item-detail h1{font-size:48px;margin:16px 0}.store-page button{border:1px solid #000;background:transparent;padding:12px 20px;cursor:pointer}.store-page button:disabled{opacity:.55;cursor:not-allowed}.store-page input{width:70px;padding:8px;border:1px solid #000;background:transparent;margin:0 12px}.cart-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:.5pt solid #000;padding:24px 0}.cart-row>a{flex:1;min-width:180px}.cart-link{white-space:nowrap}.store-page .about-layout{display:grid;grid-template-columns:1fr 1fr;gap:6%}.store-page .about-layout img{width:100%;height:auto}.store-page .find-layout{display:grid;grid-template-columns:2fr 1fr;gap:6%}.store-page details{padding:20px 0;border-bottom:.5pt solid #000}.store-page summary{font:400 24px Georgia,serif;cursor:pointer}.store-page .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.store-page .page-heading{margin-bottom:40px}.store-page .event-card{padding:24px 0;border-bottom:.5pt solid #000}
+.storefront-inner{background:#faf3e3}.storefront-inner header{position:relative;background:#faf3e3}.store-page{padding:65px 8% 100px;min-height:65vh}.store-page h1{font:400 clamp(42px,6vw,76px)/1.06 'Quincy CF',Georgia,serif;margin:20px 0 42px}.store-page h2{font:400 32px/1.15 'Quincy CF',Georgia,serif}.store-page p,.store-page label,.store-page button,.store-page input,.cart-row,.store-page>a{font:400 15px/1.65 Bryant,Arial,sans-serif}.store-page p,.store-page label,.store-page button,.store-page>a{text-transform:uppercase}.store-page a{color:var(--ink)}.store-page .bakes{padding:0;gap:28px}.store-page .bake{width:auto}.store-page .bake h3{font:400 25px/1.2 'Quincy CF',Georgia,serif}.store-page .bake h3 a{text-transform:none}.store-page .food-photo{width:100%;aspect-ratio:4/3;object-fit:cover}.store-note{border-top:.5pt solid var(--ink);margin-top:40px;padding-top:24px;max-width:800px}.item-detail{display:grid;grid-template-columns:1fr 1fr;gap:6%;margin-top:36px}.item-detail h1{font-size:48px;margin:16px 0}.store-page button{border:1px solid var(--ink);background:transparent;padding:12px 20px;cursor:pointer}.store-page button:disabled{opacity:.55;cursor:not-allowed}.store-page input{width:70px;padding:8px;border:1px solid var(--ink);background:transparent;margin:0 12px}.cart-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap;border-bottom:.5pt solid var(--ink);padding:24px 0}.cart-row>a{flex:1;min-width:180px}.cart-link{white-space:nowrap}.store-page .about-layout{display:grid;grid-template-columns:1fr 1fr;gap:6%}.store-page .about-layout img{width:100%;height:auto}.store-page .find-layout{display:grid;grid-template-columns:2fr 1fr;gap:6%}.store-page details{padding:20px 0;border-bottom:.5pt solid var(--ink)}.store-page summary{font:400 24px 'Quincy CF',Georgia,serif;cursor:pointer}.store-page .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.store-page .page-heading{margin-bottom:40px}.store-page .event-card{padding:24px 0;border-bottom:.5pt solid var(--ink)}
 @media(max-width:700px){.store-page{padding:40px 6% 70px}.item-detail,.store-page .about-layout,.store-page .find-layout{grid-template-columns:1fr}.item-detail{gap:24px}.item-detail h1{font-size:38px}.store-page .bakes{gap:24px 16px}.store-page .bake h3{font-size:23px}.cart-row{gap:16px}.cart-row>a{flex-basis:100%}.split-nav .nav-right{max-width:190px}}
-.store-page .page-heading{display:block;position:static;padding:0;text-align:left;background:none}.store-page .eyebrow,.store-page .meta{font:400 15px/1.65 'Courier New',monospace;text-transform:uppercase}.store-page h3{font:400 26px/1.2 Georgia,serif}.store-page .find-layout{border-top:.5pt solid #000;padding-top:30px}
+.store-page .page-heading{display:block;position:static;padding:0;text-align:left;background:none}.store-page .eyebrow,.store-page .meta{font:400 15px/1.65 Bryant,Arial,sans-serif;text-transform:uppercase}.store-page h3{font:400 26px/1.2 'Quincy CF',Georgia,serif}.store-page .find-layout{border-top:.5pt solid var(--ink);padding-top:30px}
 /* Fine, static underlines across the current storefront. */
 a,a:hover,.bake h3 a:hover{ text-decoration-thickness:.5pt; }
 .sun-link{border-bottom-width:.5pt}
 .hero-copy>.sun-link{padding-bottom:0;line-height:1.3}
 .store-page .ingredients{border:0;margin-top:24px;padding:0}
-.store-page .ingredients h2{font:700 15px/1.65 'Courier New',Courier,monospace;text-transform:uppercase;list-style:none}
-.store-page .ingredients p{font:400 15px/1.65 'Courier New',Courier,monospace;text-transform:none;margin-top:12px}
+.store-page .ingredients h2{font:700 15px/1.65 Bryant,Arial,sans-serif;text-transform:uppercase;list-style:none}
+.store-page .ingredients p{font:400 15px/1.65 Bryant,Arial,sans-serif;text-transform:none;margin-top:12px}
 /* Keep the product quantity and purchase controls aligned at every viewport. */
 .item-detail #quantity,
 .item-detail [data-add-item]{box-sizing:border-box;height:48px;vertical-align:middle}
@@ -17,12 +17,12 @@ a,a:hover,.bake h3 a:hover{ text-decoration-thickness:.5pt; }
 .footer-logo{display:block;width:140px;line-height:0}
 .footer-logo img{display:block;width:100%;height:auto}
 .main-footer nav{justify-content:center;max-width:none;flex-wrap:wrap}
-#mobile-menu{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:85px 24px 30px;border:0;background:#faf3e3;color:#000;z-index:100;overflow:auto}
+#mobile-menu{position:fixed;inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:85px 24px 30px;border:0;background:#faf3e3;color:var(--ink);z-index:100;overflow:auto}
 #mobile-menu::backdrop{background:#faf3e3}
 #mobile-menu[open]{animation:menu-appear 140ms ease-out}
 #mobile-menu nav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,3vh,30px);min-height:calc(100% - 30px);max-width:none}
-#mobile-menu nav a{font:400 19px/1.4 'Courier New',monospace!important;padding:8px 24px;text-transform:uppercase;text-decoration:none}
-.menu-close,.menu-toggle{border:0;background:transparent;color:#000;width:48px;height:48px;cursor:pointer;align-items:center;justify-content:center}
+#mobile-menu nav a{font:400 19px/1.4 Bryant,Arial,sans-serif!important;padding:8px 24px;text-transform:uppercase;text-decoration:none}
+.menu-close,.menu-toggle{border:0;background:transparent;color:var(--ink);width:48px;height:48px;cursor:pointer;align-items:center;justify-content:center}
 .menu-close{position:absolute;right:5%;top:12px;display:flex;font:400 42px/1 Arial,sans-serif}
 body.menu-open{overflow:hidden}
 @keyframes menu-appear{from{opacity:0}to{opacity:1}}
@@ -48,27 +48,27 @@ body.menu-open{overflow:hidden}
 /* Category dropdown shares the menu's simple Courier treatment. */
 .menu-filter{display:flex;align-items:center;gap:12px;margin:0 0 28px}
 .menu-filter[hidden],#menu-items .bake[hidden]{display:none}
-.menu-filter select{max-width:100%;min-height:44px;padding:10px 36px 10px 14px;border:.5pt solid #000;border-radius:0;background:#faf3e3;color:#000;font:400 15px/1.45 'Courier New',Courier,monospace;text-transform:uppercase;cursor:pointer}
-.menu-filter select:focus-visible{outline:2px solid #000;outline-offset:4px}
+.menu-filter select{max-width:100%;min-height:44px;padding:10px 36px 10px 14px;border:.5pt solid var(--ink);border-radius:0;background:#faf3e3;color:var(--ink);font:400 15px/1.45 Bryant,Arial,sans-serif;text-transform:uppercase;cursor:pointer}
+.menu-filter select:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 
 /* Each feed occupies two columns of the six-column content grid. */
 .social-feeds{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:28px;margin-top:48px}
 .social-feed{grid-column:span 2;min-width:0}
 .social-feed h2{margin-bottom:18px}
 .social-feed iframe{display:block;width:100%;height:560px;border:0;background:#fff}
-.social-feed>a{display:inline-block;margin-top:12px;font:400 15px/1.45 'Courier New',Courier,monospace;text-transform:uppercase}
+.social-feed>a{display:inline-block;margin-top:12px;font:400 15px/1.45 Bryant,Arial,sans-serif;text-transform:uppercase}
 @media(max-width:1100px){.social-feeds{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:700px){.social-feeds{grid-template-columns:minmax(0,1fr);gap:36px}.social-feed{grid-column:1}}
 
 .social-feeds-heading{grid-column:span 4;display:flex;align-items:baseline;gap:24px}
 .social-feeds-heading h2{margin:0;white-space:nowrap}
-.social-feeds-heading span{flex:1;border-bottom:.5pt solid #000}
+.social-feeds-heading span{flex:1;border-bottom:.5pt solid var(--ink)}
 .social-feeds-heading + .social-feed{grid-column:1 / span 2}
 @media(max-width:700px){.social-feeds-heading{grid-column:1;gap:16px}.social-feeds-heading h2{font-size:28px}.social-feeds-heading + .social-feed{grid-column:1}}
 
 /* Match the three Find Us sections to the same four-of-six-column width. */
 .store-page .find-layout{display:block;width:calc((100% - 28px) * 2 / 3)}
-.visit-bottom{width:calc((100% - 28px) * 2 / 3);margin-top:48px;padding-top:28px;border-top:.5pt solid #000}
+.visit-bottom{width:calc((100% - 28px) * 2 / 3);margin-top:48px;padding-top:28px;border-top:.5pt solid var(--ink)}
 .visit-bottom h2{margin-bottom:16px}
 @media(max-width:1100px){.store-page .find-layout,.visit-bottom{width:100%}}
 
@@ -83,7 +83,7 @@ body.menu-open{overflow:hidden}
 .menu-allergens h2{margin-bottom:18px}
 .menu-allergens p{margin-bottom:16px;text-transform:none}
 .menu-allergens p:last-child{margin-bottom:0}
-.find-plain{background:#eee3cc;border-top:.5pt solid #000}
+.find-plain{background:#eee3cc;border-top:.5pt solid var(--ink)}
 .find-plain .field-image{display:none}
 .find-plain .find-copy .mono,.find-plain .find-copy .stop-details p,.find-plain .find-copy .sun-link{background:none;box-shadow:none}
 
@@ -97,22 +97,22 @@ body.menu-open{overflow:hidden}
 
 /* The full About story follows Find Whisk on the homepage. */
 .homepage-about{min-height:0;padding-top:65px}
-.homepage-about>h2{font:400 clamp(42px,6vw,76px)/1.06 Georgia,serif;margin:20px 0 42px}
+.homepage-about>h2{font:400 clamp(42px,6vw,76px)/1.06 'Quincy CF',Georgia,serif;margin:20px 0 42px}
 @media(max-width:700px){.homepage-about{padding-top:40px}}
 
 /* Homepage location information and two equal-height social previews. */
 html{scroll-behavior:smooth}
 #about,#find-whisk{scroll-margin-top:24px}
 .homepage-find{display:grid;grid-template-columns:minmax(250px,1fr) minmax(0,2fr);gap:40px;padding:60px 8%;align-items:stretch}
-.homepage-find-copy h2{font:400 clamp(36px,4vw,60px)/1.1 Georgia,serif;margin:16px 0 24px}
-.homepage-find-copy p{font:400 15px/1.65 'Courier New',Courier,monospace;margin-bottom:16px}
+.homepage-find-copy h2{font:400 clamp(36px,4vw,60px)/1.1 'Quincy CF',Georgia,serif;margin:16px 0 24px}
+.homepage-find-copy p{font:400 15px/1.65 Bryant,Arial,sans-serif;margin-bottom:16px}
 .homepage-find-copy .paper-note{margin-top:56px}
 .homepage-find-copy .paper-note h2{font-size:26px;margin:0 0 16px}
 .homepage-feeds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;min-height:500px}
 .homepage-feeds .social-feed{grid-column:auto;display:flex;flex-direction:column;min-width:0}
 .homepage-feeds iframe{height:100%;min-height:460px;flex:1}
-.homepage-stops .event{padding:20px 0;border-top:.5pt solid #000}
-.homepage-stops h3{font:400 24px/1.2 Georgia,serif}
+.homepage-stops .event{padding:20px 0;border-top:.5pt solid var(--ink)}
+.homepage-stops h3{font:400 24px/1.2 'Quincy CF',Georgia,serif}
 .homepage-stops .sr-only{display:none}
 .homepage-stops .event-date strong{margin-left:8px}
 @media(max-width:1000px){.homepage-find{grid-template-columns:1fr}.homepage-feeds iframe{height:500px;flex:none}}
@@ -125,7 +125,7 @@ html{scroll-behavior:smooth}
 .photo-lightbox{max-width:96vw;max-height:96vh;width:fit-content;margin:auto;border:0;padding:48px 12px 12px;background:#faf3e3;overflow:auto}
 .photo-lightbox::backdrop{background:rgb(0 0 0 / .75)}
 .photo-lightbox img{display:block;max-width:90vw;max-height:80vh;width:auto;height:auto;object-fit:contain}
-.photo-lightbox button{position:absolute;top:4px;right:8px;width:44px;height:44px;background:none;border:0;color:#000;font:32px/1 sans-serif;cursor:pointer}
+.photo-lightbox button{position:absolute;top:4px;right:8px;width:44px;height:44px;background:none;border:0;color:var(--ink);font:32px/1 sans-serif;cursor:pointer}
 @media(max-width:700px){.homepage-feeds{width:100%}.store-page .about-layout{grid-template-columns:1fr;gap:28px}}
 
 .homepage-about{position:relative;background:var(--paper)}
@@ -138,8 +138,8 @@ html{scroll-behavior:smooth}
 .menu-more img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .menu-more img[hidden]{display:none}
 .menu-more::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,0,0,.65));z-index:-1;opacity:1;transition:opacity 320ms ease-in-out}
-.more-word{display:flex;flex-direction:column;align-items:center;font:400 clamp(16px,1.8vw,26px)/1.2 Georgia,serif;color:#fff;text-shadow:none}
-.menu-more:hover{text-decoration:none}.menu-more:focus-visible{outline:2px solid #000;outline-offset:4px}
+.more-word{display:flex;flex-direction:column;align-items:center;font:400 clamp(16px,1.8vw,26px)/1.2 'Quincy CF',Georgia,serif;color:#fff;text-shadow:none}
+.menu-more:hover{text-decoration:none}.menu-more:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 @media(max-width:800px){.homepage-menu-grid:has(.menu-more){grid-template-columns:repeat(2,minmax(0,1fr))}.menu-more{grid-column:1/-1;aspect-ratio:auto;min-height:120px}.more-word{flex-direction:row;gap:4px;font-size:20px}.more-word>span:last-child{margin-left:12px}}
 
 .menu-more:hover::before,.menu-more:focus-visible::before{opacity:.230769}
