@@ -76,6 +76,11 @@ def validate(data):
         if site[key] and not https_url(site[key], key == 'squareUrl'):
             raise ValueError(f'Invalid {key} link. Square links must use square.link, squareup.com, or a square.site subdomain.')
     def asset(path):
+        if path.startswith("https://"):
+            from urllib.parse import urlparse
+            u=urlparse(path); host=u.hostname or ""
+            if not u.username and not u.password and not u.port and (re.fullmatch(r"items-images-(production|staging)\.s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com",host) or host=="square-cdn.com" or host.endswith(".square-cdn.com")):
+                return
         if path and (not path.startswith('assets/') or '..' in path or not re.fullmatch(r'[A-Za-z0-9_./-]+',path) or not (ROOT/path).is_file() or not (ROOT/path).resolve().is_relative_to(ROOT.resolve()) or Path(path).suffix.lower() not in {'.svg','.jpg','.jpeg','.png','.webp'}):
             raise ValueError(f'Image not found in assets: {path}')
     asset(site['socialImage'])
@@ -91,7 +96,7 @@ def validate(data):
         if not isinstance(item, dict):
             raise ValueError('Each menu item must be an object.')
         allowed = {'id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses','price','position','available','soldOut','featured','seasonal','dietary'}
-        if set(item) - {'photos'} != allowed:
+        if set(item) - {'photos','squareVariationId'} != allowed:
             raise ValueError('Unknown or missing menu fields. Never store credentials in content.')
         for key in ['id','name','description','category','allergens','image','imageAlt','imageShape','squareUrl','notes','storage','orderOpens','orderCloses']:
             if not isinstance(item.get(key),str):
@@ -110,6 +115,8 @@ def validate(data):
             raise ValueError('Dietary tags must be a list of text.')
         if item['imageShape'] not in {'square','portrait','landscape'}:
             raise ValueError('Photo shape must be square, portrait, or landscape.')
+        if 'squareVariationId' in item and (not isinstance(item['squareVariationId'],str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',item['squareVariationId'])):
+            raise ValueError('Invalid Square variation.')
         extra = item.get('photos', [])
         if not isinstance(extra, list) or len(extra) > 7:
             raise ValueError('Use at most seven additional photos.')
@@ -143,7 +150,7 @@ def validate(data):
     if not site['demo']:
         if not site['domain']:
             raise ValueError('Set the production domain before removing demo mode.')
-        if site['orderingEnabled'] and (not site['email'] or not (site['squareUrl'] or any(i['squareUrl'] for i in menu))):
+        if site['orderingEnabled'] and (not site['email'] or not (site['squareUrl'] or any(i['squareUrl'] for i in menu) or any(i.get('squareVariationId') for i in data.get('preorders',[])))):
             raise ValueError('Live ordering needs a contact email and at least one Square link.')
     return data
 
@@ -343,7 +350,7 @@ def public_assets(data):
     paths.update(p['image'] for i in data['menu'] + data.get('preorders', []) if i['available'] for p in i.get('photos', []))
     if data['site']['socialImage']:
         paths.add(data['site']['socialImage'])
-    return paths
+    return {path for path in paths if not path.startswith('https://')}
 
 def build(data=None, output=None):
     data = data or read_data()
@@ -367,7 +374,7 @@ def build(data=None, output=None):
             shutil.copyfile(source,target)
         # Admin HTML, JS and JSON deliberately have no static copy. Access failure,
         # missing Worker, quota fallback, and encoded alternate paths cannot expose them.
-        (output/'_headers').write_text('/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n')
+        (output/'_headers').write_text('/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n/menu/*\n  Cache-Control: no-cache, must-revalidate\n/preorder/*\n  Cache-Control: no-cache, must-revalidate\n')
     # Remove generated product pages for items hidden or deleted in either collection.
     for collection in ('menu','preorder'):
         for product in (output/collection).glob('*/index.html'):

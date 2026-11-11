@@ -1,3 +1,4 @@
+import {squareImage} from './square-images.mjs';
 // Server-side validation for the only content files the editor can publish.
 export class PublishError extends Error { constructor(status,message){super(message);this.status=status;} }
 const fail=message=>{throw new PublishError(400,message);};
@@ -36,14 +37,14 @@ export function validateContent(data,files){
  url(site.domain);if(site.domain){const u=new URL(site.domain);if(!['','/'].includes(u.pathname)||u.search||u.hash)fail('Domain must be an HTTPS origin.');}
  if(site.email&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(site.email))fail('Invalid contact email.');
  for(const k of ['instagram','facebook','squareUrl'])url(site[k],k==='squareUrl');
- const asset=path=>{if(path&&(!/^assets\/[A-Za-z0-9_./-]+\.(svg|jpg|jpeg|png|webp)$/i.test(path)||path.includes('..')||!files.has(path)))fail('Choose an existing uploaded image.');};
+ const asset=path=>{if(squareImage(path))return;if(path&&(!/^assets\/[A-Za-z0-9_./-]+\.(svg|jpg|jpeg|png|webp)$/i.test(path)||path.includes('..')||!files.has(path)))fail('Choose an existing uploaded image.');};
  asset(site.socialImage);if(site.socialImage&&!site.socialImageAlt.trim())fail('Describe the sharing image.');window(site);
  let ids=new Set();
- for(const i of [...menu,...preorders]){const {photos,...core}=i;shape(core,itemStrings,itemBools,['price','position'],['dietary']);if(photos!==undefined){if(!Array.isArray(photos)||photos.length>7)fail('Use at most seven additional photos.');for(const photo of photos){shape(photo,['image','alt']);if(!photo.image||!photo.alt.trim())fail('Describe each additional photo.');asset(photo.image);}}if(!/^[a-z0-9-]+$/.test(i.id)||ids.has(i.id)||!i.name.trim()||!i.category.trim())fail('Each item needs a unique ID, name and category.');ids.add(i.id);
+ for(const i of [...menu,...preorders]){const {photos,squareVariationId,...core}=i;if(squareVariationId!==undefined&&(typeof squareVariationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(squareVariationId)))fail('Invalid Square variation.');shape(core,itemStrings,itemBools,['price','position'],['dietary']);if(photos!==undefined){if(!Array.isArray(photos)||photos.length>7)fail('Use at most seven additional photos.');for(const photo of photos){shape(photo,['image','alt']);if(!photo.image||!photo.alt.trim())fail('Describe each additional photo.');asset(photo.image);}}if(!/^[a-z0-9-]+$/.test(i.id)||ids.has(i.id)||!i.name.trim()||!i.category.trim())fail('Each item needs a unique ID, name and category.');ids.add(i.id);
  if(i.price<0||i.price>100000||!Number.isInteger(i.position))fail('Invalid price or position.');
  if(!['square','portrait','landscape'].includes(i.imageShape))fail('Invalid image shape.');asset(i.image);if(i.image&&!i.imageAlt.trim())fail('Describe each product photo.');url(i.squareUrl,true);window(i);}
  ids=new Set();for(const v of events){shape(v,eventStrings);if(!/^[a-z0-9-]+$/.test(v.id)||ids.has(v.id)||!v.name.trim())fail('Each stop needs a unique ID and name.');ids.add(v.id);const start=date(v.start),end=date(v.end);if(start===null||end===null||start>=end)fail('A stop needs a start and later end time.');if(!['confirmed','cancelled','tentative'].includes(v.status))fail('Invalid stop status.');url(v.mapUrl);}
- if(!site.demo&&(!site.domain||(site.orderingEnabled&&(!site.email||!(site.squareUrl||menu.some(i=>i.squareUrl))))))fail('Live mode requires a domain; ordering requires contact details and a Square link.');
+ if(!site.demo&&(!site.domain||(site.orderingEnabled&&(!site.email||!(site.squareUrl||menu.some(i=>i.squareUrl)||preorders.some(i=>i.squareVariationId))))))fail('Live mode requires a domain; ordering requires contact details and a Square link.');
  return data;
 }
 export async function readLimited(request,max){

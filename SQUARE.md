@@ -1,3 +1,5 @@
+> Current integration status and deployment instructions: see **ARCHITECTURE.md → Square deployment — November 2026**. Catalog sync is implemented; checkout remains disabled pending acceptance testing. Older planning notes below are historical where they differ.
+
 # Square integration
 
 Research checked September 17, 2026 against Square’s official documentation. Account features, region, plan names, and processing rates can change; confirm inside Cindy’s account before launch. This implementation has no access to her account and has not created products, payment links, or transactions.

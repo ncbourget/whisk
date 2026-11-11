@@ -1,3 +1,5 @@
+> Current integration status and deployment instructions: see **ARCHITECTURE.md → Square deployment — November 2026**. Catalog sync is implemented; checkout remains disabled pending acceptance testing. Older planning notes below are historical where they differ.
+
 # Whisk: phone publishing and order-ahead
 
 ## Working now

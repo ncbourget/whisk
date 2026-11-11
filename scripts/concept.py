@@ -1,14 +1,14 @@
 """Isolated composition; ordering remains on the existing menu."""
 from html import escape as e
 from pathlib import Path
-from product_photos import render_photo
+from product_photos import render_photo, image_url
 
 def more_tile(items, base, collection):
     remaining=items[4:]
     if not remaining:
         return ''
     photo_items=[i for i in remaining if i['image']] or [i for i in items if i['image']]
-    images=''.join(f'<img src="{e(base+"/"+item["image"])}" alt="" loading="lazy" decoding="async"'+(' hidden' if n else '')+'>' for n,item in enumerate(photo_items))
+    images=''.join(f'<img src="{e(image_url(item["image"],base))}" alt="" loading="lazy" decoding="async"'+(' hidden' if n else '')+'>' for n,item in enumerate(photo_items))
     label='See all pre-order items' if collection=='preorder' else 'See the full stand menu'
     return f'<article class="bake menu-more-card"><a class="menu-more" href="{e(base)}/{collection}/" aria-label="{label}" data-more-tile>{images}<span class="more-word" aria-hidden="true"><span>M</span><span>O</span><span>R</span><span>E</span><span>→</span></span></a><h3><a href="{e(base)}/{collection}/">And more!</a></h3></article>'
 

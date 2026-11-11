@@ -6,7 +6,7 @@ const message = document.getElementById('editor-message');
 const form = document.getElementById('content-form');
 let uploading = 0;
 const photoPreviews=new Map();
-function photoSource(path){return photoPreviews.get(path)||'../'+path;}
+function photoSource(path){return photoPreviews.get(path)||(path.startsWith('https://')?path:'../'+path);}
 function rememberPhoto(path,file){
  const previous=photoPreviews.get(path);if(previous)URL.revokeObjectURL(previous);
  photoPreviews.set(path,URL.createObjectURL(file));
@@ -99,6 +99,7 @@ function field(def, object, prefix){
  return wrapper;
 }
 function photoDeckEditor(object){
+ if(object.squareVariationId)return el('p','Manage all photos for this linked item in Square. They sync in the same order, up to eight images.');
  const section=el('section',undefined,'field wide');section.append(el('h3','Additional photos'),el('small','Optional: add up to seven more photos. The main photo appears first. Menu photos rotate automatically; product pages also show thumbnails.'));
  const photos=object.photos||[];
  photos.forEach((photo,index)=>{
@@ -123,7 +124,10 @@ function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid
 const expandedItems=new Set();
 function render(){
  fields.replaceChildren();
- if(current==='preorders')fields.append(el('p','Pre-orders are separate from the stand menu and require at least 3 days’ notice, with orders accepted up to a week in advance. Add whole pies, loaves and other advance-order items here. Square checkout is not connected yet.'));
+ if(current==='preorders'){
+  fields.append(el('p','Pre-orders require 3–7 days’ notice. Linked items get their name, price and photos from Square; edit ingredients, notes and visibility here.'));
+  if(hosted){const sync=el('button','Connect / sync Square items','secondary');sync.type='button';sync.addEventListener('click',()=>squarePanel(sync));fields.append(sync);}
+ }
  if(current==='site')siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});
  else{
   data[current].forEach((object,index)=>{
@@ -153,7 +157,12 @@ function render(){
    }
    [['Move up',-1],['Move down',1]].forEach(([text,step])=>{const b=el('button',isMenu?(step<0?'↑':'↓'):text);b.type='button';b.setAttribute('aria-label',text+' — '+object.name);b.title=text;b.disabled=index+step<0||index+step>=data[current].length;b.addEventListener('click',()=>{[data[current][index],data[current][index+step]]=[data[current][index+step],data[current][index]];if(['menu','preorders'].includes(current))data[current].forEach((v,i)=>v.position=i+1);markDirty();render();document.getElementById(object.id+'-panel')?.closest('.editor-entry').querySelector('.entry-toggle')?.focus();});controls.append(b);});
    const remove=el('button','Remove');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>{removeAction=()=>{data[current].splice(index,1);markDirty();render();};document.getElementById('remove-dialog').showModal();});
-   head.append(controls);panel.append(addFields(isMenu?menuFields.filter(def=>def[0]!=='available'&&(current==='preorders'||!['squareUrl','orderOpens','orderCloses'].includes(def[0]))):eventFields,object,object.id),remove);section.append(head,panel);fields.append(section);
+   if(object.squareVariationId){
+    panel.append(el('p','Linked to Square. Name, price and photos update from Square. Manual sold-out and visibility controls stay here.'));
+    const photos=[...(object.image?[{image:object.image,alt:object.imageAlt}]:[]),...(object.photos||[])];
+    const gallery=el('div',undefined,'field wide');photos.forEach(photo=>{const img=el('img',undefined,'photo-preview');img.src=photoSource(photo.image);img.alt=photo.alt;gallery.append(img);});panel.append(gallery);
+   }
+   head.append(controls);panel.append(addFields(isMenu?menuFields.filter(def=>def[0]!=='available'&&(!object.squareVariationId||!['name','price','image','imageAlt','squareUrl'].includes(def[0]))&&(current==='preorders'||!['squareUrl','orderOpens','orderCloses'].includes(def[0]))):eventFields,object,object.id),remove);section.append(head,panel);fields.append(section);
   });
   if(!data[current].length)fields.append(el('p',['menu','preorders'].includes(current)?'No menu items yet. Add your first bake below.':'No stops planned yet. The website will show a friendly coming-soon note.'));
   const add=el('button',['menu','preorders'].includes(current)?'Add a baked good':'Add a stop','secondary');add.type='button';add.addEventListener('click',()=>{
@@ -202,3 +211,28 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   document.getElementById('save').disabled=!local;document.getElementById('download').disabled=false;render();
  }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();
+
+async function squarePanel(button){
+ if(dirty||uploading){say('Publish or reload your draft before syncing Square.',true);return;}
+ button.disabled=true;
+ try{
+  const response=await fetch('/api/square/catalog',{cache:'no-store'}),result=await responseData(response);if(!response.ok)throw Error(result.error);
+  const section=el('section',undefined,'editor-entry');section.append(el('h3','Square pre-order products'),el('p','Choose Import as new or match an existing Whisk item. New imports start hidden so you can add ingredients and review them. Already linked products are refreshed when you sync.'));
+  const choices=[];
+  for(const product of result.items){
+   const row=el('div',undefined,'field');const select=el('select');select.setAttribute('aria-label','Import or link '+product.name);
+   const linked=data.preorders.find(i=>i.squareVariationId===product.variationId);
+   row.append(el('label',product.name+' — $'+product.price.toFixed(2)+(linked?' (linked)':'')));
+   for(const [value,label] of [['','Skip / keep current link'],['new','Import as new hidden item'],...data.preorders.filter(i=>!i.squareVariationId).map(i=>[i.id,'Link to '+i.name])]){const option=el('option',label);option.value=value;select.append(option);}
+   if(linked)select.disabled=true;row.append(select);section.append(row);choices.push({product,select});
+  }
+  const apply=el('button','Sync selected products and publish');apply.type='button';apply.onclick=async()=>{
+   if(dirty||uploading){say('Your draft changed. Publish it before syncing.',true);return;}
+   const controls=[...document.querySelectorAll('input,select,textarea,button')];
+   const disabledStates=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true);
+   try{const links=choices.filter(c=>c.select.value).map(c=>({variationId:c.product.variationId,id:c.select.value==='new'?'':c.select.value}));const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links,revision})});const result=await responseData(res);if(!res.ok)throw Error(result.error);location.reload();}
+   catch(error){say(error.message,true);controls.forEach((control,index)=>control.disabled=disabledStates[index]);}
+  };
+  section.append(apply);button.after(section);
+ }catch(error){say(error.message,true);button.disabled=false;}
+}

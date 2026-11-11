@@ -17,5 +17,5 @@ await build({
   outfile: resolve(root, '_site/_worker.js'), bundle: true, format: 'esm', platform: 'browser',
   target: 'es2022', sourcemap: false, minify: true, legalComments: 'inline',
 });
-await writeFile(resolve(root,'_site/_routes.json'), JSON.stringify({version:1,include:['/editor*','/api*','/data*','/assets/js/editor*','/assets/css/editor*'],exclude:[]},null,2)+'\n');
+await writeFile(resolve(root,'_site/_routes.json'), JSON.stringify({version:1,include:['/commerce/*','/editor*','/api*','/data*','/assets/js/editor*','/assets/css/editor*'],exclude:[]},null,2)+'\n');
 console.log('Built server-only Access boundary; no static administrative content.');

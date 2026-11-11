@@ -1,3 +1,4 @@
+import {squareClient,mergeSquare} from './square.mjs';
 // Fixed repository and branch: never accept Git paths or API URLs from a client.
 import {PublishError,validateContent,readLimited,digest,imageExtension} from './content.mjs';
 const root='https://api.github.com/repos/ncbourget/whisk';
@@ -54,5 +55,11 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   }
   return {path};
  }
- return {snapshot,save,photo};
+ async function syncSquare(links=[],revision){
+  const current=await snapshot();
+  if(revision!==undefined&&revision!==current.revision)throw new PublishError(409,'Content changed. Reload the editor before syncing.');
+  const data=mergeSquare(current.data,await squareClient(env).catalog(),links);
+  return save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})}));
+ }
+ return {snapshot,save,photo,syncSquare};
 }

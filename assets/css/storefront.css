@@ -148,3 +148,8 @@ html{scroll-behavior:smooth}
 
 .menu-more-card .menu-more{width:100%;margin-bottom:18px}
 @media(max-width:800px){.menu-more-card{grid-column:1/-1}}
+
+#square-checkout:not([hidden]) {display:grid;gap:1rem;max-width:36rem;margin-top:1.5rem;}
+#square-checkout label {display:grid;gap:.4rem;}
+#square-checkout input, #square-checkout select {width:100%;min-height:3rem;padding:.65rem;font:inherit;}
+#square-checkout button {justify-self:start;}

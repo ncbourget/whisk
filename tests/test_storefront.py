@@ -3,11 +3,27 @@ import copy
 import json
 import sys
 import unittest
+import tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import build
 
 class StorefrontTests(unittest.TestCase):
+    def test_deleted_products_are_removed_from_existing_build(self):
+        data=build.read_data()
+        with tempfile.TemporaryDirectory() as directory:
+            output=Path(directory)
+            build.build(data, output)
+            for collection, route in [('menu','menu'),('preorders','preorder')]:
+                item=next(item for item in data[collection] if item['available'])
+                old_path=output/route/item['id']/'index.html'
+                self.assertTrue(old_path.is_file())
+                data[collection].remove(item)
+                build.build(data, output)
+                self.assertFalse(old_path.exists())
+                self.assertNotIn('/'+route+'/'+item['id']+'/',(output/route/'index.html').read_text())
+            self.assertIn('Cache-Control: no-cache, must-revalidate',(output/'_headers').read_text())
+
     def test_hide_homepage_stand_preserves_catalog(self):
         data=build.read_data()
         data['site']['showStandMenu']=False
@@ -55,11 +71,12 @@ class StorefrontTests(unittest.TestCase):
     def test_checkout_is_disabled_and_private_content_not_in_cart(self):
         data=build.read_data();item=data['menu'][0];item.update(available=True,soldOut=True)
         pages=build.render(data);cart=pages['cart/index.html']
-        self.assertIn('<button disabled>Checkout not open yet</button>',cart)
+        self.assertIn('<form id="square-checkout" hidden>',cart)
+        self.assertIn('<button type="submit" disabled>Continue to Square',cart)
         runtime=cart.split('<script id="cart-data" type="application/json">')[1].split('</script>')[0]
         data=json.loads(runtime)
         for public_item in data['items']:
-            self.assertEqual(set(public_item),{'id','name','price','soldOut','image','imageAlt'})
+            self.assertEqual(set(public_item),{'id','name','price','soldOut','image','imageAlt','linked'})
         self.assertNotIn('data-add-item=',pages['menu/'+item['id']+'/index.html'])
         self.assertNotIn(item['id'], [product['id'] for product in data['items']])
 
@@ -92,6 +109,7 @@ class StorefrontTests(unittest.TestCase):
 
     def test_preorders_are_separate_and_hidden_items_cannot_enter_cart(self):
         data=build.read_data()
+        data['site']['showStandMenu']=True
         preorder=copy.deepcopy(data['menu'][0]);preorder.update(id='preorder-test-pie',name='Whole test pie',available=True,soldOut=False)
         data['preorders']=[preorder]
         pages=build.render(data)
@@ -117,6 +135,7 @@ class StorefrontTests(unittest.TestCase):
 
     def test_homepage_limits_both_menus_and_links_to_remaining_items(self):
         data=build.read_data()
+        data['site']['showStandMenu']=True
         template=copy.deepcopy(data['menu'][0])
         for collection in ('menu','preorders'):
             data[collection]=[dict(template,id=collection+'-test-'+str(n),name=collection+' item '+str(n),available=True,position=n) for n in range(6)]
@@ -127,3 +146,14 @@ class StorefrontTests(unittest.TestCase):
             self.assertIn('/'+route+'/'+collection+'-test-3/',home)
             self.assertNotIn('/'+route+'/'+collection+'-test-4/',home)
             self.assertIn('/'+route+'/'+collection+'-test-5/',pages[route+'/index.html'])
+
+    def test_square_photos_render_without_local_prefix_and_validate(self):
+        data=build.read_data()
+        item=data['preorders'][0]
+        image='https://items-images-production.s3.us-west-2.amazonaws.com/pie.jpg'
+        item.update(available=True,squareVariationId='VARIATION1',image=image,imageAlt='Whole pie',photos=[{'image':image+'?slice','alt':'Slice'}])
+        build.validate(data)
+        page=build.render(data)['preorder/'+item['id']+'/index.html']
+        self.assertIn('src="'+image+'"',page)
+        self.assertIn('data-product-gallery',page)
+        self.assertNotIn(image,build.public_assets(data))
