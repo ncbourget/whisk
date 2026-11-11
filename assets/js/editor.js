@@ -4,8 +4,31 @@ let data, current = 'site', local = false, hosted = false, dirty = false, revisi
 const fields = document.getElementById('editor-fields');
 const message = document.getElementById('editor-message');
 const form = document.getElementById('content-form');
+let uploading = 0;
+const photoPreviews=new Map();
+function photoSource(path){return photoPreviews.get(path)||'../'+path;}
+function rememberPhoto(path,file){
+ const previous=photoPreviews.get(path);if(previous)URL.revokeObjectURL(previous);
+ photoPreviews.set(path,URL.createObjectURL(file));
+}
+function missingPhotoDescription(){
+ for(const collection of ['menu','preorders']){
+  for(const item of data[collection]||[]){
+   if(item.image&&!item.imageAlt.trim())return {collection,item,id:item.id+'-imageAlt'};
+   const index=(item.photos||[]).findIndex(photo=>!photo.alt.trim());
+   if(index>=0)return {collection,item,id:item.id+'-extra-'+index};
+  }
+ }
+ return null;
+}
+function uploadBusy(delta){uploading+=delta;document.getElementById('save').disabled=uploading>0;}
+async function responseData(res){
+ if(!res.headers.get('content-type')?.includes('application/json'))throw Error('Your sign-in may have expired. Download your draft before reloading, then sign in again through Cloudflare Access.');
+ return res.json();
+}
 const statuses = {coming_soon:'Coming soon',open_today:'Open today',preorders_open:'Preorders open',preorders_closed:'Preorders closed',sold_out:'Sold out',closed:'Closed for the day',next_popup:'Next pop-up'};
 const siteGroups = [
+ ['Homepage · Stand menu', [['showStandMenu','Show “At the stand today” on the homepage','checkbox']]],
  ['Homepage · Find Whisk', [['status','Business status','select',statuses],['statusNote','Status note','textarea'],['hours','Opening hours','textarea'],['serviceArea','Town or service area','text']]],
  ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown below the menu)','textarea']]],
  ['Contact & social', [['email','Contact email','email'],['phone','Phone','text'],['instagram','Instagram profile link','url'],['facebook','Facebook profile link','url']]],
@@ -64,11 +87,12 @@ function field(def, object, prefix){
  if(typeof options==='string'){const help=el('small',options);help.id=id+'-help';input.setAttribute('aria-describedby',help.id);wrapper.append(help);}
  if(type==='photo'){
   wrapper.append(el('small','Website crop preview (4:3). Take a horizontal photo with the food centered and a little space around it. The website crops the edges to fit this same shape; your original photo is kept.'));
-  if(object.image){const img=el('img',undefined,'photo-preview');img.src='../'+object.image;img.alt=object.imageAlt||'Current photo';wrapper.append(img);}
+  if(object.image){const img=el('img',undefined,'photo-preview');img.src=photoSource(object.image);img.alt=object.imageAlt||'Current photo';wrapper.append(img);}
   if(local){const upload=el('input',undefined,'upload-button');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.setAttribute('aria-label',`Upload photo for ${object.name}`);upload.addEventListener('change',async()=>{
    const file=upload.files[0];if(!file)return;
    if(file.size>5*1024*1024){say('Choose a JPG, PNG, or WebP smaller than 5 MB.',true);return;}
-   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await res.json();if(!res.ok)throw Error(result.error);object.image=result.path;markDirty();render();say('Photo uploaded. Add a description, then save or publish the item. A new photo may take a few minutes to appear in the preview.');}catch(error){say(error.message,true);}
+   uploadBusy(1);upload.disabled=true;say('Uploading photo… Please wait before publishing.');
+   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);rememberPhoto(result.path,file);object.image=result.path;markDirty();render();say('Photo uploaded and previewed below. Add a description, then click Publish website to attach it to this item on the live menu.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);upload.disabled=false;}
   });wrapper.append(upload);}
   else wrapper.append(el('small','Upload the photo to assets/food in GitHub, then enter its path here.'));
  }
@@ -78,9 +102,9 @@ function photoDeckEditor(object){
  const section=el('section',undefined,'field wide');section.append(el('h3','Additional photos'),el('small','Optional: add up to seven more photos. The main photo appears first. Menu photos rotate automatically; product pages also show thumbnails.'));
  const photos=object.photos||[];
  photos.forEach((photo,index)=>{
-  const row=el('div',undefined,'extra-photo-row');const img=el('img',undefined,'photo-preview');img.src='../'+photo.image;img.alt=photo.alt;
+  const row=el('div',undefined,'extra-photo-row');const img=el('img',undefined,'photo-preview');img.src=photoSource(photo.image);img.alt=photo.alt;
   const label=el('label',`Describe photo ${index+2}`);const input=el('input');input.type='text';input.required=true;input.value=photo.alt;input.id=object.id+'-extra-'+index;label.htmlFor=input.id;
-  input.addEventListener('input',()=>{photo.alt=input.value;markDirty();});
+  input.addEventListener('input',()=>{input.setCustomValidity('');photo.alt=input.value;markDirty();});
   const remove=el('button','Remove photo','secondary');remove.type='button';remove.addEventListener('click',()=>{object.photos.splice(index,1);markDirty();render();});
   const up=el('button','Move earlier','secondary');up.type='button';up.disabled=index===0;up.addEventListener('click',()=>{[photos[index-1],photos[index]]=[photos[index],photos[index-1]];markDirty();render();});
   row.append(img,label,input,up,remove);section.append(row);
@@ -89,8 +113,8 @@ function photoDeckEditor(object){
   const label=el('label','Add more photos');const upload=el('input');upload.type='file';upload.multiple=true;upload.accept='image/jpeg,image/png,image/webp';upload.id=object.id+'-extra-upload';label.htmlFor=upload.id;
   upload.addEventListener('change',async()=>{
    const files=[...upload.files];if(files.length+photos.length>7){say('Choose at most seven additional photos in total.',true);return;}
-   upload.disabled=true;
-   try{for(const file of files){if(file.size>5*1024*1024)throw Error('Each photo must be smaller than 5 MB.');const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await res.json();if(!res.ok)throw Error(result.error);object.photos??=[];object.photos.push({image:result.path,alt:''});markDirty();}say('Photos uploaded. Describe each photo, then save or publish.');}catch(error){say(error.message,true);}finally{render();}
+   upload.disabled=true;uploadBusy(1);
+   try{for(const file of files){if(file.size>5*1024*1024)throw Error('Each photo must be smaller than 5 MB.');const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);rememberPhoto(result.path,file);object.photos??=[];object.photos.push({image:result.path,alt:''});markDirty();}say('Photos uploaded. Describe each photo, then save or publish.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);render();}
   });section.append(label,upload);
  }
  return section;
@@ -110,13 +134,13 @@ function render(){
    let toggle;
    if(isMenu){
     section.classList.add('menu-entry');
-    const thumb=el('img',undefined,'entry-thumbnail');thumb.alt='';thumb.src=object.image?'../'+object.image:'';thumb.hidden=!object.image;head.append(thumb);
+    const thumb=el('img',undefined,'entry-thumbnail');thumb.alt='';thumb.src=object.image?photoSource(object.image):'';thumb.hidden=!object.image;head.append(thumb);
     const heading=el('h2');toggle=el('button',undefined,'entry-toggle');toggle.type='button';toggle.setAttribute('aria-controls',panel.id);
     const title=el('span',object.name||'New bake');const arrow=el('span','▸','entry-arrow');arrow.setAttribute('aria-hidden','true');toggle.append(title,arrow);heading.append(toggle);head.append(heading);
     const setOpen=open=>{panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open)expandedItems.add(object.id);else expandedItems.delete(object.id);};
     setOpen(expandedItems.has(object.id));toggle.addEventListener('click',()=>setOpen(panel.hidden));
     panel.addEventListener('invalid',()=>setOpen(true),true);
-    panel.addEventListener('input',()=>{title.textContent=object.name||'New bake';thumb.hidden=!object.image;if(object.image)thumb.src='../'+object.image;});
+    panel.addEventListener('input',()=>{title.textContent=object.name||'New bake';thumb.hidden=!object.image;if(object.image)thumb.src=photoSource(object.image);});
    }else head.append(el('h2',object.name||'New entry'));
    const controls=el('div',undefined,'entry-controls');
    if(isMenu){
@@ -140,10 +164,21 @@ function render(){
 document.querySelector('.editor-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(!button||!data)return;current=button.dataset.tab;document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();});
 document.getElementById('confirm-remove').addEventListener('click',()=>{removeAction?.();document.getElementById('remove-dialog').close();});
 document.getElementById('cancel-remove').addEventListener('click',()=>document.getElementById('remove-dialog').close());
+form.noValidate=true;
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(!local||!data)return;
+ if(uploading){say('Wait for your photos to finish uploading, then publish.',true);return;}
+ const missing=missingPhotoDescription();
+ if(missing){
+  current=missing.collection;expandedItems.add(missing.item.id);
+  document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tab===current)));
+  render();const input=document.getElementById(missing.id);
+  input.setCustomValidity('Describe this photo before publishing.');input.focus();input.reportValidity();
+  say('Not published yet: add a photo description for “'+missing.item.name+'”, then publish again.',true);return;
+ }
+ if(!form.reportValidity())return;
  const save=document.getElementById('save');save.disabled=true;say('Saving and checking your content…');
- try{const res=await fetch('/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision})});const result=await res.json();if(!res.ok)throw Error(result.error);revision=result.revision;dirty=false;say(hosted?(result.published?'Published to the repository. Cloudflare is rebuilding the website; allow a few minutes, then open View website to check. If it does not update, ask Nate to check the deployment.':'No content changes to publish.'):'Saved! Your local preview is ready. Open View website above to check it. Publish with GitHub Desktop when you’re happy.');}
+ try{const res=await fetch('/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision})});const result=await responseData(res);if(!res.ok)throw Error(result.error);revision=result.revision;dirty=false;say(hosted?(result.published?'Published to the repository. Cloudflare is rebuilding the website; allow a few minutes, then open View website to check. If it does not update, ask Nate to check the deployment.':'No content changes to publish.'):'Saved! Your local preview is ready. Open View website above to check it. Publish with GitHub Desktop when you’re happy.');}
  catch(error){say(error.message,true);}finally{save.disabled=false;}
 });
 document.getElementById('download').addEventListener('click',()=>{if(!form.reportValidity())return;const blob=new Blob([JSON.stringify(data[current],null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const a=el('a');a.href=url;a.download=current+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say(`Downloaded ${current}.json. This is a draft, not a published change. If you edited other tabs, download each of those too.`);});
@@ -158,9 +193,9 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   // No public JSON fallback: an expired/absent session must fail closed.
   const res=await fetch('/api/content',{credentials:'same-origin',cache:'no-store'});
   if(!res.headers.get('Content-Type')?.includes('application/json'))throw Error('The content request did not return editor data. Open /api/content in this signed-in browser to check its Access login or error page.');
-  const result=await res.json();
+  const result=await responseData(res);
   if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
-  data=result.data;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  data=result.data;data.site.showStandMenu??=true;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';

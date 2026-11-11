@@ -13,6 +13,8 @@ def render_storefront(data, legacy):
     items=sorted((i for i in data['menu'] if i['available']),key=lambda i:i['position'])
     preorders=sorted((i for i in data.get('preorders', []) if i['available']),key=lambda i:i['position'])
     home=render_concept(data)
+    if not site.get('showStandMenu',True):
+        home=re.sub(r'<section class="recipe" aria-labelledby="possibilities">.*?</section>', '', home, count=1, flags=re.S)
     home=home.replace(f'href="{e(base)}/about/"',f'href="{e(base)}/#about"')
     home=home.replace(f'href="{e(base)}/find-us/"',f'href="{e(base)}/#find-whisk"')
     # Public cart contains no administrative data, credentials, or payment information.
@@ -41,7 +43,7 @@ def render_storefront(data, legacy):
         link=f'{base}/{collection}/{i["id"]}/'
         return f'<article class="bake" data-category="{e(i["category"])}"><a href="{e(link)}" aria-label="{e(i["name"])}">{photo(i)}</a><div class="bake-copy"><h3><a href="{e(link)}">{e(i["name"].rstrip("."))}</a></h3><p>{e(i["description"])}</p><span class="sample-price">${i["price"]:.2f}'+(' · Sold out' if i['soldOut'] else '')+'</span></div></article>'
     categories=sorted({i['category'] for i in data['menu'] + data.get('preorders', [])} | {'Pastries','Cookies','Cakes','Pies'})
-    filters='<div class="menu-filter" hidden><label for="menu-category">Filter by</label><select id="menu-category" aria-controls="menu-items"><option value="">All baked goods</option>'+''.join(f'<option value="{e(category)}">{e(category)}</option>' for category in categories)+'</select></div>'
+    filters='<div class="menu-filter" hidden><label for="menu-category">Filter by</label><span class="filter-control"><select id="menu-category" aria-controls="menu-items"><option value="">All baked goods</option>'+''.join(f'<option value="{e(category)}">{e(category)}</option>' for category in categories)+'</select><span class="filter-arrow" aria-hidden="true">↓</span></span></div>'
     menu='<h1>The menu.</h1>'+filters+'<div class="bakes" id="menu-items">'+''.join(map(card,items))+'</div><p class="sr-only" id="menu-filter-status" role="status"></p>'
     if not items: menu+='<h2>A fresh menu is on its way.</h2>'
     if items and all(i['soldOut'] for i in items):menu+='<p>Everything on this menu is sold out.</p>'
@@ -99,9 +101,25 @@ def render_storefront(data, legacy):
         outputs[f'{collection}/{i["id"]}/index.html']=page(i['name'],body,f'/{collection}/{i["id"]}/')
     outputs['cart/index.html']=page('Your cart',f'''<p class="mono">A little something for later</p><h1>Your cart.</h1><div id="cart-items"></div><p id="cart-total"></p><p role="status" id="cart-message"></p><div class="store-note"><h2>Pickup &amp; payment</h2><p>This is a cart preview. No order has been placed, and nothing has been charged.</p><p>Pre-orders require at least 3 days’ notice and may be placed up to a week in advance. Square checkout will open once the pre-order products, pickup schedule and three-to-seven-day ordering window are connected and tested.</p><button disabled>Checkout not open yet</button></div><a href="{e(base)}/preorder/">Continue browsing →</a><noscript>Enable JavaScript to use your cart.</noscript>''','/cart/')
     outputs['order/index.html']=page('Order',f'<h1>Pre-order from Whisk.</h1><p>Please allow at least 3 days before pickup. You may pre-order up to a week in advance. Ordering is not open yet.</p><a href="{e(base)}/preorder/">Browse pre-orders →</a><a href="{e(base)}/cart/">View your cart →</a>','/order/')
+    # Consistent action treatment for text links; leave product cards and navigation alone.
+    def action_link(match):
+        attrs, label = match.groups()
+        if not any(arrow in label for arrow in ('→', '↗', '←')):
+            return match.group(0)
+        label = label.replace('← ', '').replace('→', '↗')
+        if '↗' not in label: label += ' ↗'
+        if 'class="' in attrs:
+            attrs = attrs.replace('class="', 'class="action-link ', 1)
+        else:
+            attrs += ' class="action-link"'
+        label = label.replace('↗', '').strip().lower()
+        return '<a' + attrs + '><span class="action-label">' + label + '</span><span class="action-arrow" aria-hidden="true">↗</span></a>'
+    for path in outputs:
+        outputs[path] = re.sub(r'<a(\s[^>]*?)>([^<]+)</a>', action_link, outputs[path])
+        outputs[path] = outputs[path].replace('Explore the menu <span>↗</span>', '<span class="action-label">explore the menu</span><span class="action-arrow" aria-hidden="true">↗</span>')
     for snapshot in (ROOT/'snapshots').glob('*-concept.html'):
         content=snapshot.read_text()
         if base:content=content.replace('href="/','href="'+e(base)+'/').replace('src="/','src="'+e(base)+'/')
         outputs[snapshot.stem+'/index.html']=content
-    outputs['concept/index.html']=home.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>')
+    outputs['concept/index.html']=outputs['index.html'].replace('</head>','<meta name="robots" content="noindex,nofollow"></head>')
     return outputs

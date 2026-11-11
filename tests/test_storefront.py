@@ -8,6 +8,17 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import build
 
 class StorefrontTests(unittest.TestCase):
+    def test_hide_homepage_stand_preserves_catalog(self):
+        data=build.read_data()
+        data['site']['showStandMenu']=False
+        build.validate(data)
+        pages=build.render(data)
+        self.assertNotIn('id="possibilities"',pages['index.html'])
+        self.assertIn('id="preorders"',pages['index.html'])
+        self.assertIn('id="menu-items"',pages['menu/index.html'])
+        data['site']['showStandMenu']=True
+        self.assertIn('id="possibilities"',build.render(data)['index.html'])
+
     def test_optional_gallery_and_shared_categories(self):
         data=build.read_data()
         item=data['menu'][0];item['available']=True
