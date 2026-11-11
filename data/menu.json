@@ -225,5 +225,37 @@
         "alt": "Stock placeholder: oatmeal cookies in a glass jar"
       }
     ]
+  },
+  {
+    "id": "bake-f79501ff",
+    "name": "cococo",
+    "description": "1111",
+    "price": 5,
+    "category": "Pastries",
+    "available": true,
+    "soldOut": false,
+    "featured": false,
+    "seasonal": false,
+    "dietary": [],
+    "allergens": "",
+    "image": "assets/food/upload-1b98cdfb5f56f5e2fdbed65aafa8ad90788d35dababeef9543cd0cd2fd55aa48.jpg",
+    "imageAlt": "pic1",
+    "imageShape": "square",
+    "squareUrl": "",
+    "notes": "",
+    "storage": "",
+    "orderOpens": "",
+    "orderCloses": "",
+    "position": 10,
+    "photos": [
+      {
+        "image": "assets/food/upload-d8771702fdb057147f2142360bcd3174f4136ad7aff1657f725103c51eea5a58.jpg",
+        "alt": "pic2"
+      },
+      {
+        "image": "assets/food/upload-02fd3ea7a15a6d0831922e8152754356fcb30d750772b744f64c704946fc8a71.jpg",
+        "alt": "pic3"
+      }
+    ]
   }
 ]
