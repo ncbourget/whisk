@@ -84,3 +84,15 @@ test('JWKS outage fails closed and public assets do not need authentication',asy
   assert.equal(await (await request('/')).text(),'public asset');
   assert.equal((await request('/',{method:'POST'})).status,405);
 });
+
+test('Disabled menus reject listing and saved item URLs without serving stale assets', async () => {
+  const closed = createHandler({content:{site:{showStandMenu:false,showPreorderMenu:false}}});
+  for (const path of ['/menu','/menu/','/menu/old-bake/','/preorder/','/preorder/old-pie/']) {
+    const response = await closed(new Request('https://bakery.example'+path),env);
+    assert.equal(response.status,410);
+    assert.match(response.headers.get('Cache-Control'),/no-store/);
+    assert.match(await response.text(),/currently unavailable/);
+  }
+  const open = createHandler({content:{site:{showStandMenu:true,showPreorderMenu:true}}});
+  assert.equal(await (await open(new Request('https://bakery.example/menu/'),env)).text(),'public asset');
+});

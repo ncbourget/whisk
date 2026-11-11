@@ -22,6 +22,9 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     const url = new URL(request.url);
     // Only the canonical admin routes have responses; no static admin fallback.
     const path = url.pathname;
+    const closedMenu = /^\/menu(?:\/|$)/.test(path) && content.site?.showStandMenu === false
+      || /^\/preorder(?:\/|$)/.test(path) && content.site?.showPreorderMenu === false;
+    if (closedMenu) return reply(request, '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Menu unavailable | Whisk</title><body><main><h1>This menu is currently unavailable.</h1><p>Please check back for the next available selection.</p><a href="/#find-whisk">Find Whisk</a></main></body></html>', 410, 'text/html; charset=utf-8');
     // Public commerce is outside /api, which remains entirely Access-protected.
     if(path.startsWith('/commerce/')){
       try {
@@ -35,7 +38,7 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
           return reply(request,'{"received":true}');
         }
         if(path==='/commerce/catalog'&&request.method==='GET'){
-          if(!squareReady(env))return reply(request,JSON.stringify({enabled:false,items:[],slots:[]}));
+          if(content.site?.showPreorderMenu===false||!squareReady(env))return reply(request,JSON.stringify({enabled:false,items:[],slots:[]}));
           const products=await squareClient(env).catalog();
           // Only explicitly published pre-orders are exposed; no raw seller catalog.
           const items=(content.preorders||[]).filter(i=>i.available&&i.squareVariationId).map(i=>{

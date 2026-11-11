@@ -26,8 +26,9 @@ export function validateContent(data,files){
  if(!data||typeof data!=='object'||!['events,menu,site','events,menu,preorders,site'].includes(Object.keys(data).sort().join(',')))fail('Content must contain site, menu and events only.');
  const {site,menu,events}=data;const preorders=data.preorders??[];
  if(!Array.isArray(preorders)||preorders.length>200)fail('Keep pre-orders below 200 entries.');
- const {showStandMenu,...siteCore}=site;
+ const {showStandMenu,showPreorderMenu,...siteCore}=site;
  if(showStandMenu!==undefined&&typeof showStandMenu!=='boolean')fail('Show stand menu must be true or false.');
+ if(showPreorderMenu!==undefined&&typeof showPreorderMenu!=='boolean')fail('Show pre-order menu must be true or false.');
  shape(siteCore,siteStrings,['demo','orderingEnabled']);
  if(!Array.isArray(menu)||menu.length>200||!Array.isArray(events)||events.length>200)fail('Keep menu and events below 200 entries each.');
  if(!['coming_soon','open_today','preorders_open','preorders_closed','sold_out','closed','next_popup'].includes(site.status))fail('Invalid business status.');

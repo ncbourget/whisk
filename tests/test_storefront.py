@@ -10,7 +10,7 @@ import build
 
 class StorefrontTests(unittest.TestCase):
     def test_deleted_products_are_removed_from_existing_build(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         with tempfile.TemporaryDirectory() as directory:
             output=Path(directory)
             build.build(data, output)
@@ -25,18 +25,37 @@ class StorefrontTests(unittest.TestCase):
             self.assertIn('Cache-Control: no-cache, must-revalidate',(output/'_headers').read_text())
 
     def test_hide_homepage_stand_preserves_catalog(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         data['site']['showStandMenu']=False
         build.validate(data)
         pages=build.render(data)
         self.assertNotIn('id="possibilities"',pages['index.html'])
         self.assertIn('id="preorders"',pages['index.html'])
-        self.assertIn('id="menu-items"',pages['menu/index.html'])
+        self.assertNotIn('id="menu-items"',pages['menu/index.html'])
+        self.assertIn('unavailable',pages['menu/index.html'])
+        for item in data['menu']:
+            if item['available']:
+                self.assertNotIn('Available at the stand.',pages['menu/'+item['id']+'/index.html'])
         data['site']['showStandMenu']=True
         self.assertIn('id="possibilities"',build.render(data)['index.html'])
 
-    def test_optional_gallery_and_shared_categories(self):
+    def test_closed_preorders_hide_pages_and_cart_without_deleting_items(self):
         data=build.read_data()
+        data['site'].update(showStandMenu=True,showPreorderMenu=False)
+        saved=copy.deepcopy(data['preorders'])
+        pages=build.render(data)
+        self.assertNotIn('id="preorders"',pages['index.html'])
+        for route in ['preorder/index.html','cart/index.html','order/index.html']:
+            self.assertIn('menu is currently closed',pages[route])
+        for item in saved:
+            if item['available']:
+                self.assertIn('menu is currently closed',pages['preorder/'+item['id']+'/index.html'])
+        self.assertEqual(saved,data['preorders'])
+        data['site']['showPreorderMenu']=True
+        self.assertIn('id="menu-items"',build.render(data)['preorder/index.html'])
+
+    def test_optional_gallery_and_shared_categories(self):
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         item=data['menu'][0];item['available']=True
         item['photos']=[{'image':'assets/food/choc_cookie.jpg','alt':'Another view'}]
         item['category']='Special seasonal bakes'
@@ -53,14 +72,14 @@ class StorefrontTests(unittest.TestCase):
         self.assertNotIn('data-product-gallery',build.render(data)['menu/'+item['id']+'/index.html'])
 
     def test_new_product_generates_page_and_link(self):
-        data=build.read_data();item=copy.deepcopy(data['menu'][0]);item.update(id='new-test-bake',name='New test bake',available=True);data['menu'].append(item)
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True);item=copy.deepcopy(data['menu'][0]);item.update(id='new-test-bake',name='New test bake',available=True);data['menu'].append(item)
         pages=build.render(data)
         self.assertIn('menu/new-test-bake/index.html',pages)
         self.assertIn('/menu/new-test-bake/',pages['menu/index.html'])
         item['available']=False
         self.assertNotIn('menu/new-test-bake/index.html',build.render(data))
     def test_archives_are_independent_of_editor_content(self):
-        data=build.read_data();first=build.render(data)
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True);first=build.render(data)
         data['menu'][0]['name']='Completely changed';data['site']['aboutText']='Changed story'
         second=build.render(data)
         for route in ['index','menu','about','find-us']:
@@ -69,7 +88,7 @@ class StorefrontTests(unittest.TestCase):
             self.assertIn('/snapshots/assets/',second[key])
             self.assertNotIn('/'+route+'-concept/',second['sitemap.xml'])
     def test_checkout_is_disabled_and_private_content_not_in_cart(self):
-        data=build.read_data();item=data['menu'][0];item.update(available=True,soldOut=True)
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True);item=data['menu'][0];item.update(available=True,soldOut=True)
         pages=build.render(data);cart=pages['cart/index.html']
         self.assertIn('<form id="square-checkout" hidden>',cart)
         self.assertIn('<button type="submit" disabled>Continue to Square',cart)
@@ -81,7 +100,7 @@ class StorefrontTests(unittest.TestCase):
         self.assertNotIn(item['id'], [product['id'] for product in data['items']])
 
     def test_readable_story_notice_and_static_ingredients(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         data['site'].update(aboutText='First paragraph.\n\nSecond paragraph.',aboutNote='',allergens='Specific allergen notice.')
         data['menu'][0].update(available=True,category='Seasonal pies')
         pages=build.render(data)
@@ -94,7 +113,7 @@ class StorefrontTests(unittest.TestCase):
         self.assertNotIn('From Cindy’s recipe book',pages['index.html'])
 
     def test_homepage_sections_replace_standalone_pages(self):
-        data=build.read_data();data['site']['statusNote']='Editor location note'
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True);data['site']['statusNote']='Editor location note'
         pages=build.render(data)
         self.assertNotIn('about/index.html',pages)
         self.assertNotIn('find-us/index.html',pages)
@@ -108,7 +127,7 @@ class StorefrontTests(unittest.TestCase):
         self.assertIn('href="/#about"',pages['menu/index.html'])
 
     def test_preorders_are_separate_and_hidden_items_cannot_enter_cart(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         data['site']['showStandMenu']=True
         preorder=copy.deepcopy(data['menu'][0]);preorder.update(id='preorder-test-pie',name='Whole test pie',available=True,soldOut=False)
         data['preorders']=[preorder]
@@ -128,13 +147,13 @@ class StorefrontTests(unittest.TestCase):
         self.assertNotIn('preorder-test-pie',hidden['cart/index.html'])
 
     def test_homepage_uses_editor_headline_with_safe_line_breaks(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         data['site']['heroHeading']='First line.\nSecond line.\nThird & <last>.'
         home=build.render(data)['index.html']
         self.assertIn('class="hero-aside mono">First line.<br>Second line.<br>Third &amp; &lt;last&gt;.</span>',home)
 
     def test_homepage_limits_both_menus_and_links_to_remaining_items(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         data['site']['showStandMenu']=True
         template=copy.deepcopy(data['menu'][0])
         for collection in ('menu','preorders'):
@@ -148,7 +167,7 @@ class StorefrontTests(unittest.TestCase):
             self.assertIn('/'+route+'/'+collection+'-test-5/',pages[route+'/index.html'])
 
     def test_square_photos_render_without_local_prefix_and_validate(self):
-        data=build.read_data()
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
         item=data['preorders'][0]
         image='https://items-images-production.s3.us-west-2.amazonaws.com/pie.jpg'
         item.update(available=True,squareVariationId='VARIATION1',image=image,imageAlt='Whole pie',photos=[{'image':image+'?slice','alt':'Slice'}])

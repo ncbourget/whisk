@@ -18,7 +18,7 @@ def render_storefront(data, legacy):
     home=home.replace(f'href="{e(base)}/about/"',f'href="{e(base)}/#about"')
     home=home.replace(f'href="{e(base)}/find-us/"',f'href="{e(base)}/#find-whisk"')
     # Public cart contains no administrative data, credentials, or payment information.
-    catalog=[{k:i[k] for k in ['id','name','price','soldOut','image','imageAlt']} for i in preorders]
+    catalog=[{k:i[k] for k in ['id','name','price','soldOut','image','imageAlt']} for i in preorders] if site.get('showPreorderMenu',True) else []
     for item,source in zip(catalog,preorders): item['linked']=bool(source.get('squareVariationId'))
     runtime=json.dumps({'items':catalog,'currency':site['currency'],'base':base,'demo':site['demo']}).replace('<','\\u003c')
     scripts=f'<script id="cart-data" type="application/json">{runtime}</script><script defer src="{e(base)}/assets/js/cart.js"></script>'
@@ -58,7 +58,7 @@ def render_storefront(data, legacy):
     preorder_intro='<p>Whole bakes, planned ahead. Please allow at least 3 days before pickup. You may pre-order up to a week in advance.</p>'
     preorder_empty='<p>Pre-orders are not open yet.</p>' if not preorders else ''
     preorder_section=f'<section class="recipe preorder-section" id="preorders" aria-labelledby="preorder-heading"><div class="menu-heading-line"><h2 id="preorder-heading">Pre-order from Whisk.</h2><div class="menu-rule"><a href="{e(base)}/preorder/">View pre-order menu →</a></div></div>{preorder_intro}<div class="bakes homepage-menu-grid">{preorder_preview}</div>{preorder_empty}</section>'
-    home=home.replace('<section class="find find-plain"',preorder_section+'<section class="find find-plain"',1)
+    home=home.replace('<section class="find find-plain"',(preorder_section if site.get('showPreorderMenu',True) else '')+'<section class="find find-plain"',1)
     outputs={'preorder/index.html':page('Pre-order', '<h1>Pre-order from Whisk.</h1>'+preorder_note+preorder_intro+'<p>Some of these bakes may also be available at the stand on any given day, but availability isn’t guaranteed.</p>'+filters+'<div class="bakes" id="menu-items">'+preorder_cards+'</div>'+preorder_empty+'<p class="sr-only" id="menu-filter-status" role="status"></p>'+allergen_notice, '/preorder/'),'index.html':home,'menu/index.html':page('Menu',menu,'/menu/')}
     for route,title in [('about','About Cindy'),('find-us','Find Whisk'),('faq','Good to know'),('contact','Contact Cindy')]:
         body=re.search(r'<main[^>]*>(.*?)</main>',legacy[route+'/index.html'],re.S).group(1)
@@ -102,6 +102,17 @@ def render_storefront(data, legacy):
         outputs[f'{collection}/{i["id"]}/index.html']=page(i['name'],body,f'/{collection}/{i["id"]}/')
     outputs['cart/index.html']=page('Your cart',f'''<p class="mono">A little something for later</p><h1>Your cart.</h1><div id="cart-items"></div><p id="cart-total"></p><p role="status" id="cart-message"></p><div class="store-note"><h2>Pickup &amp; payment</h2><p>Pre-orders require at least 3 days’ notice and may be placed up to a week in advance. Payment is completed securely on Square.</p><p id="checkout-status" role="status">Checkout is not open yet.</p><form id="square-checkout" hidden><label>Pickup date<select name="pickup" required></select></label><label>Your name<input name="name" autocomplete="name" maxlength="100" required></label><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel" required></label><button type="submit" disabled>Continue to Square ↗</button></form></div><a href="{e(base)}/preorder/">Continue browsing →</a><noscript>Enable JavaScript to use your cart.</noscript>''','/cart/')
     outputs['order/index.html']=page('Order',f'<h1>Pre-order from Whisk.</h1><p>Please allow at least 3 days before pickup. You may pre-order up to a week in advance. Ordering is not open yet.</p><a href="{e(base)}/preorder/">Browse pre-orders →</a><a href="{e(base)}/cart/">View your cart →</a>','/order/')
+    # Disabled menus retain editor data, but never publish their selection or item details.
+    for collection, flag, label in [('menu','showStandMenu','Stand menu'),('preorder','showPreorderMenu','Pre-order menu')]:
+        if site.get(flag,True): continue
+        unavailable=page(label+' unavailable',f'<h1>{label} unavailable.</h1><p>This menu is currently closed. Please check back for the next available selection.</p><a href="{e(base)}/#find-whisk">Find Whisk →</a>',f'/{collection}/')
+        for path in list(outputs):
+            if path.startswith(collection+'/') or (collection=='preorder' and path in ('cart/index.html','order/index.html')):
+                outputs[path]=unavailable
+        for path in outputs:
+            outputs[path]=re.sub(r'<a\b[^>]*href="'+re.escape(base+'/'+collection)+r'/[^"#]*"[^>]*>.*?</a>', '', outputs[path], flags=re.S)
+            if collection=='preorder':
+                outputs[path]=re.sub(r'<a\b[^>]*href="'+re.escape(base)+r'/cart/"[^>]*>.*?</a>', '', outputs[path], flags=re.S)
     # Consistent action treatment for text links; leave product cards and navigation alone.
     def action_link(match):
         attrs, label = match.groups()

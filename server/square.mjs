@@ -88,7 +88,7 @@ export async function verifySquareWebhook(request,env){
  return event;
 }
 export async function checkout(request,env,data,client=squareClient(env),now=Date.now()){
- if(env.SQUARE_CHECKOUT_ENABLED!=='true'||!data.site.orderingEnabled)fail(503,'Pre-order checkout is not open yet.');
+ if(data.site.showPreorderMenu===false||env.SQUARE_CHECKOUT_ENABLED!=='true'||!data.site.orderingEnabled)fail(503,'Pre-order checkout is not open yet.');
  if((env.SQUARE_CHECKOUT_SESSION_SECRET||'').length<32)fail(503,'Checkout is not configured.');
  const input=await jsonBody(request);
  if(!input||!Array.isArray(input.items)||!input.items.length||input.items.length>20||!/^[a-f0-9-]{36}$/i.test(input.key||''))fail(400,'Check your cart and try again.');

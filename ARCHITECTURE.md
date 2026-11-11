@@ -195,3 +195,16 @@ Deploy catalog sync first, with payments disabled. Local preview checks layout; 
 Keep `SQUARE_CHECKOUT_ENABLED=false` until an end-to-end sandbox test and final pickup review. The implementation validates current Square prices and availability, Whisk visibility and deadlines, quantities, and selected pickup slots 72–168 hours ahead. Payment is confirmed from Square records, never from a redirect alone. Set a random 32+ character Secret `SQUARE_CHECKOUT_SESSION_SECRET` and Text `SQUARE_PICKUP_SLOTS` containing a JSON array of `{ "at": "ISO date with timezone offset", "label": "Customer-facing pickup time" }` before testing checkout. Slots must represent Cindy's actual pickup schedule; they are not automatically imported from Square Online.
 
 Outstanding before payment launch: sandbox paid/declined/cancelled flows, taxes, receipts, seller order notifications, timezone and pickup boundaries, and abuse/rate controls. Tracked-inventory products currently fail closed because inventory reservation is not implemented. Capacity limits are not implemented. A previously issued Square payment link can outlive later availability or deadline changes, which must be resolved before relying on those limits. Do not enable live checkout merely because catalog sync succeeds. Use a separate sandbox deployment and catalog rather than overwriting Cindy's production products.
+
+### Whole-menu visibility
+The editor's Menu visibility switches control `site.showStandMenu` and
+`site.showPreorderMenu` (both default to visible for older content). Publish
+and wait for a successful Cloudflare deployment for a change to take effect.
+A disabled menu is omitted from homepage/navigation, and generated listing
+and product pages display an unavailable notice instead of the selection.
+The Worker also intercepts every URL below the disabled menu and returns
+HTTP 410 with no-store headers, including previously bookmarked item URLs.
+Disabling pre-orders also removes the cart catalog and prevents server-side
+checkout; saved products remain in the editor and can be restored by enabling
+the menu again. An already-open browser tab cannot be retroactively erased;
+revisiting or refreshing its URL receives the disabled-menu response.

@@ -50,12 +50,12 @@ def validate(data):
     if not isinstance(data.get('preorders', []), list):
         raise ValueError('Pre-orders must be a list.')
     required = ['name','tagline','status','statusNote','heroHeading','heroText','aboutHeading','aboutText','aboutNote','hours','pickup','cutoff','refunds','allergens','footerNote','domain','basePath','currency','timezone','email','phone','instagram','facebook','squareUrl','serviceArea','socialImage','socialImageAlt','orderOpens','orderCloses']
-    if set(site) - {'showStandMenu'} != set(required) | {'demo','orderingEnabled'}:
+    if set(site) - {'showStandMenu','showPreorderMenu'} != set(required) | {'demo','orderingEnabled'}:
         raise ValueError('Unknown or missing site fields. Never store credentials in content.')
     for key in required:
         if not isinstance(site.get(key), str):
             raise ValueError(f'Site: {key} must be text.')
-    for key in ['demo','orderingEnabled'] + (['showStandMenu'] if 'showStandMenu' in site else []):
+    for key in ['demo','orderingEnabled'] + [key for key in ['showStandMenu','showPreorderMenu'] if key in site]:
         if not isinstance(site.get(key), bool):
             raise ValueError(f'Site: {key} must be true or false.')
     if site['status'] not in STATUSES:
