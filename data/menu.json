@@ -225,5 +225,27 @@
         "alt": "Stock placeholder: oatmeal cookies in a glass jar"
       }
     ]
+  },
+  {
+    "id": "bake-8c1f92f7",
+    "name": "New bake 111111",
+    "description": "",
+    "price": 0,
+    "category": "Pastries",
+    "available": true,
+    "soldOut": false,
+    "featured": false,
+    "seasonal": false,
+    "dietary": [],
+    "allergens": "",
+    "image": "",
+    "imageAlt": "",
+    "imageShape": "square",
+    "squareUrl": "",
+    "notes": "",
+    "storage": "",
+    "orderOpens": "",
+    "orderCloses": "",
+    "position": 10
   }
 ]
