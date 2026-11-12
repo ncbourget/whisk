@@ -4,7 +4,7 @@ import {squareImage} from './square-images.mjs';
 import {PublishError, readLimited, digest} from './content.mjs';
 const fail=(status,message)=>{throw new PublishError(status,message);};
 export const squareReady=env=>['sandbox','production'].includes(env.SQUARE_ENVIRONMENT)&&!!env.SQUARE_ACCESS_TOKEN&&!!env.SQUARE_LOCATION_ID;
-export function squareClient(env,transport=globalThis.fetch){
+export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,options)){
  if(!squareReady(env))fail(503,'Square is not connected yet.');
  const origin=env.SQUARE_ENVIRONMENT==='production'?'https://connect.squareup.com':'https://connect.squareupsandbox.com';
  async function api(path,body){

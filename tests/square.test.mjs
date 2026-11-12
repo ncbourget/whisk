@@ -67,3 +67,11 @@ test('Public commerce does not bypass editor authorization; unconfigured checkou
  const forbidden=await handle(new Request('https://bakery.example/api/square/catalog'),env);assert.notEqual(forbidden.status,200);
  const cross=await handle(new Request('https://bakery.example/commerce/checkout',{method:'POST',headers:{Origin:'https://evil.example'}}),env);assert.equal(cross.status,403);
 });
+
+test('Square default transport preserves the fetch receiver', async t => {
+  t.mock.method(globalThis, 'fetch', function () {
+    assert.equal(this, globalThis);
+    return Promise.resolve(Response.json({objects: []}));
+  });
+  assert.deepEqual(await squareClient(env).catalog(), []);
+});
