@@ -53,7 +53,10 @@ export function validateContent(data,files){
  if(i.price<0||i.price>100000||!Number.isInteger(i.position))fail('Invalid price or position.');
  if(!['square','portrait','landscape'].includes(i.imageShape))fail('Invalid image shape.');asset(i.image);if(i.image&&!i.imageAlt.trim())fail('Describe each product photo.');url(i.squareUrl,true);window(i);}
  ids=new Set();for(const v of events){shape(v,eventStrings);if(!/^[a-z0-9-]+$/.test(v.id)||ids.has(v.id)||!v.name.trim())fail('Each stop needs a unique ID and name.');ids.add(v.id);const start=date(v.start),end=date(v.end);if(start===null||end===null||start>=end)fail('A stop needs a start and later end time.');if(!['confirmed','cancelled','tentative'].includes(v.status))fail('Invalid stop status.');url(v.mapUrl);}
- if(!site.demo&&(!site.domain||(site.orderingEnabled&&(!site.email||!(site.squareUrl||menu.some(i=>i.squareUrl)||preorders.some(i=>i.squareVariationId))))))fail('Live mode requires a domain; ordering requires contact details and a Square link.');
+ // Say exactly which launch requirement is missing (the editor shows this message).
+ if(!site.demo&&!site.domain)fail('Not published: with demo mode off, fill in Launch settings → Production domain (for example https://whisk-dnh.pages.dev).');
+ if(!site.demo&&site.orderingEnabled&&!site.email)fail('Not published: with ordering enabled, fill in Contact & social → Contact email.');
+ if(!site.demo&&site.orderingEnabled&&!(site.squareUrl||menu.some(i=>i.squareUrl)||preorders.some(i=>i.squareVariationId)))fail('Not published: with ordering enabled, link at least one pre-order item to Square (Pre-orders → Sync both menus from Square).');
  return data;
 }
 export async function readLimited(request,max){
