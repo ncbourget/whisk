@@ -209,7 +209,9 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const phone=digits.length===10?'+1'+digits:digits.length===11&&digits[0]==='1'?'+'+digits:recipient.phone.trim().startsWith('+')?'+'+digits:recipient.phone.trim();
  const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
  const hash=await digest(new TextEncoder().encode(JSON.stringify({key:input.key,payload})));
- const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+env.ADMIN_HOSTNAME+'/cart/?checkout=returned',allow_tipping:false},pre_populated_data:{buyer_email:recipient.email}});
+ const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+env.ADMIN_HOSTNAME+'/cart/?checkout=returned',allow_tipping:false}});
+ // No pre_populated_data: Square rejects buyer_email alongside a fulfillment (CONFLICTING_PARAMETERS).
+ // The buyer's email already travels with the pickup recipient above.
  const link=result.payment_link;
  if(!link?.url||!/^https:\/\/(square\.link|checkout\.square\.site)\//.test(link.url))fail(503,'Square did not return a checkout link. Please try again.');
  if(!link.order_id)fail(503,'Square did not return an order.');

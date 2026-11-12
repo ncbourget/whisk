@@ -34,7 +34,7 @@ test('Checkout uses catalog variation IDs and server pickup details with stable 
  const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push({path,body});return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
  const result=await checkout(request(),env,content(),client,now);await checkout(request(),env,content(),client,now);
  assert.equal(result.url,'https://square.link/u/test');assert.ok(result.cookie.includes('HttpOnly'));
- assert.deepEqual(calls[0].body.order.line_items,[{catalog_object_id:'V1',quantity:'2'}]);assert.equal(calls[0].body.order.fulfillments[0].pickup_details.pickup_at,at);assert.equal(calls[0].body.idempotency_key,calls[1].body.idempotency_key);
+ assert.deepEqual(calls[0].body.order.line_items,[{catalog_object_id:'V1',quantity:'2'}]);assert.equal(calls[0].body.pre_populated_data,undefined);assert.equal(calls[0].body.order.fulfillments[0].pickup_details.recipient.email_address,'test@example.com');assert.equal(calls[0].body.order.fulfillments[0].pickup_details.pickup_at,at);assert.equal(calls[0].body.idempotency_key,calls[1].body.idempotency_key);
 });
 test('Checkout fails closed for stale prices, invalid slots, hidden/deleted/sold-out products and scarce stock',async()=>{
  let sent=0;const client={catalog:async()=>[product],api:async()=>{sent++;}};
