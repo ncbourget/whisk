@@ -27,7 +27,7 @@
     "id": "square-tad4pw7bgjtftpdeuadyaeqq",
     "name": "Shoofly Pie",
     "description": "Rich molasses based pie in homemade pie crust that is perfect with a holiday meal. This pie is not too sweet and is excellent topped with vanilla ice cream.",
-    "price": 18,
+    "price": 0.01,
     "category": "Pies",
     "available": true,
     "soldOut": false,
