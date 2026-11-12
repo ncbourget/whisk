@@ -62,7 +62,19 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   stats={objects:objects.length,items:allItems.length,itemsAtLocation:allItems.filter(present).length,products:products.length};
   return products;
  }
- return {api,catalog,get stats(){return stats;}};
+ // Live stock (IN_STOCK at this location) for variations Square tracks. Missing counts mean 0.
+ async function stock(variationIds){
+  const ids=[...new Set(variationIds)],counts=new Map(ids.map(id=>[id,0]));
+  if(!ids.length)return counts;
+  let cursor;
+  for(let page=0;page<20;page++){
+   const result=await api('/inventory/counts/batch-retrieve',{catalog_object_ids:ids,location_ids:[env.SQUARE_LOCATION_ID],states:['IN_STOCK'],...(cursor?{cursor}:{})});
+   for(const c of result.counts||[])if(counts.has(c.catalog_object_id)&&c.location_id===env.SQUARE_LOCATION_ID&&c.state==='IN_STOCK'){const n=Math.floor(Number(c.quantity));counts.set(c.catalog_object_id,Number.isFinite(n)&&n>0?n:0);}
+   cursor=result.cursor;if(!cursor)break;
+  }
+  return counts;
+ }
+ return {api,catalog,stock,get stats(){return stats;}};
 }
 export function mergeSquare(data,products,links=[]){
  const next=structuredClone(data);next.preorders??=[];
@@ -142,10 +154,16 @@ export async function jsonBody(request,max=16384){
  if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')fail(415,'Expected JSON.');
  try{return JSON.parse(new TextDecoder().decode(await readLimited(request,max)));}catch(e){if(e instanceof PublishError)throw e;fail(400,'Invalid request.');}
 }
-export function pickupSlots(env,now=Date.now()){
- let slots;try{slots=JSON.parse(env.SQUARE_PICKUP_SLOTS||'[]');}catch{fail(503,'Pickup dates are not configured.');}
- if(!Array.isArray(slots)||slots.length>100)fail(503,'Pickup dates are not configured.');
- return slots.filter(s=>s&&typeof s.at==='string'&&/T.*(?:Z|[+-]\d\d:\d\d)$/.test(s.at)&&typeof s.label==='string'&&s.label.length<160&&Date.parse(s.at)>=now+3*86400000&&Date.parse(s.at)<=now+7*86400000).map(s=>({at:s.at,label:s.label}));
+// Pickup dates come from the editor (site.pickupDates). A date is offered until its "orders close" time.
+export function pickupSlots(site,now=Date.now()){
+ const list=Array.isArray(site?.pickupDates)?site.pickupDates:[];
+ let tz=site?.timezone||'America/New_York';try{new Intl.DateTimeFormat('en-US',{timeZone:tz});}catch{tz='America/New_York';}
+ const day=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'long',month:'long',day:'numeric'});
+ const time=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit'});
+ const short=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+ return list.filter(p=>p&&typeof p.pickupAt==='string'&&typeof p.closesAt==='string'&&Date.parse(p.closesAt)>now&&Date.parse(p.pickupAt)>now)
+  .sort((a,b)=>Date.parse(a.pickupAt)-Date.parse(b.pickupAt))
+  .map(p=>{const at=new Date(p.pickupAt);return {at:p.pickupAt,label:day.format(at)+', '+(String(p.window||'').trim()||time.format(at))+' (order by '+short.format(new Date(p.closesAt))+')'};});
 }
 export async function verifySquareWebhook(request,env){
  if(!env.SQUARE_WEBHOOK_SIGNATURE_KEY||request.url!==env.SQUARE_WEBHOOK_URL)fail(403,'Webhook unavailable.');
@@ -158,11 +176,13 @@ export async function verifySquareWebhook(request,env){
  return event;
 }
 export async function checkout(request,env,data,client=squareClient(env),now=Date.now()){
- if(data.site.showPreorderMenu===false||env.SQUARE_CHECKOUT_ENABLED!=='true'||!data.site.orderingEnabled)fail(503,'Pre-order checkout is not open yet.');
+ if(data.site.demo||data.site.showPreorderMenu===false||env.SQUARE_CHECKOUT_ENABLED!=='true'||!data.site.orderingEnabled)fail(503,'Pre-order checkout is not open yet.');
  if((env.SQUARE_CHECKOUT_SESSION_SECRET||'').length<32)fail(503,'Checkout is not configured.');
  const input=await jsonBody(request);
  if(!input||!Array.isArray(input.items)||!input.items.length||input.items.length>20||!/^[a-f0-9-]{36}$/i.test(input.key||''))fail(400,'Check your cart and try again.');
- const slot=pickupSlots(env,now).find(s=>s.at===input.pickupAt);if(!slot)fail(400,'Choose an available pickup date, three to seven days ahead.');
+ const slot=pickupSlots(data.site,now).find(s=>s.at===input.pickupAt);if(!slot)fail(400,'That pickup date is no longer available. Reload the page and choose another.');
+ if(input.notes!==undefined&&(typeof input.notes!=='string'||input.notes.length>400))fail(400,'Keep special instructions under 400 characters.');
+ const notes=String(input.notes||'').replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim();
  const recipient=input.recipient;
  if(!recipient||typeof recipient.name!=='string'||!recipient.name.trim()||recipient.name.length>100||typeof recipient.email!=='string'||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient.email)||recipient.email.length>254||typeof recipient.phone!=='string'||!/^\+?[0-9 ()-]{7,30}$/.test(recipient.phone))fail(400,'Enter your name, email and phone number for pickup.');
  const within=o=>(!o.orderOpens||Date.parse(o.orderOpens)<=now)&&(!o.orderCloses||Date.parse(o.orderCloses)>now);
@@ -173,11 +193,17 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
   if(!item||!item.available||item.soldOut||!within(item)||!p||p.soldOut||seen.has(entry.id)||!Number.isInteger(entry.quantity)||entry.quantity<1||entry.quantity>20)fail(409,'An item is no longer available. Refresh your cart.');
   seen.add(entry.id);
   if(entry.unitPrice!==Math.round(p.price*100))fail(409,'A price has changed in Square. Refresh your cart to review it before checkout.');
-  // Hosted links do not reserve stock. Fail closed for scarce-stock products until reservations exist.
-  if(p.trackInventory)fail(409,'This item needs stock confirmation. Please contact Cindy before ordering.');
-  lines.push({catalog_object_id:p.variationId,quantity:String(entry.quantity)});
+  lines.push({catalog_object_id:p.variationId,quantity:String(entry.quantity),name:p.name,tracked:p.trackInventory});
  }
- const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:recipient.phone},note:'Whisk pre-order'}}]};
+ // Stock is checked against Square's live counts right before the payment link is made.
+ // Payment links do not reserve stock, so two buyers paying for the last item at the same moment can still both succeed.
+ const tracked=lines.filter(l=>l.tracked);
+ if(tracked.length){
+  const counts=await client.stock(tracked.map(l=>l.catalog_object_id));
+  for(const l of tracked){const left=counts.get(l.catalog_object_id)??0;if(Number(l.quantity)>left)fail(409,left<1?l.name+' just sold out. Remove it from your cart to continue.':'Only '+left+' '+l.name+' left. Lower the quantity and try again.');}
+ }
+ for(const l of lines){delete l.name;delete l.tracked;}
+ const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:recipient.phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
  const hash=await digest(new TextEncoder().encode(JSON.stringify({key:input.key,payload})));
  const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+env.ADMIN_HOSTNAME+'/cart/?checkout=returned',allow_tipping:false},pre_populated_data:{buyer_email:recipient.email}});
  const link=result.payment_link;

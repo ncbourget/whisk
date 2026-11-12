@@ -46,10 +46,10 @@ class StorefrontTests(unittest.TestCase):
         pages=build.render(data)
         self.assertNotIn('id="preorders"',pages['index.html'])
         for route in ['preorder/index.html','cart/index.html','order/index.html']:
-            self.assertIn('menu is currently closed',pages[route])
+            self.assertIn('menu is currently unavailable',pages[route])
         for item in saved:
             if item['available']:
-                self.assertIn('menu is currently closed',pages['preorder/'+item['id']+'/index.html'])
+                self.assertIn('menu is currently unavailable',pages['preorder/'+item['id']+'/index.html'])
         self.assertEqual(saved,data['preorders'])
         data['site']['showPreorderMenu']=True
         self.assertIn('id="menu-items"',build.render(data)['preorder/index.html'])
@@ -135,7 +135,8 @@ class StorefrontTests(unittest.TestCase):
         self.assertIn('/preorder/preorder-test-pie/',pages['preorder/index.html'])
         self.assertNotIn('Whole test pie',pages['menu/index.html'].split('<script id="cart-data"')[0])
         self.assertIn('data-add-item="preorder-test-pie"',pages['preorder/preorder-test-pie/index.html'])
-        self.assertIn('at least 3 days',pages['preorder/preorder-test-pie/index.html'])
+        data['site']['cutoff']='Order by Sunday for Wednesday pickup.'
+        self.assertIn('Order by Sunday for Wednesday pickup.',build.render(data)['preorder/preorder-test-pie/index.html'])
         home=pages['index.html']
         self.assertLess(home.index('id="possibilities"'),home.index('id="preorders"'))
         self.assertLess(home.index('id="preorders"'),home.index('id="find-whisk"'))

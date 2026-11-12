@@ -151,5 +151,9 @@ html{scroll-behavior:smooth}
 
 #square-checkout:not([hidden]) {display:grid;gap:1rem;max-width:36rem;margin-top:1.5rem;}
 #square-checkout label {display:grid;gap:.4rem;}
-#square-checkout input, #square-checkout select {width:100%;min-height:3rem;padding:.65rem;font:inherit;}
+#square-checkout input, #square-checkout select, #square-checkout textarea {width:100%;min-height:3rem;padding:.65rem;font:inherit;margin:0;max-width:none;}
 #square-checkout button {justify-self:start;}
+/* Button rows on simple pages (404, unavailable): same spacing as the contact page. */
+.store-page .page-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;margin-top:24px}
+/* Special instructions box in the cart checkout form (sized by the #square-checkout rules above). */
+#square-checkout textarea{border:1px solid var(--ink);background:transparent;color:inherit;resize:vertical}

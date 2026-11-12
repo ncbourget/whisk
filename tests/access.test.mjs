@@ -91,8 +91,18 @@ test('Disabled menus reject listing and saved item URLs without serving stale as
     const response = await closed(new Request('https://bakery.example'+path),env);
     assert.equal(response.status,410);
     assert.match(response.headers.get('Cache-Control'),/no-store/);
-    assert.match(await response.text(),/currently unavailable/);
+    const text=await response.text();
+    assert.match(text,/currently unavailable/);assert.match(text,/href="\/contact\/"/);
   }
+  // Menu on, but the item is hidden, removed or never existed: friendly 404, never the old static page.
+  const items = createHandler({content:{site:{showStandMenu:true,showPreorderMenu:true},menu:[{id:'today',available:true},{id:'yesterday',available:false}],preorders:[]}});
+  for (const path of ['/menu/yesterday/','/menu/yesterday','/menu/gone/','/preorder/old-pie/']) {
+    const response = await items(new Request('https://bakery.example'+path),env);
+    assert.equal(response.status,404,path);
+    const text=await response.text();
+    assert.match(text,/The item you are looking for is currently unavailable/);assert.match(text,/href="\/contact\/"/);assert.doesNotMatch(text,/public asset/);
+  }
+  assert.equal(await (await items(new Request('https://bakery.example/menu/today/'),env)).text(),'public asset');
   const open = createHandler({content:{site:{showStandMenu:true,showPreorderMenu:true}}});
   assert.equal(await (await open(new Request('https://bakery.example/menu/'),env)).text(),'public asset');
 });

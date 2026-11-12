@@ -26,7 +26,15 @@ export function validateContent(data,files){
  if(!data||typeof data!=='object'||!['events,menu,site','events,menu,preorders,site'].includes(Object.keys(data).sort().join(',')))fail('Content must contain site, menu and events only.');
  const {site,menu,events}=data;const preorders=data.preorders??[];
  if(!Array.isArray(preorders)||preorders.length>200)fail('Keep pre-orders below 200 entries.');
- const {showStandMenu,showPreorderMenu,...siteCore}=site;
+ const {showStandMenu,showPreorderMenu,pickupDates,...siteCore}=site;
+ // Pickup dates Cindy sets in the editor: each has a pickup time, an orders-close time and an optional time window.
+ if(pickupDates!==undefined){
+  if(!Array.isArray(pickupDates)||pickupDates.length>60)fail('Keep pickup dates below 60 entries.');
+  const seen=new Set();
+  for(const p of pickupDates){shape(p,['id','pickupAt','closesAt','window']);if(!/^[a-z0-9-]{1,64}$/.test(p.id)||seen.has(p.id))fail('Each pickup date needs a unique ID.');seen.add(p.id);
+   const at=date(p.pickupAt),closes=date(p.closesAt);if(at===null||closes===null)fail('Each pickup date needs a pickup time and an orders-close time.');
+   if(closes>at)fail('Orders must close before the pickup time.');if(p.window.length>60)fail('Keep the pickup time window short (60 characters).');}
+ }
  if(showStandMenu!==undefined&&typeof showStandMenu!=='boolean')fail('Show stand menu must be true or false.');
  if(showPreorderMenu!==undefined&&typeof showPreorderMenu!=='boolean')fail('Show pre-order menu must be true or false.');
  shape(siteCore,siteStrings,['demo','orderingEnabled']);

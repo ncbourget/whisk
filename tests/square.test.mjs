@@ -10,7 +10,7 @@ const now=Date.parse('2026-11-11T12:00:00Z'),at='2026-11-15T12:00:00Z';
 const env={SQUARE_ENVIRONMENT:'sandbox',SQUARE_ACCESS_TOKEN:'server-token',SQUARE_LOCATION_ID:'location',SQUARE_CHECKOUT_ENABLED:'true',ADMIN_HOSTNAME:'bakery.example',SQUARE_CHECKOUT_SESSION_SECRET:'test-only-not-a-real-secret-123456789',SQUARE_PICKUP_SLOTS:JSON.stringify([{at,label:'Sunday noon'}])};
 const image='https://items-images-production.s3.us-west-2.amazonaws.com/photo.jpg';
 const product={variationId:'V1',itemId:'I1',name:'Apple pie',price:32,category:'Pies',photos:[{image,alt:'Pie'},{image:image+'?second',alt:'Slice'}],soldOut:false,trackInventory:false};
-function content(){const d=structuredClone(fixture);d.site.orderingEnabled=true;d.preorders=[{...d.menu[0],id:'pie',available:true,soldOut:false,orderOpens:'',orderCloses:'',squareVariationId:'V1'}];return d;}
+function content(){const d=structuredClone(fixture);d.site.orderingEnabled=true;d.site.demo=false;d.site.domain='https://bakery.example';d.site.email='cindy@bakery.example';d.site.pickupDates=[{id:'p1',pickupAt:at,closesAt:'2026-11-14T12:00:00Z',window:'10am–2pm'}];d.preorders=[{...d.menu[0],id:'pie',available:true,soldOut:false,orderOpens:'',orderCloses:'',squareVariationId:'V1'}];return d;}
 function request(input={}){return new Request('https://bakery.example/commerce/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'12345678-1234-1234-1234-123456789abc',items:[{id:'pie',quantity:2,unitPrice:3200}],pickupAt:at,recipient:{name:'Test Buyer',email:'test@example.com',phone:'+15555550123'},...input})});}
 test('Catalog pagination maps variation prices and ordered photos, omitting unsupported products',async()=>{
  let calls=0;
@@ -41,8 +41,11 @@ test('Checkout fails closed for stale prices, invalid slots, hidden/deleted/sold
  await assert.rejects(checkout(request({items:[{id:'pie',quantity:2,unitPrice:1}]}),env,content(),client,now),e=>e.status===409);
  await assert.rejects(checkout(request({pickupAt:'2026-11-12T12:00:00Z'}),env,content(),client,now),e=>e.status===400);
  for(const change of [d=>d.preorders=[],d=>d.preorders[0].available=false,d=>d.preorders[0].soldOut=true,d=>d.site.orderingEnabled=false]){const d=content();change(d);await assert.rejects(checkout(request(),env,d,client,now));}
- await assert.rejects(checkout(request(),env,content(),{...client,catalog:async()=>[{...product,trackInventory:true}]},now));assert.equal(sent,0);
- assert.deepEqual(pickupSlots(env,now+8*86400000),[]);
+ const tracked=left=>({...client,catalog:async()=>[{...product,trackInventory:true}],stock:async()=>new Map([['V1',left]])});
+ await assert.rejects(checkout(request(),env,content(),tracked(0),now),/sold out/);
+ await assert.rejects(checkout(request(),env,content(),tracked(1),now),/Only 1 /);assert.equal(sent,0);
+ assert.deepEqual(pickupSlots(content().site,now+8*86400000),[]);
+ const demo=content();demo.site.demo=true;await assert.rejects(checkout(request(),env,demo,client,now),/not open/);
 });
 test('Payment confirmation requires a signed session and COMPLETED Square payment',async()=>{
  const client={catalog:async()=>[product],api:async()=>({payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}})};
@@ -108,4 +111,39 @@ test('Auto sync: name match ignores caps/spaces, adds unmatched hidden, skips un
  assert.equal(report.updated.length,2);assert.equal(report.added.length,1);
  validateContent(data,new Set(d.menu.map(i=>i.image)));
  assert.equal(d.preorders[0].squareVariationId,undefined,'input not modified');
+});
+
+test('Stock-tracked items can be bought up to Square\'s live count',async()=>{
+ const calls=[];const client={catalog:async()=>[{...product,trackInventory:true}],stock:async ids=>{assert.deepEqual(ids,['V1']);return new Map([['V1',5]]);},api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ await checkout(request(),env,content(),client,now);
+ assert.deepEqual(calls[0].order.line_items,[{catalog_object_id:'V1',quantity:'2'}]);
+});
+test('Stock lookup reads IN_STOCK counts for this location; missing counts are 0',async()=>{
+ const client=squareClient(env,async(url,opts)=>{assert.ok(url.endsWith('/v2/inventory/counts/batch-retrieve'));const b=JSON.parse(opts.body);assert.deepEqual(b.location_ids,['location']);assert.deepEqual(b.states,['IN_STOCK']);
+  return Response.json({counts:[{catalog_object_id:'V1',location_id:'location',state:'IN_STOCK',quantity:'10'},{catalog_object_id:'V1',location_id:'other',state:'IN_STOCK',quantity:'99'}]});});
+ const counts=await client.stock(['V1','V2']);assert.equal(counts.get('V1'),10);assert.equal(counts.get('V2'),0);
+ assert.equal((await client.stock([])).size,0);
+});
+
+test('Pickup dates come from the editor: closed or past dates hidden, sorted, labelled in the bakery time zone',()=>{
+ const site={timezone:'America/New_York',pickupDates:[
+  {id:'b',pickupAt:'2026-11-25T10:00:00-05:00',closesAt:'2026-11-22T18:00:00-05:00',window:'10am–2pm'},
+  {id:'a',pickupAt:'2026-11-18T12:00:00-05:00',closesAt:'2026-11-15T18:00:00-05:00',window:''},
+  {id:'closed',pickupAt:'2026-11-13T12:00:00-05:00',closesAt:'2026-11-10T18:00:00-05:00',window:''}]};
+ const slots=pickupSlots(site,now);
+ assert.deepEqual(slots.map(s=>s.at),['2026-11-18T12:00:00-05:00','2026-11-25T10:00:00-05:00']);
+ assert.match(slots[0].label,/^Wednesday, November 18, 12:00\sPM \(order by Sun, Nov 15/);
+ assert.match(slots[1].label,/10am–2pm/);
+ assert.deepEqual(pickupSlots({},now),[]);
+});
+test('Special instructions reach the Square pickup note; overly long notes are refused',async()=>{
+ const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ await checkout(request({notes:'No nuts please,\nthank you'}),env,content(),client,now);
+ assert.equal(calls[0].order.fulfillments[0].pickup_details.note,'Whisk pre-order — Special instructions: No nuts please, thank you');
+ await assert.rejects(checkout(request({notes:'x'.repeat(401)}),env,content(),client,now),/400 characters/);
+});
+test('Content validation accepts editor pickup dates and rejects bad ones',()=>{
+ const d=content();validateContent(d,new Set(d.menu.map(i=>i.image)));
+ const bad=content();bad.site.pickupDates[0].closesAt='2026-11-16T12:00:00Z';assert.throws(()=>validateContent(bad,new Set(bad.menu.map(i=>i.image))),/close before/);
+ const empty=content();empty.site.pickupDates[0].pickupAt='';assert.throws(()=>validateContent(empty,new Set(empty.menu.map(i=>i.image))),/pickup time/);
 });

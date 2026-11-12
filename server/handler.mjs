@@ -22,6 +22,20 @@ function reply(request, body, status = 200, type = 'application/json; charset=ut
     status, headers: {...securityHeaders, 'Content-Type': type, ...extra},
   });
 }
+// Friendly page in the site's own design (taken from the built 404 page), with a contact link.
+async function unavailable(request, env, url, kind, collection, site = {}) {
+  const heading = kind === 'menu' ? 'This menu is currently unavailable.' : 'The item you are looking for is currently unavailable.';
+  const menuOpen = collection === 'menu' ? site.showStandMenu !== false : collection === 'preorder' ? site.showPreorderMenu !== false : false;
+  // Same markup as the current storefront pages (scripts/storefront.py), so it inherits their design.
+  const action = (href,label)=>'<a class="action-link" href="'+href+'"><span class="action-label">'+label+'</span><span class="action-arrow" aria-hidden="true">↗</span></a>';
+  const inner = '<p class="mono">Unavailable</p><h1>' + heading + '</h1><p>Please check back later, or contact Cindy with any questions.</p>' + '<div class="page-actions">' + action('/contact/','contact cindy') + (kind === 'item' && menuOpen ? action('/' + collection + '/','see what is available') : '') + action('/#find-whisk','find whisk') + '</div>';
+  let html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Unavailable | Whisk</title><body><main>' + inner + '</main></body></html>';
+  try {
+    const page = await (await env.ASSETS.fetch(new Request(url.origin + '/__whisk-unavailable__'))).text();
+    if (/<main\b[^>]*>[\s\S]*?<\/main>/.test(page)) html = page.replace(/(<main\b[^>]*>)[\s\S]*?(<\/main>)/, (m, open, close) => open + inner + close).replace(/<title>[^<]*<\/title>/, '<title>Unavailable | Whisk</title>');
+  } catch { /* fall back to the plain page */ }
+  return reply(request, html, kind === 'menu' ? 410 : 404, 'text/html; charset=utf-8');
+}
 export function createHandler({editorHtml, editorScript, editorStyle, content}) {
   return async function fetch(request, env) {
     const url = new URL(request.url);
@@ -29,7 +43,11 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     const path = url.pathname;
     const closedMenu = /^\/menu(?:\/|$)/.test(path) && content.site?.showStandMenu === false
       || /^\/preorder(?:\/|$)/.test(path) && content.site?.showPreorderMenu === false;
-    if (closedMenu) return reply(request, '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Menu unavailable | Whisk</title><body><main><h1>This menu is currently unavailable.</h1><p>Please check back for the next available selection.</p><a href="/#find-whisk">Find Whisk</a></main></body></html>', 410, 'text/html; charset=utf-8');
+    // An item page is only served while its menu is on AND the item is shown. Hidden, removed and
+    // stale item URLs get the same friendly message instead of an old static page.
+    const itemPath = path.match(/^\/(menu|preorder)\/([a-z0-9-]+)(?:\/|\/index\.html)?$/);
+    const shownItem = itemPath && (itemPath[1]==='menu' ? content.menu : content.preorders)?.some(i => i.id === itemPath[2] && i.available === true);
+    if (closedMenu || (itemPath && !shownItem)) return unavailable(request, env, url, closedMenu ? 'menu' : 'item', itemPath ? itemPath[1] : null, content.site);
     // Public commerce is outside /api, which remains entirely Access-protected.
     if(path.startsWith('/commerce/')){
       try {
@@ -43,14 +61,17 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
           return reply(request,'{"received":true}');
         }
         if(path==='/commerce/catalog'&&request.method==='GET'){
-          if(content.site?.showPreorderMenu===false||!squareReady(env))return reply(request,JSON.stringify({enabled:false,items:[],slots:[]}));
-          const products=await squareClient(env).catalog();
+          if(content.site?.showPreorderMenu===false||content.site?.demo||!squareReady(env))return reply(request,JSON.stringify({enabled:false,items:[],slots:[]}));
+          const client=squareClient(env),products=await client.catalog();
           // Only explicitly published pre-orders are exposed; no raw seller catalog.
-          const items=(content.preorders||[]).filter(i=>i.available&&i.squareVariationId).map(i=>{
-            const p=products.find(p=>p.variationId===i.squareVariationId);
-            return {id:i.id,price:p?.price??i.price,soldOut:i.soldOut||!p||p.soldOut||p.trackInventory};
+          const linked=(content.preorders||[]).filter(i=>i.available&&i.squareVariationId);
+          const tracked=linked.map(i=>products.find(p=>p.variationId===i.squareVariationId)).filter(p=>p?.trackInventory).map(p=>p.variationId);
+          const counts=await client.stock(tracked);
+          const items=linked.map(i=>{
+            const p=products.find(p=>p.variationId===i.squareVariationId),left=p?.trackInventory?(counts.get(p.variationId)??0):null;
+            return {id:i.id,price:p?.price??i.price,soldOut:i.soldOut||!p||p.soldOut||(left!==null&&left<1),left};
           });
-          return reply(request,JSON.stringify({enabled:env.SQUARE_CHECKOUT_ENABLED==='true'&&content.site.orderingEnabled,items,slots:pickupSlots(env)}));
+          return reply(request,JSON.stringify({enabled:env.SQUARE_CHECKOUT_ENABLED==='true'&&content.site.orderingEnabled,items,slots:pickupSlots(content.site)}));
         }
         if(path==='/commerce/order-status'&&request.method==='GET')return reply(request,JSON.stringify(await orderStatus(request,env)));
         if(path==='/commerce/checkout'&&request.method==='POST'){

@@ -30,7 +30,7 @@ const statuses = {coming_soon:'Coming soon',open_today:'Open today',preorders_op
 const siteGroups = [
  ['Menu visibility', [['showStandMenu','Show main menu (homepage, navigation and item pages)','checkbox'],['showPreorderMenu','Show pre-order menu (homepage, navigation and item pages)','checkbox']]],
  ['Homepage · Find Whisk', [['status','Business status','select',statuses],['statusNote','Status note','textarea'],['hours','Opening hours','textarea'],['serviceArea','Town or service area','text']]],
- ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Order deadline note','textarea'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown below the menu)','textarea']]],
+ ['Ordering & pickup', [['orderingEnabled','Enable ordering','checkbox'],['squareUrl','Square shop / general ordering link','url'],['orderOpens','Ordering opens (optional)','datetime'],['orderCloses','Ordering closes (optional)','datetime'],['pickup','Pickup instructions','textarea'],['cutoff','Pre-order notice (shown on the pre-order page, item pages, cart and FAQ)','textarea','Write it how you want customers to read it, e.g. “Please order at least 3 days before pickup.”'],['refunds','Cancellation & refund policy','textarea'],['allergens','Allergen notice (shown below the menu)','textarea']]],
  ['Contact & social', [['email','Contact email','email'],['phone','Phone','text'],['instagram','Instagram profile link','url'],['facebook','Facebook profile link','url']]],
  ['Homepage · About Cindy', [['name','Bakery name','text'],['tagline','Tagline','text'],['heroHeading','Homepage headline','textarea'],['heroText','Homepage introduction','textarea'],['aboutHeading','Story headline','textarea'],['aboutText','About Cindy & Whisk','textarea'],['aboutNote','Additional story paragraph (optional)','textarea'],['footerNote','Footer note','text']]],
  ['Launch settings · ask Nate if unsure', [['demo','Sample / demo mode (blocks all payments)','checkbox'],['domain','Production domain','url','Leave empty until confirmed, e.g. https://example.com'],['basePath','Website subfolder','text','Usually blank. Use /whisk only for a repository-subfolder preview.'],['currency','Currency','select',{USD:'US dollars',CAD:'Canadian dollars',GBP:'British pounds',AUD:'Australian dollars',EUR:'Euros'}],['timezone','Business time zone','text','For example America/New_York. Confirm your actual location.'],['socialImage','Social sharing image path','text','Upload a 1200 × 630 image under assets/brand; use its path here.'],['socialImageAlt','Describe the sharing image','text']]]
@@ -67,7 +67,7 @@ function field(def, object, prefix){
  if(type==='checkbox')input.checked=object[key];
  else input.value=type==='datetime'?localDate(object[key]):type==='tags'?object[key].join(', '):object[key]??'';
  if(type==='number'){input.min='0';input.step='0.01';input.required=true;}
- if(['name','category','start','end','timezone'].includes(key))input.required=true;
+ if(['name','category','start','end','timezone','pickupAt','closesAt'].includes(key))input.required=true;
  input.addEventListener('input',()=>{try{input.setCustomValidity('');object[key]=type==='datetime'?zonedDate(input.value):type==='checkbox'?input.checked:type==='number'?Number(input.value):type==='tags'?input.value.split(',').map(t=>t.trim()).filter(Boolean):input.value;markDirty();}catch(error){input.setCustomValidity(error.message);say(error.message,true);}});
  wrapper.append(input);
  if(key==='category'){
@@ -83,7 +83,7 @@ function field(def, object, prefix){
   row.append(name,confirm,cancel);wrapper.append(add,row,el('small','Choose an existing category or add a new one. It appears in the website filter after a visible item uses it and you publish.'));
  }
 
- if(type==='datetime')wrapper.append(el('small',`Time zone: ${data.site.timezone}. Optional ordering limits may be left empty. Configure the same limits in Square.`));
+ if(type==='datetime')wrapper.append(el('small',['pickupAt','closesAt'].includes(key)?`Time zone: ${data.site.timezone}.`:`Time zone: ${data.site.timezone}. Optional ordering limits may be left empty. Configure the same limits in Square.`));
  if(typeof options==='string'){const help=el('small',options);help.id=id+'-help';input.setAttribute('aria-describedby',help.id);wrapper.append(help);}
  if(type==='photo'){
   wrapper.append(el('small','Website crop preview (4:3). Take a horizontal photo with the food centered and a little space around it. The website crops the edges to fit this same shape; your original photo is kept.'));
@@ -121,14 +121,29 @@ function photoDeckEditor(object){
  return section;
 }
 function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));if(defs.some(def=>def[2]==='photo'))grid.append(photoDeckEditor(object));return grid;}
+// Pickup dates: Cindy adds each pickup day, its time window and when orders close. Customers only see dates still open.
+const pickupFields=[['pickupAt','Pickup date & start time','datetime'],['window','Time window shown to customers (optional)','text','For example 10am–2pm. Leave empty to show the start time.'],['closesAt','Orders close','datetime']];
+function pickupSection(){
+ const section=el('section',undefined,'editor-section');section.append(el('h2','Pickup dates'),el('p','Customers choose one of these at checkout. Each date disappears from the cart once its orders close.'));
+ const list=data.site.pickupDates;
+ list.forEach((p,index)=>{
+  const entry=el('div',undefined,'editor-entry');const past=p.closesAt&&Date.parse(p.closesAt)<=Date.now();
+  entry.append(el('h3',past?'Pickup date (orders closed — hidden from customers)':'Pickup date'),addFields(pickupFields,p,p.id));
+  const remove=el('button','Remove this date','secondary');remove.type='button';remove.addEventListener('click',()=>{list.splice(index,1);markDirty();render();});
+  entry.append(remove);section.append(entry);
+ });
+ if(!list.length)section.append(el('p','No pickup dates yet. Add one so customers can check out.'));
+ const add=el('button','Add a pickup date','secondary');add.type='button';add.addEventListener('click',()=>{list.push({id:'pickup-'+crypto.randomUUID().slice(0,8),pickupAt:'',closesAt:'',window:''});markDirty();render();});
+ section.append(add);return section;
+}
 const expandedItems=new Set();
 function render(){
  fields.replaceChildren();
  if(current==='preorders'){
-  fields.append(el('p','Pre-orders require 3–7 days’ notice. Linked items get their name, price and photos from Square; edit ingredients, notes and visibility here.'));
+  fields.append(el('p','Customers choose from the pickup dates you set under Bakery details → Pickup dates. Linked items get their name, price and photos from Square; edit ingredients, notes and visibility here.'));
  }
  if(hosted&&['menu','preorders'].includes(current)){const sync=el('button','Sync both menus from Square','secondary');sync.type='button';sync.addEventListener('click',()=>squarePanel(sync));fields.append(sync);}
- if(current==='site')siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});
+ if(current==='site'){siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});fields.append(pickupSection());}
  else{
   data[current].forEach((object,index)=>{
    const section=el('section',undefined,'editor-entry');
@@ -204,7 +219,7 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   if(!res.headers.get('Content-Type')?.includes('application/json'))throw Error('The content request did not return editor data. Open /api/content in this signed-in browser to check its Access login or error page.');
   const result=await responseData(res);
   if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
-  data=result.data;data.site.showStandMenu??=true;data.site.showPreorderMenu??=true;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  data=result.data;data.site.showStandMenu??=true;data.site.pickupDates??=[];data.site.showPreorderMenu??=true;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
