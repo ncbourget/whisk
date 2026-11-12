@@ -91,7 +91,7 @@ class StorefrontTests(unittest.TestCase):
         data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True);item=data['menu'][0];item.update(available=True,soldOut=True)
         pages=build.render(data);cart=pages['cart/index.html']
         self.assertIn('<form id="square-checkout" hidden>',cart)
-        self.assertIn('<button type="submit" disabled>Continue to Square',cart)
+        self.assertIn('<button type="submit" disabled>Checkout',cart)
         runtime=cart.split('<script id="cart-data" type="application/json">')[1].split('</script>')[0]
         data=json.loads(runtime)
         for public_item in data['items']:
@@ -127,7 +127,8 @@ class StorefrontTests(unittest.TestCase):
         self.assertIn('href="/#about"',pages['menu/index.html'])
 
     def test_preorders_are_separate_and_hidden_items_cannot_enter_cart(self):
-        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
+        # Layout test: sample mode, so unlinked test items don't trip the live-ordering checks.
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True,demo=True)
         data['site']['showStandMenu']=True
         preorder=copy.deepcopy(data['menu'][0]);preorder.update(id='preorder-test-pie',name='Whole test pie',available=True,soldOut=False)
         data['preorders']=[preorder]
@@ -154,7 +155,8 @@ class StorefrontTests(unittest.TestCase):
         self.assertIn('class="hero-aside mono">First line.<br>Second line.<br>Third &amp; &lt;last&gt;.</span>',home)
 
     def test_homepage_limits_both_menus_and_links_to_remaining_items(self):
-        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True)
+        # Layout test: sample mode, so unlinked test items don't trip the live-ordering checks.
+        data=build.read_data();data['site'].update(showStandMenu=True,showPreorderMenu=True,demo=True)
         data['site']['showStandMenu']=True
         template=copy.deepcopy(data['menu'][0])
         for collection in ('menu','preorders'):

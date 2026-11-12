@@ -20,12 +20,14 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   }finally{clearTimeout(timer);}
   if(r.status>=300&&r.status<400)fail(503,'Square answered with an unexpected redirect.',{step:'square-response',httpStatus:r.status});
   if(!r.ok){
-   let squareCode='';try{squareCode=String((await r.json())?.errors?.[0]?.code||'').slice(0,80);}catch{}
-   const info={step:'square-response',httpStatus:r.status,squareCode};
+   let squareCode='',squareField='',squareDetail='';try{const e=(await r.json())?.errors?.[0]||{};squareCode=String(e.code||'').slice(0,80);squareField=String(e.field||'').slice(0,80);squareDetail=String(e.detail||'').slice(0,160);}catch{}
+   const info={step:'square-response',httpStatus:r.status,squareCode,squareField};
+   // Visible in Cloudflare's real-time logs. Square error details never contain the access token.
+   console.log('Square API error',JSON.stringify({path:path.split('?')[0],status:r.status,code:squareCode,field:squareField,detail:squareDetail}));
    if(r.status===401)fail(503,'Square rejected the access token. Check that SQUARE_ACCESS_TOKEN is a production token (SQUARE_ENVIRONMENT is production), then redeploy.',info);
    if(r.status===403)fail(503,'Square denied catalog access. Check the Square account permissions.',info);
    if(r.status===429)fail(503,'Square is rate limiting requests. Wait a minute and try again.',info);
-   fail(503,'Square returned HTTP '+r.status+'.',info);
+   fail(503,'Square returned HTTP '+r.status+(squareCode?' ('+squareCode+(squareField?' on '+squareField:'')+(squareDetail?': '+squareDetail:'')+')':'')+'.',info);
   }
   return r.json();
  }
@@ -203,7 +205,9 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
   for(const l of tracked){const left=counts.get(l.catalog_object_id)??0;if(Number(l.quantity)>left)fail(409,left<1?l.name+' just sold out. Remove it from your cart to continue.':'Only '+left+' '+l.name+' left. Lower the quantity and try again.');}
  }
  for(const l of lines){delete l.name;delete l.tracked;}
- const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:recipient.phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
+ const digits=recipient.phone.replace(/\D/g,'');
+ const phone=digits.length===10?'+1'+digits:digits.length===11&&digits[0]==='1'?'+'+digits:recipient.phone.trim().startsWith('+')?'+'+digits:recipient.phone.trim();
+ const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
  const hash=await digest(new TextEncoder().encode(JSON.stringify({key:input.key,payload})));
  const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+env.ADMIN_HOSTNAME+'/cart/?checkout=returned',allow_tipping:false},pre_populated_data:{buyer_email:recipient.email}});
  const link=result.payment_link;

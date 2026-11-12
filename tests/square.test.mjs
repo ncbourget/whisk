@@ -147,3 +147,11 @@ test('Content validation accepts editor pickup dates and rejects bad ones',()=>{
  const bad=content();bad.site.pickupDates[0].closesAt='2026-11-16T12:00:00Z';assert.throws(()=>validateContent(bad,new Set(bad.menu.map(i=>i.image))),/close before/);
  const empty=content();empty.site.pickupDates[0].pickupAt='';assert.throws(()=>validateContent(empty,new Set(empty.menu.map(i=>i.image))),/pickup time/);
 });
+
+test('Checkout sends phone numbers in international format; Square errors show their code',async()=>{
+ const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ await checkout(request({recipient:{name:'Test Buyer',email:'buyer@example.com',phone:'(617) 750-4639'}}),env,content(),client,now);
+ assert.equal(calls[0].order.fulfillments[0].pickup_details.recipient.phone_number,'+16177504639');
+ const bad=squareClient(env,async()=>Response.json({errors:[{code:'INVALID_VALUE',field:'order.fulfillments[0]',detail:'Bad value'}]},{status:400}));
+ await assert.rejects(bad.api('/online-checkout/payment-links',{}),/HTTP 400 \(INVALID_VALUE on order\.fulfillments\[0\]: Bad value\)/);
+});
