@@ -30,5 +30,6 @@
   "socialImage": "",
   "socialImageAlt": "",
   "footerNote": "Goodness on wheels.",
-  "showStandMenu": false
+  "showStandMenu": false,
+  "showPreorderMenu": true
 }
