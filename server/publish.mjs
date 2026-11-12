@@ -56,10 +56,13 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   return {path};
  }
  async function syncSquare(links=[],revision){
-  const current=await snapshot();
-  if(revision!==undefined&&revision!==current.revision)throw new PublishError(409,'Content changed. Reload the editor before syncing.');
-  const data=mergeSquare(current.data,await squareClient(env).catalog(),links);
-  return save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})}));
+  // Label which step failed so the editor can show it (no secrets).
+  const step=async(name,work)=>{try{return await work();}catch(error){if(error&&typeof error==='object'&&!error.step)error.step=name;throw error;}};
+  const current=await step('github-read',snapshot);
+  if(revision!==undefined&&revision!==current.revision)throw Object.assign(new PublishError(409,'Content changed. Reload the editor before syncing.'),{step:'revision-check'});
+  const products=await step('square-catalog',()=>squareClient(env).catalog());
+  const data=await step('merge',()=>mergeSquare(current.data,products,links));
+  return step('github-save',()=>save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})})));
  }
  return {snapshot,save,photo,syncSquare};
 }

@@ -15,7 +15,7 @@ function request(input={}){return new Request('https://bakery.example/commerce/c
 test('Catalog pagination maps variation prices and ordered photos, omitting unsupported products',async()=>{
  let calls=0;
  const client=squareClient(env,async(url,opts)=>{
-  assert.ok(url.startsWith('https://connect.squareupsandbox.com/v2/catalog/list'));assert.equal(opts.headers.Authorization,'Bearer server-token');assert.equal(opts.redirect,'error');calls++;
+  assert.ok(url.startsWith('https://connect.squareupsandbox.com/v2/catalog/list'));assert.equal(opts.headers.Authorization,'Bearer server-token');assert.equal(opts.redirect,'manual');calls++;
   return Response.json(calls===1?{objects:[{id:'I1',type:'ITEM',item_data:{name:'Pie',image_ids:['P1','P2'],variations:[{id:'V1',item_variation_data:{pricing_type:'FIXED_PRICING',price_money:{amount:3000,currency:'USD'},location_overrides:[{location_id:'location',price_money:{amount:3200,currency:'USD'},sold_out:true}]}},{id:'V2',item_variation_data:{pricing_type:'VARIABLE_PRICING'}}]}}],cursor:'next'}:{objects:['P1','P2'].map((id,i)=>({id,type:'IMAGE',image_data:{url:image+'?'+i,caption:id}}))});
  });
  const items=await client.catalog();assert.equal(calls,2);assert.equal(items.length,1);assert.equal(items[0].price,32);assert.equal(items[0].soldOut,true);assert.deepEqual(items[0].photos.map(p=>p.alt),['P1','P2']);
@@ -74,4 +74,11 @@ test('Square default transport preserves the fetch receiver', async t => {
     return Promise.resolve(Response.json({objects: []}));
   });
   assert.deepEqual(await squareClient(env).catalog(), []);
+});
+
+test('Square errors carry a safe step, HTTP status and Square code, never the token',async()=>{
+ const client=squareClient(env,async()=>Response.json({errors:[{code:'UNAUTHORIZED'}]},{status:401}));
+ await assert.rejects(client.catalog(),e=>e.step==='square-response'&&e.httpStatus===401&&e.squareCode==='UNAUTHORIZED'&&!e.message.includes('server-token'));
+ const broken=squareClient(env,async()=>{throw new TypeError('boom');});
+ await assert.rejects(broken.catalog(),e=>e.step==='square-request'&&e.message.includes('TypeError: boom'));
 });

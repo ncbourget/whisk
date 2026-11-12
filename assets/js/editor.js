@@ -212,11 +212,14 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
  }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();
 
+// Show the server's step and status with every Square failure, so it is never silent or vague.
+function squareFailure(result,status){const bits=[result?.step&&'step: '+result.step,result?.httpStatus&&'Square HTTP '+result.httpStatus,result?.squareCode&&'Square code '+result.squareCode,'server status '+status].filter(Boolean);return Error((typeof result?.error==='string'?result.error:'Square sync failed.')+' ['+bits.join(', ')+']');}
 async function squarePanel(button){
  if(dirty||uploading){say('Publish or reload your draft before syncing Square.',true);return;}
  button.disabled=true;
  try{
-  const response=await fetch('/api/square/catalog',{cache:'no-store'}),result=await responseData(response);if(!response.ok)throw Error(result.error);
+  const response=await fetch('/api/square/catalog',{cache:'no-store'}),result=await responseData(response);if(!response.ok)throw squareFailure(result,response.status);
+  if(!result.items.length){const t=result.stats||{};throw Error('Square connected, but returned no products to show. Square has '+(t.items??'?')+' items, '+(t.itemsAtLocation??'?')+' at this location. If the second number is 0, SQUARE_LOCATION_ID is probably wrong. Items also need a fixed USD price.');}
   const section=el('section',undefined,'editor-entry');section.append(el('h3','Square pre-order products'),el('p','Choose Import as new or match an existing Whisk item. New imports start hidden so you can add ingredients and review them. Already linked products are refreshed when you sync.'));
   const choices=[];
   for(const product of result.items){
@@ -230,7 +233,7 @@ async function squarePanel(button){
    if(dirty||uploading){say('Your draft changed. Publish it before syncing.',true);return;}
    const controls=[...document.querySelectorAll('input,select,textarea,button')];
    const disabledStates=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true);
-   try{const links=choices.filter(c=>c.select.value).map(c=>({variationId:c.product.variationId,id:c.select.value==='new'?'':c.select.value}));const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links,revision})});const result=await responseData(res);if(!res.ok)throw Error(result.error);location.reload();}
+   try{const links=choices.filter(c=>c.select.value).map(c=>({variationId:c.product.variationId,id:c.select.value==='new'?'':c.select.value}));const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links,revision})});const result=await responseData(res);if(!res.ok)throw squareFailure(result,res.status);location.reload();}
    catch(error){say(error.message,true);controls.forEach((control,index)=>control.disabled=disabledStates[index]);}
   };
   section.append(apply);button.after(section);

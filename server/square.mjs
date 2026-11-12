@@ -2,16 +2,34 @@ import {SignJWT,jwtVerify} from 'jose';
 import {squareImage} from './square-images.mjs';
 // Server-only Square client. Customer requests never supply prices, API URLs or credentials.
 import {PublishError, readLimited, digest} from './content.mjs';
-const fail=(status,message)=>{throw new PublishError(status,message);};
+// Optional extra fields (step, httpStatus, squareCode) are safe diagnostics: never tokens or request bodies.
+const fail=(status,message,extra={})=>{throw Object.assign(new PublishError(status,message),extra);};
 export const squareReady=env=>['sandbox','production'].includes(env.SQUARE_ENVIRONMENT)&&!!env.SQUARE_ACCESS_TOKEN&&!!env.SQUARE_LOCATION_ID;
 export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,options)){
  if(!squareReady(env))fail(503,'Square is not connected yet.');
  const origin=env.SQUARE_ENVIRONMENT==='production'?'https://connect.squareup.com':'https://connect.squareupsandbox.com';
  async function api(path,body){
-  let r;try{r=await transport(origin+'/v2'+path,{method:body?'POST':'GET',redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+env.SQUARE_ACCESS_TOKEN,'Square-Version':'2026-01-22','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});}catch{fail(503,'Square is temporarily unavailable. Please try again.');}
-  if(!r.ok)fail(503,'Square could not complete the request. Ask Nate to check the connection.');
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  let r;
+  try{
+   // Cloudflare Workers reject redirect:'error' (TypeError before any request is sent). Use 'manual' and check status below.
+   r=await transport(origin+'/v2'+path,{method:body?'POST':'GET',redirect:'manual',signal:controller.signal,headers:{Authorization:'Bearer '+env.SQUARE_ACCESS_TOKEN,'Square-Version':'2026-01-22','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  }catch(error){
+   fail(503,controller.signal.aborted?'Square request timed out. Please try again.':'Could not reach Square ('+String(error?.name||'Error')+': '+String(error?.message||'').slice(0,200)+').',{step:'square-request'});
+  }finally{clearTimeout(timer);}
+  if(r.status>=300&&r.status<400)fail(503,'Square answered with an unexpected redirect.',{step:'square-response',httpStatus:r.status});
+  if(!r.ok){
+   let squareCode='';try{squareCode=String((await r.json())?.errors?.[0]?.code||'').slice(0,80);}catch{}
+   const info={step:'square-response',httpStatus:r.status,squareCode};
+   if(r.status===401)fail(503,'Square rejected the access token. Check that SQUARE_ACCESS_TOKEN is a production token (SQUARE_ENVIRONMENT is production), then redeploy.',info);
+   if(r.status===403)fail(503,'Square denied catalog access. Check the Square account permissions.',info);
+   if(r.status===429)fail(503,'Square is rate limiting requests. Wait a minute and try again.',info);
+   fail(503,'Square returned HTTP '+r.status+'.',info);
+  }
   return r.json();
  }
+ let stats;
  async function catalog(){
   const objects=[];let cursor;
   for(let page=0;page<20;page++){
@@ -34,9 +52,12 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
     products.push({variationId:variation.id,itemId:item.id,name:d.name+((d.variations.length>1)?' — '+v.name:''),price:price.amount/100,currency:price.currency,category:byId.get(d.reporting_category?.id||d.categories?.[0]?.id||d.category_id)?.category_data?.name||'Pastries',photos,soldOut:override?.sold_out===true,trackInventory:override?.track_inventory??v.track_inventory??false,version:variation.version,description:d.description_plaintext||''});
    }
   }
+  // Safe counts so an empty list can be explained (e.g. wrong SQUARE_LOCATION_ID).
+  const allItems=objects.filter(o=>o.type==='ITEM');
+  stats={objects:objects.length,items:allItems.length,itemsAtLocation:allItems.filter(present).length,products:products.length};
   return products;
  }
- return {api,catalog};
+ return {api,catalog,get stats(){return stats;}};
 }
 export function mergeSquare(data,products,links=[]){
  const next=structuredClone(data);next.preorders??=[];

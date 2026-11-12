@@ -12,6 +12,11 @@ const securityHeaders = {
   'X-Robots-Tag': 'noindex, nofollow',
   'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://*.amazonaws.com https://*.square-cdn.com https://square-cdn.com; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
 };
+// Structured, secret-free error for the Square endpoints: {error, step, httpStatus, squareCode}.
+function squareError(error){
+  const known=error instanceof PublishError;
+  return JSON.stringify({error:known?error.message:'Unexpected error ('+String(error?.name||'Error')+': '+String(error?.message||'').slice(0,200)+').',step:error?.step||'unknown',httpStatus:error?.httpStatus,squareCode:error?.squareCode||undefined});
+}
 function reply(request, body, status = 200, type = 'application/json; charset=utf-8', extra = {}) {
   return new Response(request.method === 'HEAD' ? null : body, {
     status, headers: {...securityHeaders, 'Content-Type': type, ...extra},
@@ -79,7 +84,8 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
         if(path==='/api/square/sync'){
           const input=await jsonBody(request);
           if(!Array.isArray(input?.links)||input.links.length>30||typeof input.revision!=='string')throw new PublishError(400,'Choose products and reload the editor.');
-          return reply(request,JSON.stringify(await service.syncSquare(input.links,input.revision)));
+          try{return reply(request,JSON.stringify(await service.syncSquare(input.links,input.revision)));}
+          catch(error){return reply(request,squareError(error),error instanceof PublishError&&error.status<500?error.status:503);}
         }
         const result=await (path==='/api/content'?service.save(request):service.photo(request));
         return reply(request,JSON.stringify(result));
@@ -91,7 +97,7 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     if (path === '/editor/' || path === '/editor/index.html') return reply(request, editorHtml, 200, 'text/html; charset=utf-8');
     if (path === '/assets/js/editor.js') return reply(request, editorScript, 200, 'text/javascript; charset=utf-8');
     if (path === '/assets/css/editor.css') return reply(request, editorStyle, 200, 'text/css; charset=utf-8');
-    if(path==='/api/square/catalog'){try{return reply(request,JSON.stringify({items:await squareClient(env).catalog()}));}catch{return reply(request,JSON.stringify({error:'Square is not connected yet or unavailable.'}),503);}}
+    if(path==='/api/square/catalog'){try{const client=squareClient(env);const items=await client.catalog();return reply(request,JSON.stringify({items,stats:client.stats}));}catch(error){return reply(request,squareError(error),503);}}
     if (path === '/api/content') {
       if(!writable)return reply(request, JSON.stringify({data: content, capabilities: {write: false}}));
       try{const {data,revision}=await publisher(env).snapshot();return reply(request,JSON.stringify({data,revision,capabilities:{write:true,mode:'publish'}}));}
