@@ -1,4 +1,4 @@
-import {squareReady,squareClient,jsonBody,verifySquareWebhook,checkout,pickupSlots,orderStatus} from './square.mjs';
+import {publicHost,squareReady,squareClient,jsonBody,verifySquareWebhook,checkout,pickupSlots,orderStatus} from './square.mjs';
 import {authorize, AccessError} from './access.mjs';
 import {publisher, publishingEnabled} from './publish.mjs';
 import {PublishError} from './content.mjs';
@@ -51,7 +51,7 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     // Public commerce is outside /api, which remains entirely Access-protected.
     if(path.startsWith('/commerce/')){
       try {
-        if(url.protocol!=='https:'||url.hostname!==env.ADMIN_HOSTNAME||url.port)throw new PublishError(403,'Commerce is unavailable on this hostname.');
+        if(url.protocol!=='https:'||url.hostname!==publicHost(env)||url.port)throw new PublishError(403,'Checkout is only available on '+publicHost(env)+'.');
         if(path==='/commerce/square-webhook'&&request.method==='POST'){
           const event=await verifySquareWebhook(request,env);
           if(event.type==='catalog.version.updated'){

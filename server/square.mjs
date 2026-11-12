@@ -4,6 +4,9 @@ import {squareImage} from './square-images.mjs';
 import {PublishError, readLimited, digest} from './content.mjs';
 // Optional extra fields (step, httpStatus, squareCode) are safe diagnostics: never tokens or request bodies.
 const fail=(status,message,extra={})=>{throw Object.assign(new PublishError(status,message),extra);};
+// Customers shop on PUBLIC_HOSTNAME (e.g. www.whiskbakedbycindy.com). The editor stays on ADMIN_HOSTNAME behind Cloudflare Access.
+// Without PUBLIC_HOSTNAME, checkout uses the editor's hostname, as before.
+export const publicHost=env=>env.PUBLIC_HOSTNAME||env.ADMIN_HOSTNAME;
 export const squareReady=env=>['sandbox','production'].includes(env.SQUARE_ENVIRONMENT)&&!!env.SQUARE_ACCESS_TOKEN&&!!env.SQUARE_LOCATION_ID;
 export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,options)){
  if(!squareReady(env))fail(503,'Square is not connected yet.');
@@ -209,13 +212,13 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const phone=digits.length===10?'+1'+digits:digits.length===11&&digits[0]==='1'?'+'+digits:recipient.phone.trim().startsWith('+')?'+'+digits:recipient.phone.trim();
  const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
  const hash=await digest(new TextEncoder().encode(JSON.stringify({key:input.key,payload})));
- const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+env.ADMIN_HOSTNAME+'/cart/?checkout=returned',allow_tipping:false}});
+ const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+publicHost(env)+'/cart/?checkout=returned',allow_tipping:false}});
  // No pre_populated_data: Square rejects buyer_email alongside a fulfillment (CONFLICTING_PARAMETERS).
  // The buyer's email already travels with the pickup recipient above.
  const link=result.payment_link;
  if(!link?.url||!/^https:\/\/(square\.link|checkout\.square\.site)\//.test(link.url))fail(503,'Square did not return a checkout link. Please try again.');
  if(!link.order_id)fail(503,'Square did not return an order.');
- const token=await new SignJWT({order:link.order_id}).setProtectedHeader({alg:'HS256'}).setIssuer('whisk-checkout').setAudience(env.ADMIN_HOSTNAME).setIssuedAt().setExpirationTime('24h').sign(new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET));
+ const token=await new SignJWT({order:link.order_id}).setProtectedHeader({alg:'HS256'}).setIssuer('whisk-checkout').setAudience(publicHost(env)).setIssuedAt().setExpirationTime('24h').sign(new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET));
  return {url:link.url,cookie:'__Host-whisk-checkout='+token+'; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400'};
 }
 
@@ -223,7 +226,7 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
 export async function orderStatus(request,env,client=squareClient(env)){
  const token=(request.headers.get('Cookie')||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('__Host-whisk-checkout='))?.split('=')[1];
  if(!token||(env.SQUARE_CHECKOUT_SESSION_SECRET||'').length<32)fail(401,'No checkout session found. Check your Square receipt.');
- let payload;try{({payload}=await jwtVerify(token,new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET),{algorithms:['HS256'],issuer:'whisk-checkout',audience:env.ADMIN_HOSTNAME}));}catch{fail(401,'Checkout session expired. Check your Square receipt.');}
+ let payload;try{({payload}=await jwtVerify(token,new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET),{algorithms:['HS256'],issuer:'whisk-checkout',audience:publicHost(env)}));}catch{fail(401,'Checkout session expired. Check your Square receipt.');}
  if(typeof payload.order!=='string'||!/^[A-Za-z0-9_-]+$/.test(payload.order))fail(401,'Invalid checkout session.');
  const {order}=await client.api('/orders/'+encodeURIComponent(payload.order));
  if(!order||order.location_id!==env.SQUARE_LOCATION_ID)fail(503,'Order confirmation unavailable.');

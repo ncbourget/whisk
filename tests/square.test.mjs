@@ -155,3 +155,15 @@ test('Checkout sends phone numbers in international format; Square errors show t
  const bad=squareClient(env,async()=>Response.json({errors:[{code:'INVALID_VALUE',field:'order.fulfillments[0]',detail:'Bad value'}]},{status:400}));
  await assert.rejects(bad.api('/online-checkout/payment-links',{}),/HTTP 400 \(INVALID_VALUE on order\.fulfillments\[0\]: Bad value\)/);
 });
+
+test('Checkout can live on a separate public hostname while the editor keeps its own',async()=>{
+ const split={...env,ADMIN_HOSTNAME:'admin.example',PUBLIC_HOSTNAME:'www.bakery.example'};
+ const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ const {cookie}=await checkout(request(),split,content(),client,now);
+ assert.equal(calls[0].checkout_options.redirect_url,'https://www.bakery.example/cart/?checkout=returned');
+ const status=new Request('https://www.bakery.example/commerce/order-status',{headers:{Cookie:cookie.split(';')[0]}});
+ await assert.doesNotReject(orderStatus(status,split,{api:async()=>({order:{id:'ORDER1',location_id:'location',tenders:[],total_money:{amount:100,currency:'USD'}}})}));
+ const handle=createHandler({content:content(),editorHtml:'',editorScript:'',editorStyle:''});
+ const wrongHost=await handle(new Request('https://admin.example/commerce/catalog'),split);
+ assert.equal(wrongHost.status,403);
+});
