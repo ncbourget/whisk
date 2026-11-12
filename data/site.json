@@ -1,8 +1,8 @@
 {
-  "name": "WHISK",
+  "name": "Whisk",
   "tagline": "Baked by Cindy",
-  "demo": true,
-  "domain": "",
+  "demo": false,
+  "domain": "https://whisk-dnh.pages.dev",
   "basePath": "",
   "currency": "USD",
   "timezone": "America/New_York",
@@ -20,7 +20,7 @@
   "serviceArea": "",
   "hours": "Opening hours will be announced with our first pop-up.",
   "squareUrl": "",
-  "orderingEnabled": false,
+  "orderingEnabled": true,
   "orderOpens": "",
   "orderCloses": "",
   "pickup": "Pickup details will be shared when ordering opens. Please check the date, time, and location before paying.",
@@ -31,5 +31,13 @@
   "socialImageAlt": "",
   "footerNote": "Goodness on wheels.",
   "showStandMenu": false,
-  "showPreorderMenu": true
+  "showPreorderMenu": true,
+  "pickupDates": [
+    {
+      "id": "pickup-b33faa36",
+      "pickupAt": "2026-11-18T17:00:00.000Z",
+      "closesAt": "2026-11-16T23:00:00.000Z",
+      "window": ""
+    }
+  ]
 }
