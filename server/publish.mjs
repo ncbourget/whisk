@@ -1,4 +1,4 @@
-import {squareClient,mergeSquare} from './square.mjs';
+import {squareClient,autoSyncSquare} from './square.mjs';
 // Fixed repository and branch: never accept Git paths or API URLs from a client.
 import {PublishError,validateContent,readLimited,digest,imageExtension} from './content.mjs';
 const root='https://api.github.com/repos/ncbourget/whisk';
@@ -55,14 +55,19 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   }
   return {path};
  }
- async function syncSquare(links=[],revision){
+ // mode 'preview' changes nothing and returns the report; 'apply' publishes the merged content.
+ async function syncSquare(mode='apply',revision){
   // Label which step failed so the editor can show it (no secrets).
   const step=async(name,work)=>{try{return await work();}catch(error){if(error&&typeof error==='object'&&!error.step)error.step=name;throw error;}};
   const current=await step('github-read',snapshot);
   if(revision!==undefined&&revision!==current.revision)throw Object.assign(new PublishError(409,'Content changed. Reload the editor before syncing.'),{step:'revision-check'});
-  const products=await step('square-catalog',()=>squareClient(env).catalog());
-  const data=await step('merge',()=>mergeSquare(current.data,products,links));
-  return step('github-save',()=>save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})})));
+  const client=squareClient(env);
+  const products=await step('square-catalog',()=>client.catalog());
+  const {data,report}=await step('merge',()=>autoSyncSquare(current.data,products));
+  report.stats=client.stats;
+  if(mode==='preview')return {preview:true,report};
+  const saved=await step('github-save',()=>save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})})));
+  return {...saved,report};
  }
  return {snapshot,save,photo,syncSquare};
 }

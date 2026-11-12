@@ -126,8 +126,8 @@ function render(){
  fields.replaceChildren();
  if(current==='preorders'){
   fields.append(el('p','Pre-orders require 3–7 days’ notice. Linked items get their name, price and photos from Square; edit ingredients, notes and visibility here.'));
-  if(hosted){const sync=el('button','Connect / sync Square items','secondary');sync.type='button';sync.addEventListener('click',()=>squarePanel(sync));fields.append(sync);}
  }
+ if(hosted&&['menu','preorders'].includes(current)){const sync=el('button','Sync both menus from Square','secondary');sync.type='button';sync.addEventListener('click',()=>squarePanel(sync));fields.append(sync);}
  if(current==='site')siteGroups.forEach(([heading,defs])=>{const section=el('section',undefined,'editor-section');section.append(el('h2',heading),addFields(defs,data.site,'site'));fields.append(section);});
  else{
   data[current].forEach((object,index)=>{
@@ -216,26 +216,31 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
 function squareFailure(result,status){const bits=[result?.step&&'step: '+result.step,result?.httpStatus&&'Square HTTP '+result.httpStatus,result?.squareCode&&'Square code '+result.squareCode,'server status '+status].filter(Boolean);return Error((typeof result?.error==='string'?result.error:'Square sync failed.')+' ['+bits.join(', ')+']');}
 async function squarePanel(button){
  if(dirty||uploading){say('Publish or reload your draft before syncing Square.',true);return;}
- button.disabled=true;
+ document.getElementById('square-preview')?.remove();
+ button.disabled=true;say('Checking Square… nothing will change yet.');
+ const call=async mode=>{const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,revision})});const result=await responseData(res);if(!res.ok)throw squareFailure(result,res.status);return result;};
  try{
-  const response=await fetch('/api/square/catalog',{cache:'no-store'}),result=await responseData(response);if(!response.ok)throw squareFailure(result,response.status);
-  if(!result.items.length){const t=result.stats||{};throw Error('Square connected, but returned no products to show. Square has '+(t.items??'?')+' items, '+(t.itemsAtLocation??'?')+' at this location. If the second number is 0, SQUARE_LOCATION_ID is probably wrong. Items also need a fixed USD price.');}
-  const section=el('section',undefined,'editor-entry');section.append(el('h3','Square pre-order products'),el('p','Choose Import as new or match an existing Whisk item. New imports start hidden so you can add ingredients and review them. Already linked products are refreshed when you sync.'));
-  const choices=[];
-  for(const product of result.items){
-   const row=el('div',undefined,'field');const select=el('select');select.setAttribute('aria-label','Import or link '+product.name);
-   const linked=data.preorders.find(i=>i.squareVariationId===product.variationId);
-   row.append(el('label',product.name+' — $'+product.price.toFixed(2)+(linked?' (linked)':'')));
-   for(const [value,label] of [['','Skip / keep current link'],['new','Import as new hidden item'],...data.preorders.filter(i=>!i.squareVariationId).map(i=>[i.id,'Link to '+i.name])]){const option=el('option',label);option.value=value;select.append(option);}
-   if(linked)select.disabled=true;row.append(select);section.append(row);choices.push({product,select});
+  const {report}=await call('preview');
+  const section=el('section',undefined,'editor-entry');section.id='square-preview';
+  section.append(el('h3','Square sync preview'),el('p','Nothing has changed yet. Review the list, then choose Apply and publish.'));
+  const group=(title,rows,line)=>{if(!rows.length)return;section.append(el('h4',title+' ('+rows.length+')'));const ul=el('ul');rows.forEach(r=>ul.append(el('li',line(r))));section.append(ul);};
+  group('Will update from Square',report.updated,r=>r.name+' — '+r.menu+(r.changed.length?' (changes: '+r.changed.join(', ')+')':' (already up to date)'));
+  group('Will add as new hidden items',report.added,r=>r.name+' — '+r.menu+'. Review it, then turn on “Show on the menu”.');
+  group('Skipped',report.skipped,r=>r.name+' — '+r.reason);
+  group('Linked on the website but no longer in Square (left unchanged)',report.notInSquare,r=>r.name+' — '+r.menu);
+  if(!report.updated.length&&!report.added.length&&!report.skipped.length){const t=report.stats||{};section.append(el('p','Square connected, but sent no products to sync. Square has '+(t.items??'?')+' items, '+(t.itemsAtLocation??'?')+' at this location. If the second number is 0, SQUARE_LOCATION_ID is probably wrong. Items also need a fixed USD price.'));}
+  const nothing=!report.updated.some(r=>r.changed.length)&&!report.added.length;
+  if(nothing)section.append(el('p','Everything is already up to date. There is nothing to publish.'));
+  else{
+   const apply=el('button','Apply and publish');apply.type='button';apply.onclick=async()=>{
+    if(dirty||uploading){say('Your draft changed. Publish it before syncing.',true);return;}
+    const controls=[...document.querySelectorAll('input,select,textarea,button')];const states=controls.map(c=>c.disabled);controls.forEach(c=>c.disabled=true);
+    say('Publishing the Square sync…');
+    try{await call('apply');location.reload();}
+    catch(error){say(error.message,true);controls.forEach((c,i)=>c.disabled=states[i]);}
+   };
+   section.append(apply);
   }
-  const apply=el('button','Sync selected products and publish');apply.type='button';apply.onclick=async()=>{
-   if(dirty||uploading){say('Your draft changed. Publish it before syncing.',true);return;}
-   const controls=[...document.querySelectorAll('input,select,textarea,button')];
-   const disabledStates=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true);
-   try{const links=choices.filter(c=>c.select.value).map(c=>({variationId:c.product.variationId,id:c.select.value==='new'?'':c.select.value}));const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links,revision})});const result=await responseData(res);if(!res.ok)throw squareFailure(result,res.status);location.reload();}
-   catch(error){say(error.message,true);controls.forEach((control,index)=>control.disabled=disabledStates[index]);}
-  };
-  section.append(apply);button.after(section);
+  button.after(section);say('Square preview ready. Nothing has changed yet.');button.disabled=false;
  }catch(error){say(error.message,true);button.disabled=false;}
 }

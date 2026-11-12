@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {squareClient,mergeSquare,checkout,pickupSlots,verifySquareWebhook,orderStatus} from '../server/square.mjs';
+import {squareClient,mergeSquare,autoSyncSquare,checkout,pickupSlots,verifySquareWebhook,orderStatus} from '../server/square.mjs';
 import {squareImage} from '../server/square-images.mjs';
 import {validateContent} from '../server/content.mjs';
 import {createHandler} from '../server/handler.mjs';
@@ -81,4 +81,31 @@ test('Square errors carry a safe step, HTTP status and Square code, never the to
  await assert.rejects(client.catalog(),e=>e.step==='square-response'&&e.httpStatus===401&&e.squareCode==='UNAUTHORIZED'&&!e.message.includes('server-token'));
  const broken=squareClient(env,async()=>{throw new TypeError('boom');});
  await assert.rejects(broken.catalog(),e=>e.step==='square-request'&&e.message.includes('TypeError: boom'));
+});
+
+test('Catalog tags each product with its website menu from MAINMENU / PREORDER categories',async()=>{
+ const objects=[
+  {id:'CP',type:'CATEGORY',category_data:{name:'PREORDER'}},{id:'CM',type:'CATEGORY',category_data:{name:'MAINMENU'}},{id:'CPIE',type:'CATEGORY',category_data:{name:'Pies'}},
+  ...[['A',['CP','CPIE']],['B',['CM']],['C',[]],['D',['CP','CM']]].map(([n,cats])=>({id:'I'+n,type:'ITEM',item_data:{name:n,categories:cats.map(id=>({id})),variations:[{id:'V'+n,item_variation_data:{pricing_type:'FIXED_PRICING',price_money:{amount:500,currency:'USD'}}}]}}))];
+ const items=await squareClient(env,async()=>Response.json({objects})).catalog();
+ assert.deepEqual(items.map(i=>[i.name,i.menu,i.category]),[['A','preorder','Pies'],['B','main','Pastries'],['C',null,'Pastries'],['D','both','Pastries']]);
+});
+test('Auto sync: name match ignores caps/spaces, adds unmatched hidden, skips untagged, never deletes',()=>{
+ const d=content();
+ const base=d.preorders[0];
+ d.preorders=[{...base,id:'apple',name:'Apple Pie',squareVariationId:undefined,allergens:'Wheat'},{...base,id:'keep',name:'Handmade only',squareVariationId:undefined}];
+ delete d.preorders[0].squareVariationId;delete d.preorders[1].squareVariationId;
+ d.menu=[{...d.menu[0],id:'bun',name:'Morning bun'}];
+ const p=(id,name,menu,extra={})=>({...product,variationId:id,name,menu,description:'From Square',...extra});
+ const {data,report}=autoSyncSquare(d,[p('V1','  apple   PIE ','preorder'),p('V2','Morning Bun','main'),p('V3','Brand new cake','preorder'),p('V4','Gift card',null),p('V5','Confused','both')]);
+ const apple=data.preorders.find(i=>i.id==='apple');
+ assert.equal(apple.squareVariationId,'V1');assert.equal(apple.price,32);assert.equal(apple.allergens,'Wheat');assert.equal(apple.description,'From Square');
+ assert.equal(data.menu[0].squareVariationId,'V2');
+ const added=data.preorders.find(i=>i.squareVariationId==='V3');assert.equal(added.available,false);assert.equal(added.name,'Brand new cake');
+ assert.ok(data.preorders.find(i=>i.id==='keep'&&!i.squareVariationId),'unmatched website item untouched');
+ assert.equal(data.preorders.length,3);assert.equal(data.menu.length,1);
+ assert.deepEqual(report.skipped.map(r=>r.name),['Gift card','Confused']);
+ assert.equal(report.updated.length,2);assert.equal(report.added.length,1);
+ validateContent(data,new Set(d.menu.map(i=>i.image)));
+ assert.equal(d.preorders[0].squareVariationId,undefined,'input not modified');
 });

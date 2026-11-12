@@ -39,6 +39,11 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   if(cursor)fail(503,'Square catalog is too large for this connection.');
   const byId=new Map(objects.map(o=>[o.id,o])),products=[];
   const present=o=>!o.is_deleted&&(o.present_at_all_locations!==false||o.present_at_location_ids?.includes(env.SQUARE_LOCATION_ID))&&!o.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID);
+  // Square categories MAINMENU / PREORDER choose the website menu; other categories (Pies, Cookies…) are for display.
+  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const catNames=d=>[...new Set([d.reporting_category?.id,...(d.categories||[]).map(c=>c?.id),d.category_id].filter(Boolean))].map(id=>byId.get(id)?.category_data?.name).filter(Boolean);
+  const menuOf=d=>{const n=catNames(d).map(norm),pre=n.includes('preorder'),main=n.includes('mainmenu');return pre&&main?'both':pre?'preorder':main?'main':null;};
+  const display=d=>catNames(d).find(n=>!['preorder','mainmenu'].includes(norm(n)))||'Pastries';
   for(const item of objects.filter(o=>o.type==='ITEM'&&present(o))){
    const d=item.item_data;if(!d||d.is_archived)continue;
    for(const variation of d.variations||[]){
@@ -49,7 +54,7 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
     const ids=[...new Set([...(v.image_ids||[]),...(d.image_ids||[])])];
     const photos=ids.map(id=>byId.get(id)?.image_data).filter(Boolean).map(p=>({image:p.url,alt:p.caption||d.name}));
     if(photos.some(p=>!squareImage(p.image)))fail(503,'A Square image uses an unrecognized host. Ask Nate to check it.');
-    products.push({variationId:variation.id,itemId:item.id,name:d.name+((d.variations.length>1)?' — '+v.name:''),price:price.amount/100,currency:price.currency,category:byId.get(d.reporting_category?.id||d.categories?.[0]?.id||d.category_id)?.category_data?.name||'Pastries',photos,soldOut:override?.sold_out===true,trackInventory:override?.track_inventory??v.track_inventory??false,version:variation.version,description:d.description_plaintext||''});
+    products.push({variationId:variation.id,itemId:item.id,name:d.name+((d.variations.length>1)?' — '+v.name:''),price:price.amount/100,currency:price.currency,category:display(d),menu:menuOf(d),photos,soldOut:override?.sold_out===true,trackInventory:override?.track_inventory??v.track_inventory??false,version:variation.version,description:d.description_plaintext||''});
    }
   }
   // Safe counts so an empty list can be explained (e.g. wrong SQUARE_LOCATION_ID).
@@ -88,6 +93,50 @@ export function mergeSquare(data,products,links=[]){
   if(item.id.startsWith('square-'))item.category=p.category;
  }
  return next;
+}
+// Automatic sync: Square products tagged MAINMENU or PREORDER are matched to website items by name
+// (ignoring capitals, spaces and punctuation). Matches are linked and updated; unmatched products are added hidden.
+// Website items with no Square match are left untouched. Nothing is deleted. Returns the new data plus a plain report.
+const nameKey=v=>String(v||'').toLowerCase().replace(/\s+/g,' ').trim();
+export function autoSyncSquare(data,products){
+ const next=structuredClone(data);next.preorders??=[];
+ const report={updated:[],added:[],skipped:[],notInSquare:[]};
+ const lists={main:next.menu,preorder:next.preorders},label={main:'main menu',preorder:'pre-order menu'};
+ const seenNames=new Set();
+ for(const p of products){
+  if(!p.menu){report.skipped.push({name:p.name,reason:'Not tagged MAINMENU or PREORDER in Square'});continue;}
+  if(p.menu==='both'){report.skipped.push({name:p.name,reason:'Tagged both MAINMENU and PREORDER — pick one in Square'});continue;}
+  const key=nameKey(p.name);
+  if(seenNames.has(p.menu+key)){report.skipped.push({name:p.name,reason:'Two Square products have this name'});continue;}
+  seenNames.add(p.menu+key);
+  if(p.photos.length>8){report.skipped.push({name:p.name,reason:'More than eight photos in Square'});continue;}
+  const other=lists[p.menu==='main'?'preorder':'main'].find(i=>i.squareVariationId===p.variationId);
+  if(other){report.skipped.push({name:p.name,reason:'Already linked on the '+label[p.menu==='main'?'preorder':'main']+'; not moved automatically'});continue;}
+  const list=lists[p.menu];
+  let item=list.find(i=>i.squareVariationId===p.variationId);
+  if(!item){
+   const matches=list.filter(i=>!i.squareVariationId&&nameKey(i.name)===key);
+   if(matches.length>1){report.skipped.push({name:p.name,reason:'Several website items on the '+label[p.menu]+' have this name'});continue;}
+   item=matches[0];
+  }
+  const isNew=!item;
+  if(isNew){
+   item={id:'square-'+p.variationId.toLowerCase().replace(/[^a-z0-9-]/g,''),name:'',description:'',price:0,category:p.category,available:false,soldOut:false,featured:false,seasonal:false,dietary:[],allergens:'',image:'',imageAlt:'',imageShape:'square',squareUrl:'',notes:'',storage:'',orderOpens:'',orderCloses:'',position:list.length+1};
+   if(list.some(i=>i.id===item.id)){report.skipped.push({name:p.name,reason:'A website item already uses this ID'});continue;}
+   list.push(item);
+  }
+  const before={name:item.name,price:item.price,description:item.description,category:item.category,image:item.image,photos:JSON.stringify(item.photos||[])};
+  item.squareVariationId=p.variationId;item.name=p.name;item.price=p.price;item.category=p.category||item.category;
+  if(p.description)item.description=p.description;
+  item.image=p.photos[0]?.image||'';item.imageAlt=p.photos[0]?.alt||'';item.photos=p.photos.slice(1);
+  if(isNew){report.added.push({name:p.name,menu:label[p.menu]});continue;}
+  const changed=['name','price','description','category','image'].filter(k=>before[k]!==item[k]);
+  if(before.photos!==JSON.stringify(item.photos))changed.push('extra photos');
+  report.updated.push({name:p.name,menu:label[p.menu],changed});
+ }
+ const live=new Set(products.map(p=>p.variationId));
+ for(const [menu,list] of Object.entries(lists))for(const i of list)if(i.squareVariationId&&!live.has(i.squareVariationId))report.notInSquare.push({name:i.name,menu:label[menu]});
+ return {data:next,report};
 }
 export async function jsonBody(request,max=16384){
  if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')fail(415,'Expected JSON.');

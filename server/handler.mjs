@@ -83,8 +83,8 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
         const service=publisher(env);
         if(path==='/api/square/sync'){
           const input=await jsonBody(request);
-          if(!Array.isArray(input?.links)||input.links.length>30||typeof input.revision!=='string')throw new PublishError(400,'Choose products and reload the editor.');
-          try{return reply(request,JSON.stringify(await service.syncSquare(input.links,input.revision)));}
+          if(!['preview','apply'].includes(input?.mode)||typeof input.revision!=='string')throw new PublishError(400,'Reload the editor and try the sync again.');
+          try{return reply(request,JSON.stringify(await service.syncSquare(input.mode,input.revision)));}
           catch(error){return reply(request,squareError(error),error instanceof PublishError&&error.status<500?error.status:503);}
         }
         const result=await (path==='/api/content'?service.save(request):service.photo(request));
