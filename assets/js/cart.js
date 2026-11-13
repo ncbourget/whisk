@@ -85,7 +85,7 @@
   if(r.receipt?.number)section.append(node('p','Order #'+r.receipt.number+' · keep this number for pickup.'));
   const list=document.createElement('dl');list.className='order-facts';
   const fact=(term,value)=>{if(!value)return;list.append(node('dt',term),node('dd',value));};
-  fact('Pickup',r.when);fact('Where',r.location||r.pickupInstructions);
+  fact('Pickup',r.when);fact('Where',r.location);
   const maps=r.location?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.location):'';
   const items=(r.items||[]).map(i=>(i.quantity&&i.quantity!=='1'?i.quantity+' × ':'')+i.name).join(', ');
   fact('Your order',items);
