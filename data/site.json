@@ -51,5 +51,6 @@
       "closesAt": "2026-11-18T23:00:00.000Z",
       "window": "8:30am - 1:00pm"
     }
-  ]
+  ],
+  "pickupAddress": ""
 }
