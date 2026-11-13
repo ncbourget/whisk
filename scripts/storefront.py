@@ -13,6 +13,8 @@ def render_storefront(data, legacy):
     items=sorted((i for i in data['menu'] if i['available']),key=lambda i:i['position'])
     preorders=sorted((i for i in data.get('preorders', []) if i['available']),key=lambda i:i['position'])
     home=render_concept(data)
+    # Hero panel: white logo on Whisk Blue (Meredith's 'Full-White' variation).
+    home=home.replace('class="hero-logo" src="'+e(base)+'/assets/brand/final/full-logo.webp"','class="hero-logo" src="'+e(base)+'/assets/brand/final/full-logo-white.webp"',1)
     if not site.get('showStandMenu',True):
         home=re.sub(r'<section class="recipe" aria-labelledby="possibilities">.*?</section>', '', home, count=1, flags=re.S)
     home=home.replace(f'href="{e(base)}/about/"',f'href="{e(base)}/#about"')
