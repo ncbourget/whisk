@@ -66,11 +66,7 @@ def render_storefront(data, legacy):
     allergen_notice='<section class="menu-allergens" aria-labelledby="allergen-heading"><div class="allergen-copy"><h2 id="allergen-heading">Allergen notice</h2>'+paragraphs(site['allergens'])+'</div></section>'
     menu+=allergen_notice
     preorder_cards=''.join(card(i,'preorder') for i in preorders)
-    # All pre-order cards are on the homepage; four show at a time and a script rotates through the rest.
-    def preview_card(n,i):
-        html=card(i,'preorder')
-        return html.replace('<article class="bake"','<article data-rotate-slot'+(' hidden' if n>=4 else '')+' class="bake"',1)
-    preorder_preview=''.join(preview_card(n,i) for n,i in enumerate(preorders))+more_tile(preorders,base,'preorder')
+    preorder_preview=''.join(card(i,'preorder') for i in preorders[:4])+more_tile(preorders,base,'preorder')
     notice=paragraphs(site['cutoff'])  # Cindy's own "Pre-order notice" text from the editor
     preorder_intro='<p>Whole bakes, planned ahead.</p>'+notice
     preorder_empty='<p>Pre-orders are not open yet.</p>' if not preorders else ''

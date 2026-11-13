@@ -218,3 +218,9 @@ html body .main-header,html body.storefront-inner .main-header{min-height:0!impo
 html body .main-header>*:not(.mobile-brand){transform:none}
 @media(min-width:701px){html body .main-header .mobile-brand{top:calc(50% + 8px)}}
 @media(max-width:700px){html body .main-header,html body.storefront-inner .main-header{height:60px!important;padding-top:16px!important;padding-bottom:0!important;overflow:visible}}
+
+/* ---------- Allergen notice at the end of a page: it tears straight into the pattern band (no white gap) ---------- */
+html body main.store-page:has(> .menu-allergens:last-child){padding-bottom:0}
+html body main.store-page > .menu-allergens:last-child{margin-bottom:0}
+html body main.store-page > .menu-allergens:last-child::after{display:none}
+html body main:has(> .menu-allergens:last-child) ~ .pattern-band::after{background:var(--sand)}

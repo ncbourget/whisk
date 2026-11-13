@@ -168,8 +168,7 @@ class StorefrontTests(unittest.TestCase):
         self.assertEqual(home.count('data-more-tile'),2)
         for collection,route in [('menu','menu'),('preorders','preorder')]:
             self.assertIn('/'+route+'/'+collection+'-test-3/',home)
-            if collection=='menu':self.assertNotIn('/'+route+'/'+collection+'-test-4/',home)
-            else:self.assertEqual(home.count('data-rotate-slot hidden'),2)  # pre-orders rotate: 4 shown, the rest hidden
+            self.assertNotIn('/'+route+'/'+collection+'-test-4/',home)
             self.assertIn('/'+route+'/'+collection+'-test-5/',pages[route+'/index.html'])
 
     def test_square_photos_render_without_local_prefix_and_validate(self):
