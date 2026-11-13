@@ -53,7 +53,7 @@ def validate(data):
     if set(site) - {'showStandMenu','showPreorderMenu','pickupDates'} != set(required) | {'demo','orderingEnabled'}:
         raise ValueError('Unknown or missing site fields. Never store credentials in content.')
     pickup_dates = site.get('pickupDates', [])
-    if not isinstance(pickup_dates, list) or len(pickup_dates) > 60 or any(not isinstance(p, dict) or set(p) != {'id','pickupAt','closesAt','window'} or not all(isinstance(v, str) for v in p.values()) for p in pickup_dates):
+    if not isinstance(pickup_dates, list) or len(pickup_dates) > 60 or any(not isinstance(p, dict) or set(p) - {'location'} != {'id','pickupAt','closesAt','window'} or not all(isinstance(v, str) for v in p.values()) for p in pickup_dates):
         raise ValueError('Pickup dates are invalid.')
     for key in required:
         if not isinstance(site.get(key), str):

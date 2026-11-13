@@ -157,3 +157,5 @@ html{scroll-behavior:smooth}
 .store-page .page-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;margin-top:24px}
 /* Special instructions box in the cart checkout form (sized by the #square-checkout rules above). */
 #square-checkout textarea{border:1px solid var(--ink);background:transparent;color:inherit;resize:vertical}
+/* Order confirmation screen after Square payment. */
+.store-page .order-facts{display:grid;grid-template-columns:max-content 1fr;gap:10px 28px;margin:28px 0;max-width:720px;border-top:.5pt solid var(--ink);padding-top:20px}.store-page .order-facts dt{font:400 15px/1.65 Bryant,Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em}.store-page .order-facts dd{margin:0;font:400 17px/1.6 Bryant,Arial,sans-serif;white-space:pre-line}@media (max-width:600px){.store-page .order-facts{grid-template-columns:1fr;gap:4px}.store-page .order-facts dd{margin-bottom:12px}}

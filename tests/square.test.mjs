@@ -34,7 +34,7 @@ test('Checkout uses catalog variation IDs and server pickup details with stable 
  const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push({path,body});return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
  const result=await checkout(request(),env,content(),client,now);await checkout(request(),env,content(),client,now);
  assert.equal(result.url,'https://square.link/u/test');assert.ok(result.cookie.includes('HttpOnly'));
- assert.deepEqual(calls[0].body.order.line_items,[{catalog_object_id:'V1',quantity:'2'}]);assert.equal(calls[0].body.pre_populated_data,undefined);assert.equal(calls[0].body.order.fulfillments[0].pickup_details.recipient.email_address,'test@example.com');assert.equal(calls[0].body.order.fulfillments[0].pickup_details.pickup_at,at);assert.equal(calls[0].body.idempotency_key,calls[1].body.idempotency_key);
+ assert.deepEqual(calls[0].body.order.line_items,[{catalog_object_id:'V1',quantity:'2',note:'Pickup: Sunday, November 15, 10am–2pm'}]);assert.equal(calls[0].body.pre_populated_data,undefined);assert.equal(calls[0].body.order.fulfillments[0].pickup_details.recipient.email_address,'test@example.com');assert.equal(calls[0].body.order.fulfillments[0].pickup_details.pickup_at,at);assert.equal(calls[0].body.idempotency_key,calls[1].body.idempotency_key);
 });
 test('Checkout fails closed for stale prices, invalid slots, hidden/deleted/sold-out products and scarce stock',async()=>{
  let sent=0;const client={catalog:async()=>[product],api:async()=>{sent++;}};
@@ -116,7 +116,7 @@ test('Auto sync: name match ignores caps/spaces, adds unmatched hidden, skips un
 test('Stock-tracked items can be bought up to Square\'s live count',async()=>{
  const calls=[];const client={catalog:async()=>[{...product,trackInventory:true}],stock:async ids=>{assert.deepEqual(ids,['V1']);return new Map([['V1',5]]);},api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
  await checkout(request(),env,content(),client,now);
- assert.deepEqual(calls[0].order.line_items,[{catalog_object_id:'V1',quantity:'2'}]);
+ assert.deepEqual(calls[0].order.line_items,[{catalog_object_id:'V1',quantity:'2',note:'Pickup: Sunday, November 15, 10am–2pm'}]);
 });
 test('Stock lookup reads IN_STOCK counts for this location; missing counts are 0',async()=>{
  const client=squareClient(env,async(url,opts)=>{assert.ok(url.endsWith('/v2/inventory/counts/batch-retrieve'));const b=JSON.parse(opts.body);assert.deepEqual(b.location_ids,['location']);assert.deepEqual(b.states,['IN_STOCK']);
@@ -166,4 +166,27 @@ test('Checkout can live on a separate public hostname while the editor keeps its
  const handle=createHandler({content:content(),editorHtml:'',editorScript:'',editorStyle:''});
  const wrongHost=await handle(new Request('https://admin.example/commerce/catalog'),split);
  assert.equal(wrongHost.status,403);
+});
+
+test('Pickup details go on each Square line item and into the signed confirmation',async()=>{
+ const d=content();d.site.pickupDates[0].location='Town Green';
+ const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ const {cookie}=await checkout(request(),env,d,client,now);
+ assert.match(calls[0].order.line_items[0].note,/^Pickup: Sunday, November 15, 10am–2pm at Town Green$/);
+ const req=new Request('https://bakery.example/commerce/order-status',{headers:{Cookie:cookie.split(';')[0]}});
+ const square={api:async path=>path.startsWith('/orders/')?{order:{id:'ORDER1',location_id:'location',tenders:[{payment_id:'P1'}],total_money:{amount:6400,currency:'USD'},line_items:[{name:'Apple pie',quantity:'2'}]}}:{payment:{status:'COMPLETED',order_id:'ORDER1',location_id:'location',total_money:{amount:6400,currency:'USD'},receipt_number:'snla',receipt_url:'https://squareup.com/receipt/preview/abc'}}};
+ const r=await orderStatus(req,env,square);
+ assert.equal(r.paid,true);assert.equal(r.receipt.number,'snla');assert.equal(r.when,'Sunday, November 15, 10am–2pm');assert.equal(r.location,'Town Green');assert.deepEqual(r.items,[{name:'Apple pie',quantity:'2'}]);
+ const unpaid={api:async path=>path.startsWith('/orders/')?{order:{id:'ORDER1',location_id:'location',tenders:[],total_money:{amount:6400,currency:'USD'}}}:{}};
+ assert.deepEqual(await orderStatus(req,env,unpaid),{paid:false});
+});
+
+test('Ordering windows give a specific reason in the cart and at checkout',async()=>{
+ const client={catalog:async()=>[product],api:async()=>{throw Error('should not reach Square');}};
+ const early=content();early.preorders[0].orderOpens='2026-11-13T12:00:00Z';early.site.timezone='America/New_York';
+ await assert.rejects(checkout(request(),env,early,client,now),/The morning bun: Ordering opens Fri, Nov 13, 7:00\sAM/);
+ const site=content();site.site.orderOpens='2026-11-13T12:00:00Z';site.site.timezone='America/New_York';
+ await assert.rejects(checkout(request(),env,site,client,now),/Pre-orders: Ordering opens/);
+ const hidden=content();hidden.preorders[0].available=false;
+ await assert.rejects(checkout(request(),env,hidden,client,now),/no longer on the pre-order menu/);
 });

@@ -159,6 +159,14 @@ export async function jsonBody(request,max=16384){
  if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')fail(415,'Expected JSON.');
  try{return JSON.parse(new TextDecoder().decode(await readLimited(request,max)));}catch(e){if(e instanceof PublishError)throw e;fail(400,'Invalid request.');}
 }
+// Optional "Ordering opens / closes" limits (site-wide or per item). Returns null while open, otherwise a short customer-facing reason.
+export function orderingNotice(o,now=Date.now(),tz='America/New_York'){
+ let zone=tz;try{new Intl.DateTimeFormat('en-US',{timeZone:zone});}catch{zone='America/New_York';}
+ const fmt=v=>new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(v));
+ if(o?.orderOpens&&Date.parse(o.orderOpens)>now)return 'Ordering opens '+fmt(o.orderOpens);
+ if(o?.orderCloses&&Date.parse(o.orderCloses)<=now)return 'Ordering has closed';
+ return null;
+}
 // Pickup dates come from the editor (site.pickupDates). A date is offered until its "orders close" time.
 export function pickupSlots(site,now=Date.now()){
  const list=Array.isArray(site?.pickupDates)?site.pickupDates:[];
@@ -168,7 +176,8 @@ export function pickupSlots(site,now=Date.now()){
  const short=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
  return list.filter(p=>p&&typeof p.pickupAt==='string'&&typeof p.closesAt==='string'&&Date.parse(p.closesAt)>now&&Date.parse(p.pickupAt)>now)
   .sort((a,b)=>Date.parse(a.pickupAt)-Date.parse(b.pickupAt))
-  .map(p=>{const at=new Date(p.pickupAt);return {at:p.pickupAt,label:day.format(at)+', '+(String(p.window||'').trim()||time.format(at))+' (order by '+short.format(new Date(p.closesAt))+')'};});
+  .map(p=>{const at=new Date(p.pickupAt),location=String(p.location||'').trim(),when=day.format(at)+', '+(String(p.window||'').trim()||time.format(at));
+   return {at:p.pickupAt,when,location,label:when+(location?' · '+location:'')+' (order by '+short.format(new Date(p.closesAt))+')'};});
 }
 export async function verifySquareWebhook(request,env){
  if(!env.SQUARE_WEBHOOK_SIGNATURE_KEY||request.url!==env.SQUARE_WEBHOOK_URL)fail(403,'Webhook unavailable.');
@@ -190,15 +199,21 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const notes=String(input.notes||'').replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim();
  const recipient=input.recipient;
  if(!recipient||typeof recipient.name!=='string'||!recipient.name.trim()||recipient.name.length>100||typeof recipient.email!=='string'||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient.email)||recipient.email.length>254||typeof recipient.phone!=='string'||!/^\+?[0-9 ()-]{7,30}$/.test(recipient.phone))fail(400,'Enter your name, email and phone number for pickup.');
- const within=o=>(!o.orderOpens||Date.parse(o.orderOpens)<=now)&&(!o.orderCloses||Date.parse(o.orderCloses)>now);
- if(!within(data.site))fail(409,'Pre-orders are closed.');
+ const tz=data.site.timezone;
+ const siteNotice=orderingNotice(data.site,now,tz);if(siteNotice)fail(409,'Pre-orders: '+siteNotice+'.');
  const products=await client.catalog(),lines=[],seen=new Set();
  for(const entry of input.items){
   const item=data.preorders?.find(i=>i.id===entry.id),p=products.find(p=>p.variationId===item?.squareVariationId);
-  if(!item||!item.available||item.soldOut||!within(item)||!p||p.soldOut||seen.has(entry.id)||!Number.isInteger(entry.quantity)||entry.quantity<1||entry.quantity>20)fail(409,'An item is no longer available. Refresh your cart.');
+  // Say exactly which item failed and why.
+  const name=item?.name||'An item in your cart';
+  if(!item||!item.available)fail(409,name+' is no longer on the pre-order menu. Remove it from your cart.');
+  if(item.soldOut||p?.soldOut)fail(409,name+' is sold out. Remove it from your cart.');
+  if(!p)fail(409,name+' isn’t available in Square right now. Please contact Cindy.');
+  const itemNotice=orderingNotice(item,now,tz);if(itemNotice)fail(409,name+': '+itemNotice+'.');
+  if(seen.has(entry.id)||!Number.isInteger(entry.quantity)||entry.quantity<1||entry.quantity>20)fail(409,'Choose 1 to 20 of each item, then try again.');
   seen.add(entry.id);
   if(entry.unitPrice!==Math.round(p.price*100))fail(409,'A price has changed in Square. Refresh your cart to review it before checkout.');
-  lines.push({catalog_object_id:p.variationId,quantity:String(entry.quantity),name:p.name,tracked:p.trackInventory});
+  lines.push({catalog_object_id:p.variationId,quantity:String(entry.quantity),note:('Pickup: '+slot.when+(slot.location?' at '+slot.location:'')).slice(0,500),name:p.name,tracked:p.trackInventory});
  }
  // Stock is checked against Square's live counts right before the payment link is made.
  // Payment links do not reserve stock, so two buyers paying for the last item at the same moment can still both succeed.
@@ -218,7 +233,7 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const link=result.payment_link;
  if(!link?.url||!/^https:\/\/(square\.link|checkout\.square\.site)\//.test(link.url))fail(503,'Square did not return a checkout link. Please try again.');
  if(!link.order_id)fail(503,'Square did not return an order.');
- const token=await new SignJWT({order:link.order_id}).setProtectedHeader({alg:'HS256'}).setIssuer('whisk-checkout').setAudience(publicHost(env)).setIssuedAt().setExpirationTime('24h').sign(new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET));
+ const token=await new SignJWT({order:link.order_id,name:recipient.name.trim().slice(0,100),when:slot.when.slice(0,120),location:slot.location.slice(0,200)}).setProtectedHeader({alg:'HS256'}).setIssuer('whisk-checkout').setAudience(publicHost(env)).setIssuedAt().setExpirationTime('24h').sign(new TextEncoder().encode(env.SQUARE_CHECKOUT_SESSION_SECRET));
  return {url:link.url,cookie:'__Host-whisk-checkout='+token+'; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400'};
 }
 
@@ -230,11 +245,20 @@ export async function orderStatus(request,env,client=squareClient(env)){
  if(typeof payload.order!=='string'||!/^[A-Za-z0-9_-]+$/.test(payload.order))fail(401,'Invalid checkout session.');
  const {order}=await client.api('/orders/'+encodeURIComponent(payload.order));
  if(!order||order.location_id!==env.SQUARE_LOCATION_ID)fail(503,'Order confirmation unavailable.');
- let paid=0;
+ let paid=0,receipt=null;
  for(const tender of order.tenders||[]){
   if(!tender.payment_id)continue;
   const {payment}=await client.api('/payments/'+encodeURIComponent(tender.payment_id));
-  if(payment?.status==='COMPLETED'&&payment.order_id===order.id&&payment.location_id===env.SQUARE_LOCATION_ID&&payment.total_money?.currency===order.total_money?.currency)paid+=payment.total_money.amount;
+  if(payment?.status==='COMPLETED'&&payment.order_id===order.id&&payment.location_id===env.SQUARE_LOCATION_ID&&payment.total_money?.currency===order.total_money?.currency){
+   paid+=payment.total_money.amount;
+   if(!receipt&&typeof payment.receipt_number==='string')receipt={number:payment.receipt_number.slice(0,40),url:/^https:\/\/([a-z0-9-]+\.)*squareup(sandbox)?\.com\//.test(payment.receipt_url||'')?payment.receipt_url:''};
+  }
  }
- return {paid:Number.isSafeInteger(order.total_money?.amount)&&order.total_money.amount>0&&paid>=order.total_money.amount};
+ const ok=Number.isSafeInteger(order.total_money?.amount)&&order.total_money.amount>0&&paid>=order.total_money.amount;
+ if(!ok)return {paid:false};
+ // Details for the "You're all set" screen. Only the buyer holding this signed cookie can see them.
+ const str=(v,n)=>typeof v==='string'?v.slice(0,n):'';
+ return {paid:true,name:str(payload.name,100),when:str(payload.when,120),location:str(payload.location,200),receipt,
+  total:{amount:order.total_money.amount,currency:order.total_money.currency},
+  items:(order.line_items||[]).slice(0,30).map(l=>({name:str(l.name,120),quantity:str(l.quantity,10)}))};
 }

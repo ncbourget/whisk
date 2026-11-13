@@ -122,7 +122,7 @@ function photoDeckEditor(object){
 }
 function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));if(defs.some(def=>def[2]==='photo'))grid.append(photoDeckEditor(object));return grid;}
 // Pickup dates: Cindy adds each pickup day, its time window and when orders close. Customers only see dates still open.
-const pickupFields=[['pickupAt','Pickup date & start time','datetime'],['window','Time window shown to customers (optional)','text','For example 10am–2pm. Leave empty to show the start time.'],['closesAt','Orders close','datetime']];
+const pickupFields=[['pickupAt','Pickup date & start time','datetime'],['window','Time window shown to customers (optional)','text','For example 10am–2pm. Leave empty to show the start time.'],['location','Pickup location (optional)','text','For example “Groton Farmers Market, 123 Main St”. Leave empty to use your general Pickup instructions.'],['closesAt','Orders close','datetime']];
 function pickupSection(){
  const section=el('section',undefined,'editor-section');section.append(el('h2','Pickup dates'),el('p','Customers choose one of these at checkout. Each date disappears from the cart once its orders close.'));
  const list=data.site.pickupDates;
@@ -133,7 +133,7 @@ function pickupSection(){
   entry.append(remove);section.append(entry);
  });
  if(!list.length)section.append(el('p','No pickup dates yet. Add one so customers can check out.'));
- const add=el('button','Add a pickup date','secondary');add.type='button';add.addEventListener('click',()=>{list.push({id:'pickup-'+crypto.randomUUID().slice(0,8),pickupAt:'',closesAt:'',window:''});markDirty();render();});
+ const add=el('button','Add a pickup date','secondary');add.type='button';add.addEventListener('click',()=>{list.push({id:'pickup-'+crypto.randomUUID().slice(0,8),pickupAt:'',closesAt:'',window:'',location:''});markDirty();render();});
  section.append(add);return section;
 }
 const expandedItems=new Set();

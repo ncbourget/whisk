@@ -31,7 +31,7 @@ export function validateContent(data,files){
  if(pickupDates!==undefined){
   if(!Array.isArray(pickupDates)||pickupDates.length>60)fail('Keep pickup dates below 60 entries.');
   const seen=new Set();
-  for(const p of pickupDates){shape(p,['id','pickupAt','closesAt','window']);if(!/^[a-z0-9-]{1,64}$/.test(p.id)||seen.has(p.id))fail('Each pickup date needs a unique ID.');seen.add(p.id);
+  for(const p of pickupDates){const {location,...core}=p;shape(core,['id','pickupAt','closesAt','window']);if(location!==undefined&&(typeof location!=='string'||location.length>200))fail('Keep the pickup location under 200 characters.');if(!/^[a-z0-9-]{1,64}$/.test(p.id)||seen.has(p.id))fail('Each pickup date needs a unique ID.');seen.add(p.id);
    const at=date(p.pickupAt),closes=date(p.closesAt);if(at===null||closes===null)fail('Each pickup date needs a pickup time and an orders-close time.');
    if(closes>at)fail('Orders must close before the pickup time.');if(p.window.length>60)fail('Keep the pickup time window short (60 characters).');}
  }

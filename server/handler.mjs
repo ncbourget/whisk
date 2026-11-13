@@ -1,4 +1,4 @@
-import {publicHost,squareReady,squareClient,jsonBody,verifySquareWebhook,checkout,pickupSlots,orderStatus} from './square.mjs';
+import {orderingNotice,publicHost,squareReady,squareClient,jsonBody,verifySquareWebhook,checkout,pickupSlots,orderStatus} from './square.mjs';
 import {authorize, AccessError} from './access.mjs';
 import {publisher, publishingEnabled} from './publish.mjs';
 import {PublishError} from './content.mjs';
@@ -69,11 +69,11 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
           const counts=await client.stock(tracked);
           const items=linked.map(i=>{
             const p=products.find(p=>p.variationId===i.squareVariationId),left=p?.trackInventory?(counts.get(p.variationId)??0):null;
-            return {id:i.id,price:p?.price??i.price,soldOut:i.soldOut||!p||p.soldOut||(left!==null&&left<1),left};
+            return {id:i.id,price:p?.price??i.price,soldOut:i.soldOut||!p||p.soldOut||(left!==null&&left<1),left,notice:orderingNotice(i,Date.now(),content.site?.timezone)};
           });
-          return reply(request,JSON.stringify({enabled:env.SQUARE_CHECKOUT_ENABLED==='true'&&content.site.orderingEnabled,items,slots:pickupSlots(content.site)}));
+          return reply(request,JSON.stringify({enabled:env.SQUARE_CHECKOUT_ENABLED==='true'&&content.site.orderingEnabled,items,slots:pickupSlots(content.site),notice:orderingNotice(content.site,Date.now(),content.site?.timezone)}));
         }
-        if(path==='/commerce/order-status'&&request.method==='GET')return reply(request,JSON.stringify(await orderStatus(request,env)));
+        if(path==='/commerce/order-status'&&request.method==='GET')return reply(request,JSON.stringify({...await orderStatus(request,env),pickupInstructions:content.site?.pickup||''}));
         if(path==='/commerce/checkout'&&request.method==='POST'){
           if(request.headers.get('Origin')!==url.origin||request.headers.get('Sec-Fetch-Site')!=='same-origin')throw new PublishError(403,'Check out from the Whisk website.');
           // Latest published admin overrides, including deletions, apply before the next build.

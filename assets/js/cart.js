@@ -20,6 +20,7 @@
    input.addEventListener('change',()=>{const value=Number(input.value);if(Number.isInteger(value)&&value>=1&&value<=max){cart[id]=value;save();}else{input.value=q;say(p.left!=null?'Only '+p.left+' left of '+p.name+'.':'Choose a quantity from 1 to 20.');}});label.append(input);row.append(label,node('span',money.format(p.price*q)));
    const remove=node('button','Remove');remove.type='button';remove.setAttribute('aria-label','Remove '+p.name);remove.onclick=()=>{delete cart[id];save();};row.append(remove);
    if(p.soldOut)row.append(node('p','Currently sold out. Remove this item before ordering.'));
+   else if(p.notice)row.append(node('p',p.notice+'.'));
    else if(p.left!=null&&q>p.left)row.append(node('p','Only '+p.left+' left. Lower the quantity before ordering.'));
    list.append(row);total+=Math.round(p.price*100)*q;
   }
@@ -38,7 +39,7 @@
  function updateCheckout(){
   if(!form)return;
   const entries=Object.entries(cart);
-  form.querySelector('button').disabled=submitting||!commerce?.enabled||!commerce.slots.length||!entries.length||entries.some(([id,q])=>!products.get(id)?.linked||products.get(id)?.soldOut||(products.get(id)?.left!=null&&q>products.get(id).left));
+  form.querySelector('button').disabled=submitting||!commerce?.enabled||!commerce.slots.length||!entries.length||!!commerce?.notice||entries.some(([id,q])=>!!products.get(id)?.notice||!products.get(id)?.linked||products.get(id)?.soldOut||(products.get(id)?.left!=null&&q>products.get(id).left));
  }
  async function loadCommerce(){
   if(!form)return;
@@ -48,12 +49,12 @@
    if(!commerce.enabled){status.textContent='Checkout is not open yet. Your cart is saved for browsing.';return;}
    for(const p of products.values()){
     const live=commerce.items.find(i=>i.id===p.id);p.soldOut=!live||live.soldOut;
-    if(live){p.price=live.price;p.left=live.left;}
+    if(live){p.price=live.price;p.left=live.left;p.notice=live.notice||null;}
    }
    const select=form.elements.pickup;select.replaceChildren();
    const prompt=node('option','Choose a pickup date');prompt.value='';select.append(prompt);
    commerce.slots.forEach(slot=>{const option=node('option',slot.label);option.value=slot.at;select.append(option);});
-   form.hidden=false;status.textContent=commerce.slots.length?'Review your cart, then choose a pickup date. Nothing is charged until you pay on Square.':'No pickup dates are currently available. Please check back.';render();
+   form.hidden=false;status.textContent=commerce.notice?'Pre-orders: '+commerce.notice+'. Your cart is saved.':commerce.slots.length?'Review your cart, then choose a pickup date. Nothing is charged until you pay on Square.':'No pickup dates are currently available. Please check back.';render();
   }catch{status.textContent='Checkout is unavailable right now. Please try again later. Your cart is saved.';commerce=null;updateCheckout();}
  }
  if(form)form.addEventListener('submit',async event=>{
@@ -71,16 +72,46 @@
    location.assign(result.url);
   }catch(error){status.textContent=error.message+' Reload this page to refresh prices and availability.';submitting=false;updateCheckout();}
  });
+ // After Square payment: show a clear "You're all set" screen with pickup details.
+ function showConfirmation(r){
+  const main=document.querySelector('main');if(!main)return;
+  const section=document.createElement('section');section.className='order-confirmed';
+  const first=(r.name||'').split(' ')[0];
+  section.append(node('p','Order confirmed'));section.firstChild.className='mono';
+  section.append(node('h1','You’re all set'+(first?', '+first:'')+'.'));
+  if(r.receipt?.number)section.append(node('p','Order #'+r.receipt.number+' · keep this number for pickup.'));
+  const list=document.createElement('dl');list.className='order-facts';
+  const fact=(term,value)=>{if(!value)return;list.append(node('dt',term),node('dd',value));};
+  fact('Pickup',r.when);fact('Where',r.location||r.pickupInstructions);
+  const items=(r.items||[]).map(i=>(i.quantity&&i.quantity!=='1'?i.quantity+' × ':'')+i.name).join(', ');
+  fact('Your order',items);
+  if(Number.isSafeInteger(r.total?.amount))fact('Paid',new Intl.NumberFormat('en-US',{style:'currency',currency:r.total.currency||'USD'}).format(r.total.amount/100));
+  section.append(list);
+  section.append(node('p','Square has emailed your receipt. Questions or changes? Contact Cindy.'));
+  const actions=document.createElement('div');actions.className='page-actions';
+  const link=(href,label)=>{const a=document.createElement('a');a.className='action-link';a.href=href;const l=node('span',label);l.className='action-label';const arrow=node('span','↗');arrow.className='action-arrow';arrow.setAttribute('aria-hidden','true');a.append(l,arrow);actions.append(a);};
+  if(r.receipt?.url)link(r.receipt.url,'view receipt');
+  link(data.base+'/contact/','contact cindy');link(data.base+'/','back to whisk');
+  section.append(actions);
+  main.replaceChildren(section);document.title='Order confirmed | Whisk';window.scrollTo(0,0);
+ }
  async function confirmReturn(){
   if(!status||new URLSearchParams(location.search).get('checkout')!=='returned')return;
   status.textContent='Checking your payment with Square…';
-  try{
-   const response=await fetch(data.base+'/commerce/order-status',{cache:'no-store'}),result=await response.json();
-   if(!response.ok||!result.paid){status.textContent='Payment has not been confirmed here. Check your Square receipt before trying to pay again.';return;}
-   const purchased=JSON.parse(sessionStorage.getItem('whisk-checkout-cart')||'null');
-   if(purchased&&JSON.stringify(cart)===JSON.stringify(purchased)){cart={};save();sessionStorage.removeItem('whisk-checkout-cart');}
-   status.textContent='Payment confirmed. Thank you! See your Square receipt for order details.';
-  }catch{status.textContent='Unable to check payment here. Check your Square receipt before trying again.';}
+  // Square can take a moment to record the payment, so check a few times before giving up.
+  for(let attempt=0;attempt<4;attempt++){
+   try{
+    const response=await fetch(data.base+'/commerce/order-status',{cache:'no-store'}),result=await response.json();
+    if(response.ok&&result.paid){
+     const purchased=JSON.parse(sessionStorage.getItem('whisk-checkout-cart')||'null');
+     if(purchased&&JSON.stringify(cart)===JSON.stringify(purchased)){cart={};save();sessionStorage.removeItem('whisk-checkout-cart');}
+     showConfirmation(result);return;
+    }
+    if(response.status===401){status.textContent=result.error||'Payment has not been confirmed here. Check your Square receipt before trying to pay again.';return;}
+   }catch{}
+   await new Promise(r=>setTimeout(r,2000));
+  }
+  status.textContent='Payment has not been confirmed here yet. Check your Square receipt email before trying to pay again.';
  }
  loadCommerce().then(confirmReturn);
  // An item or menu page left open in a tab (or restored with Back) re-checks itself with the server.
