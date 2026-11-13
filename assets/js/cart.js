@@ -157,10 +157,10 @@
  const holders=[...document.querySelectorAll('[data-item]')],strip=document.querySelector('[data-launch-strip]');
  function paintStrip(now){
   if(!strip)return;
-  const site=time(data.siteOpens),future=[site,...data.items.map(i=>time(i.orderOpens))].filter(t=>t&&t>now);
-  const opens=site&&site>now?site:(future.length?Math.min(...future):null),closes=time(data.siteCloses);
+  // The banner follows only the site-wide "Ordering opens / closes" times from the editor.
+  const opens=time(data.siteOpens),closes=time(data.siteCloses);
   let label,target;
-  if(opens){label='Pre-orders open in';target=opens;}
+  if(opens&&opens>now){label='Pre-orders open in';target=opens;}
   else if(closes&&closes>now){label='Pre-orders close in';target=closes;}
   if(!target){strip.hidden=true;return;}
   strip.replaceChildren(node('span',label),node('strong',clock(target-now)),node('span',when(target)));strip.hidden=false;
