@@ -60,11 +60,7 @@ function field(def, object, prefix){
  const id=`${prefix}-${key}`;
  const title=el('label',label);title.htmlFor=id;wrapper.append(title);
  let input;
- if(type==='textarea'){input=el('textarea');
-  const b=el('button','B','bold-button');b.type='button';b.title='Bold the selected text';b.setAttribute('aria-label','Bold the selected text in '+label);
-  b.addEventListener('click',()=>{const s=input.selectionStart,t=input.selectionEnd;if(s===t){say('Select the words you want in bold first.',true);input.focus();return;}
-   input.setRangeText('**'+input.value.slice(s,t)+'**',s,t,'select');input.dispatchEvent(new Event('input'));input.focus();});
-  wrapper.append(b,el('small','Tip: select words and press B to make them bold. They show as **like this** here and bold on the website.'));}
+ if(type==='textarea')input=el('textarea');
  else if(type==='select'){input=el('select');const choices=key==='category'?Object.fromEntries([...new Set([...Object.keys(options),...[...data.menu,...(data.preorders||[])].map(item=>item.category),...extraCategories])].filter(Boolean).sort().map(value=>[value,value])):options;Object.entries(choices).forEach(([value,text])=>{const o=el('option',text);o.value=value;input.append(o);});}
  else{input=el('input');input.type= type==='datetime'?'datetime-local':['tags','photo'].includes(type)?'text':type;}
  input.id=id;input.name=id;

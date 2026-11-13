@@ -209,3 +209,12 @@ html body .hero-copy .hero-cta:focus-visible{outline:2px solid #fff;outline-offs
 html body main.store-page>.launch-strip+h1{font-size:clamp(30px,3.2vw,48px)!important;line-height:1.15!important;margin:0 0 24px!important}
 html body main.store-page>.launch-strip~p:not(.sr-only){margin:0 0 24px}
 html body main.store-page>.launch-strip~p:not(.sr-only)+.menu-filter{margin-top:34px}
+
+/* Homepage previews show no prices (prices stay on the menu and item pages). */
+html body .homepage-menu-grid .sample-price{display:none}
+
+/* ---------- Slimmer top nav: 16px shorter, trimmed from the bottom so links and logo stay where they were ---------- */
+html body .main-header,html body.storefront-inner .main-header{min-height:0!important;height:62px!important;box-sizing:border-box;padding-top:17px!important;padding-bottom:1px!important}
+html body .main-header>*:not(.mobile-brand){transform:none}
+@media(min-width:701px){html body .main-header .mobile-brand{top:calc(50% + 8px)}}
+@media(max-width:700px){html body .main-header,html body.storefront-inner .main-header{height:60px!important;padding-top:16px!important;padding-bottom:0!important;overflow:visible}}

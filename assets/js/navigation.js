@@ -100,3 +100,34 @@
   },100);
  });
 })();
+
+// Homepage pre-order preview: every 9 seconds, fade to the next four items (wrapping around to the start).
+(()=>{
+ const grid=document.querySelector('.homepage-menu-grid');if(!grid)return;
+ const cards=[...grid.querySelectorAll('[data-rotate-slot]')],per=4,n=cards.length;
+ if(n<=per)return;
+ const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ let start=0,paused=false,busy=false;
+ cards.forEach((c,i)=>{c.style.transition='opacity .6s ease';});
+ const more=grid.querySelector('.menu-more');if(more)more.style.order='99';
+ function show(){
+  const visible=new Set();
+  for(let k=0;k<per;k++){const idx=(start+k)%n;visible.add(idx);cards[idx].style.order=String(k);}
+  cards.forEach((c,i)=>{c.hidden=!visible.has(i);});
+ }
+ function step(){
+  if(paused||busy||document.hidden)return;
+  busy=true;const shown=cards.filter(c=>!c.hidden);
+  shown.forEach(c=>c.style.opacity='0');
+  setTimeout(()=>{
+   start=(start+per)%n;show();
+   const next=cards.filter(c=>!c.hidden);next.forEach(c=>c.style.opacity='0');
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{next.forEach(c=>c.style.opacity='1');busy=false;}));
+  },still?0:600);
+ }
+ show();
+ // Pause while someone is pointing at or tabbing through the cards.
+ grid.addEventListener('mouseenter',()=>paused=true);grid.addEventListener('mouseleave',()=>paused=false);
+ grid.addEventListener('focusin',()=>paused=true);grid.addEventListener('focusout',()=>paused=false);
+ setInterval(step,9000);
+})();
