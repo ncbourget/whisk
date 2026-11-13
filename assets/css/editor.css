@@ -106,3 +106,4 @@ dialog::backdrop { background: #20283fbb; }
 }
 
 .category-add{display:flex;flex-wrap:wrap;gap:8px}.category-add[hidden]{display:none}.category-add input{flex-basis:100%}
+.bold-button{font:700 14px/1 Georgia,serif;width:34px;height:30px;padding:0;margin:4px 0 6px;border:1px solid currentColor;background:#fff;cursor:pointer}

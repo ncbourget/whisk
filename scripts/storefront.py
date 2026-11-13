@@ -13,6 +13,11 @@ def render_storefront(data, legacy):
     items=sorted((i for i in data['menu'] if i['available']),key=lambda i:i['position'])
     preorders=sorted((i for i in data.get('preorders', []) if i['available']),key=lambda i:i['position'])
     home=render_concept(data)
+    # Top nav: white condensed logo on Whisk Blue.
+    home=home.replace('src="'+e(base)+'/assets/brand/final/condensed-logo.webp"','src="'+e(base)+'/assets/brand/final/condensed-logo-white.webp"')
+    # Hero: a small torn-paper tag overlapping the bottom of the panel, linking to the pre-order menu.
+    if site.get('showPreorderMenu',True):
+        home=home.replace('</div><span class="hero-aside','<a class="hero-cta" href="'+e(base)+'/preorder/"><span>Treat yourself</span><span class="hero-cta-arrow" aria-hidden="true">&#8599;</span></a></div><span class="hero-aside',1)
     # Hero panel: white logo on Whisk Blue (Meredith's 'Full-White' variation).
     home=home.replace('class="hero-logo" src="'+e(base)+'/assets/brand/final/full-logo.webp"','class="hero-logo" src="'+e(base)+'/assets/brand/final/full-logo-white.webp"',1)
     if not site.get('showStandMenu',True):
@@ -41,7 +46,8 @@ def render_storefront(data, legacy):
             html=html.replace('</head>',f'<link rel="canonical" href="{e(site["domain"].rstrip("/")+base+route)}"></head>')
         return html
     def paragraphs(text):
-        return ''.join('<p>'+e(part.strip()).replace('\n','<br>')+'</p>' for part in re.split(r'\n\s*\n',text) if part.strip())
+        bold=lambda t:re.sub(r'\*\*(.+?)\*\*',r'<strong>\1</strong>',t)
+        return ''.join('<p>'+bold(e(part.strip())).replace('\n','<br>')+'</p>' for part in re.split(r'\n\s*\n',text) if part.strip())
     def photo(i):
         return render_photo(i,base)
     def card(i, collection="menu"):
@@ -67,7 +73,7 @@ def render_storefront(data, legacy):
     launch_strip='<p class="launch-strip" data-launch-strip hidden></p>'
     preorder_section=f'<section class="recipe preorder-section" id="preorders" aria-labelledby="preorder-heading">{launch_strip}<div class="menu-heading-line"><h2 id="preorder-heading">Pre-order from Whisk.</h2><div class="menu-rule"><a href="{e(base)}/preorder/">View pre-order menu →</a></div></div>{preorder_intro}<div class="bakes homepage-menu-grid">{preorder_preview}</div>{preorder_empty}</section>'
     home=home.replace('<section class="find find-plain"',(preorder_section if site.get('showPreorderMenu',True) else '')+'<section class="find find-plain"',1)
-    outputs={'preorder/index.html':page('Pre-order', '<h1>Pre-order from Whisk.</h1>'+launch_strip+preorder_intro+filters+'<div class="bakes" id="menu-items">'+preorder_cards+'</div>'+preorder_empty+'<p class="sr-only" id="menu-filter-status" role="status"></p>'+allergen_notice, '/preorder/'),'index.html':home,'menu/index.html':page('Menu',menu,'/menu/')}
+    outputs={'preorder/index.html':page('Pre-order', launch_strip+'<h1>Pre-order menu.</h1>'+preorder_intro+filters+'<div class="bakes" id="menu-items">'+preorder_cards+'</div>'+preorder_empty+'<p class="sr-only" id="menu-filter-status" role="status"></p>'+allergen_notice, '/preorder/'),'index.html':home,'menu/index.html':page('Menu',menu,'/menu/')}
     for route,title in [('about','About Cindy'),('find-us','Find Whisk'),('faq','Good to know'),('contact','Contact Cindy')]:
         body=re.search(r'<main[^>]*>(.*?)</main>',legacy[route+'/index.html'],re.S).group(1)
         if route=='about':
@@ -110,7 +116,7 @@ def render_storefront(data, legacy):
         collection='preorder' if is_preorder else 'menu'
         disabled=' disabled' if i['soldOut'] else ''
         pickup_line=f'<p><strong>Pickup:</strong> {e(site.get("pickupAddress","").strip())}</p>' if site.get('pickupAddress','').strip() else ''
-        controls=f'''<label for="quantity">Quantity</label><input id="quantity" type="number" min="1" max="20" value="1" step="1"><button type="button" data-add-item="{e(i['id'])}"{disabled}>{'Sold out' if i['soldOut'] else 'Add to cart'}</button><p role="status" id="cart-message"></p><a href="{e(base)}/cart/">View cart →</a>''' if is_preorder else ('<p>Sold out</p>' if i['soldOut'] else '<p>Available at the stand.</p>')
+        controls=f'''<div class="buy-row"><label for="quantity">Quantity</label><input id="quantity" type="number" min="1" max="20" value="1" step="1" inputmode="numeric"><button type="button" data-add-item="{e(i['id'])}"{disabled}>{'Sold out' if i['soldOut'] else 'Add to cart'}</button></div><p role="status" id="cart-message"></p><a href="{e(base)}/cart/">View cart →</a>''' if is_preorder else ('<p>Sold out</p>' if i['soldOut'] else '<p>Available at the stand.</p>')
         body=f'''<a href="{e(base)}/{collection}/">← Back to the menu</a><div class="item-detail"><div class="item-photo"{' data-item="'+e(i['id'])+'"' if is_preorder else ''}>{render_photo(i,base,detail=True)}{'<span class="status-overlay" aria-hidden="true"><strong>Sold out</strong></span>' if i['soldOut'] else ''}</div><section><p class="mono">{e(i['category'])}</p><h1>{e(i['name'].rstrip('.'))}</h1><p>{e(i['description'])}</p><p class="item-price">${i['price']:.2f}</p>{controls}<details class="ingredients"><summary>Ingredients &amp; allergens</summary><p>{e(i['allergens'] or site['allergens'])}</p></details><p>{e(i['notes'])}</p><p>{e(i['storage'])}</p></section></div>'''
         outputs[f'{collection}/{i["id"]}/index.html']=page(i['name'],body,f'/{collection}/{i["id"]}/')
     outputs['cart/index.html']=page('Your cart',f'''<p class="mono">A little something for later</p><h1>Your cart.</h1><div id="cart-items"></div><p id="cart-total"></p><p role="status" id="cart-message"></p><div class="store-note"><h2>Pickup &amp; payment</h2>{notice}<p>Payment is completed securely on Square.</p><p id="checkout-status" role="status">Checkout is not open yet.</p><form id="square-checkout" hidden><label>Pickup date<select name="pickup" required></select></label><p class="pickup-where" id="pickup-where" hidden></p><label>Your name<input name="name" autocomplete="name" maxlength="100" required></label><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel" required></label><label class="notes-field">Special instructions (optional)<textarea name="notes" maxlength="400" rows="3"></textarea></label><button type="submit" disabled>Checkout</button></form></div><a href="{e(base)}/preorder/">Continue browsing →</a><noscript>Enable JavaScript to use your cart.</noscript>''','/cart/')
