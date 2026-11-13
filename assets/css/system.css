@@ -11,12 +11,13 @@
 }
 
 /* ---------- Body copy: Bryant Medium, per the guidelines ---------- */
-html body p,html body li,html body .bake p,html body .store-page p:not(.eyebrow):not(.mono):not(.meta){font-weight:500!important}
+html body p,html body li,html body .bake p,html body .store-page p:not(.eyebrow):not(.mono):not(.meta){font-weight:400!important}
+html body strong,html body b{font-weight:700}
 html body .store-page p,html body .bake p{color:var(--deep-blue)}
 html body p a:not(.action-link){text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 
 /* ---------- Labels / eyebrows: Bryant Bold caps, tracked within 0.1–0.2 ---------- */
-html body .eyebrow,html body .mono,html body .meta,html body .ingredients h2{letter-spacing:var(--track)!important;font-weight:700!important}
+html body .eyebrow,html body .mono,html body .meta,html body .ingredients h2{letter-spacing:var(--track)!important;font-weight:500!important}
 
 /* ---------- Navigation links: quiet text links with an underline, not blocks ---------- */
 html body main a.action-link:not(.button):not(.x),html body main a.sun-link:not(.button):not(.x){
@@ -24,7 +25,7 @@ html body main a.action-link:not(.button):not(.x),html body main a.sun-link:not(
  min-height:0;padding:8px 0;margin-right:28px;
  background:none!important;border:0!important;box-shadow:none;
  color:var(--deep-blue)!important;
- font:700 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase!important;
+ font:500 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase!important;
 }
 html body main a.action-link:not(.button):not(.x) .action-label,html body main a.sun-link:not(.button):not(.x) .action-label{
  border-bottom:1.5px solid currentColor;padding-bottom:4px;letter-spacing:var(--track)!important;transition:border-color .15s ease,border-width .15s ease;
@@ -64,14 +65,16 @@ html body .menu-allergens,html body .menu-allergens::before,html body .menu-alle
 html body .menu-allergens,html body .menu-allergens p{color:var(--espresso)}
 
 /* ---------- Countdown strip: Deep Blue paper tag, white numerals, Apricot labels ---------- */
-html body .launch-strip{background:var(--deep-blue);color:#fff}
+html body .launch-strip{background:var(--deep-blue);color:#fff;width:auto;max-width:none;margin:0 7px 34px;justify-content:space-between;align-items:center;padding:18px 32px}
+@media(max-width:700px){html body .launch-strip{justify-content:flex-start;padding:16px 22px}}
 html body .launch-strip span{color:var(--apricot)!important;font-weight:700!important;letter-spacing:var(--track)!important}
 html body .launch-strip strong{color:#fff}
 
 /* ---------- Pattern: decoration only, never behind reading text ---------- */
-.pattern-band{position:relative;height:150px;background:var(--whisk-blue-10);overflow:hidden}
-.pattern-band::before{content:"";position:absolute;inset:0;background:url('../brand/final/pattern-whisk-blue.svg') center/360px auto repeat;opacity:.55}
-@media(max-width:700px){.pattern-band{height:96px}.pattern-band::before{background-size:260px auto}}
+.pattern-band{position:relative;height:240px;margin-top:-40px;background:#fff;overflow:hidden;pointer-events:none}
+.pattern-band::before{content:"";position:absolute;inset:0;background:url('../brand/final/pattern-espresso.svg') center top/380px auto repeat;opacity:.18;
+ -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 55%);mask-image:linear-gradient(to bottom,transparent 0,#000 55%)}
+@media(max-width:700px){.pattern-band{height:150px;margin-top:-20px}.pattern-band::before{background-size:260px auto}}
 /* Order confirmation: a white card on a patterned field. */
 html body .store-page:has(.order-confirmed){position:relative;background:var(--whisk-blue-10)}
 html body .store-page:has(.order-confirmed)::before{content:"";position:absolute;inset:0;background:url('../brand/final/pattern-whisk-blue.svg') center/420px auto repeat;opacity:.5;pointer-events:none}
@@ -85,7 +88,7 @@ html body .item-detail .item-notice{background:var(--whisk-blue-10);border-left:
 html body .item-detail .item-notice p{font-size:15px!important;margin:0}
 /* The confirmation page already sits on the pattern; skip the footer band there. */
 main:has(.order-confirmed) ~ .pattern-band{display:none}
-html body .order-confirmed .order-facts dt{font-weight:700;letter-spacing:var(--track)}
+html body .order-confirmed .order-facts dt{font-weight:500;letter-spacing:var(--track)}
 
 /* ---------- Pickup address ---------- */
 html body .pickup-address{margin:26px 0 6px;padding:18px 20px;background:#fff;border-left:3px solid var(--whisk-blue);max-width:440px}
@@ -98,9 +101,14 @@ html body .order-confirmed .order-facts dd{font-weight:500}
 /* ---------- Ingredients & allergens: a tidy reveal link ---------- */
 html body .store-page details.ingredients{border:0;padding:0;margin-top:26px}
 html body .store-page details.ingredients summary{list-style:none;display:inline-flex;align-items:center;gap:10px;cursor:pointer;
- font:700 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase;color:var(--deep-blue);padding-bottom:4px;border-bottom:1.5px solid currentColor}
+ font:500 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase;color:var(--deep-blue);padding-bottom:4px;border-bottom:1.5px solid currentColor}
 html body .store-page details.ingredients summary::-webkit-details-marker{display:none}
 html body .store-page details.ingredients summary::after{content:"+";font-size:16px;line-height:1;transition:transform .15s ease}
 html body .store-page details.ingredients[open] summary::after{content:"–"}
 html body .store-page details.ingredients summary:hover{border-bottom-color:var(--whisk-blue)}
 html body .store-page details.ingredients p{margin-top:14px}
+
+/* ---------- Hero tag: white on Espresso (approved pairing; higher contrast than navy on green) ---------- */
+html body .hero-aside{background:var(--espresso)!important;color:#fff!important}
+html body .hero-aside,html body .hero-aside *{color:#fff!important}
+html body .hero-aside,html body .hero-aside *{font-weight:700!important;letter-spacing:var(--track)!important}
