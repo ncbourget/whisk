@@ -17,15 +17,15 @@
   "phone": "978-866-2609",
   "instagram": "https://www.instagram.com/whiskbakedbycindy/",
   "facebook": "https://www.facebook.com/profile.php?id=61593684756367",
-  "serviceArea": "",
+  "serviceArea": "Chelmsford, Westford, Billerica",
   "hours": "Opening hours will be announced with our first pop-up.",
   "squareUrl": "",
   "orderingEnabled": true,
-  "orderOpens": "",
-  "orderCloses": "",
+  "orderOpens": "2026-11-13T12:00:00.000Z",
+  "orderCloses": "2026-11-18T22:00:00.000Z",
   "pickup": "Pickup details will be shared when ordering opens. Please check the date, time, and location before paying.",
   "cutoff": "Please order at least 3 days before your pickup date. Pickup dates and deadlines are shown at checkout.",
-  "refunds": "Cancellation and refund details will be posted before we begin taking orders.",
+  "refunds": "Once an order is placed,  you will have 24 hours to cancel. Beyond the 24 hour window, there will be no cancellations as ingredients are procured based on the pre-orders.",
   "allergens": "As a lifelong allergy sufferer, I understand the concern — and the disappointment — of seeing something that looks delicious but may be too risky to eat. I always clearly label allergens, and I never cook, bake, or use anything in my home kitchen that could cause cross-contamination. Utensils, bowls, pans, and surfaces are kept strictly separate.\n\nI also bake from a shared commercial kitchen. While I follow careful cleaning practices, I can’t fully control what others prepare in that space. I share this openly so you can make the best decision for your needs.\n\nYour safety matters to me.",
   "socialImage": "",
   "socialImageAlt": "",
@@ -35,9 +35,21 @@
   "pickupDates": [
     {
       "id": "pickup-b33faa36",
-      "pickupAt": "2026-11-18T17:00:00.000Z",
-      "closesAt": "2026-11-16T23:00:00.000Z",
-      "window": ""
+      "pickupAt": "2026-11-23T14:00:00.000Z",
+      "closesAt": "2026-11-18T23:00:00.000Z",
+      "window": "9:00am - 5:00pm"
+    },
+    {
+      "id": "pickup-778a8f50",
+      "pickupAt": "2026-11-24T14:00:00.000Z",
+      "closesAt": "2026-11-18T23:00:00.000Z",
+      "window": "9:00am - 1:00pm"
+    },
+    {
+      "id": "pickup-6ef02ac7",
+      "pickupAt": "2026-11-25T13:30:00.000Z",
+      "closesAt": "2026-11-18T23:00:00.000Z",
+      "window": "8:30am - 1:00pm"
     }
   ]
 }
