@@ -98,7 +98,7 @@
   {
     "id": "square-r6rsa4laczcpt6s5bmhnsvla",
     "name": "Orange cranberry coffee cake",
-    "description": "Cake feeds 8-10\nBright, fresh cake with crisp crust and tender crumb. Great with coffee.",
+    "description": "Cake feeds 8-10.\nBright, fresh cake with crisp crust and tender crumb. Great with coffee.",
     "price": 20,
     "category": "Cakes",
     "available": true,
@@ -122,7 +122,7 @@
   {
     "id": "square-quedgkroi63fk3jt5loqucf2",
     "name": "Hermit cookies (8 bars)",
-    "description": "Dark hermit bars with raisins, candied ginger and spices - 8 bars included",
+    "description": "Dark hermit bars with raisins, candied ginger and spices.",
     "price": 15,
     "category": "Cookies",
     "available": true,
@@ -146,7 +146,7 @@
   {
     "id": "square-mz6lj3d6isaqi5qtz33fm6sj",
     "name": "Coconut Macaroons (package of 12)",
-    "description": "Soft, chewy cookies, packed with coconut.\nNaturally gluten free",
+    "description": "Soft, chewy coconut cookies.\nNaturally gluten free.",
     "price": 12,
     "category": "Cookies",
     "available": true,
@@ -170,7 +170,7 @@
   {
     "id": "square-d3rvww772kszaoadkwlpiftu",
     "name": "Coconut Macaroons Dipped in Chocolate  (package of 12)",
-    "description": "Soft, chewy cookies, packed with coconut and dipped in chocolate, with chocolate drizzle on top.\nNaturally gluten free",
+    "description": "Soft, chewy coconut cookies dipped in chocolate, with chocolate drizzle on top.\nNaturally gluten free.",
     "price": 15,
     "category": "Cookies",
     "available": true,
@@ -194,7 +194,7 @@
   {
     "id": "square-7qzzphevq5asd4wgludbvw2g",
     "name": "Ginger molasses cookies (dozen)",
-    "description": "Chewy, rich ginger molasses cookies\nSold by the dozen",
+    "description": "Chewy, rich ginger molasses cookies.\n",
     "price": 24,
     "category": "Cookies",
     "available": true,
