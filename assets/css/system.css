@@ -224,3 +224,9 @@ html body main.store-page:has(> .menu-allergens:last-child){padding-bottom:0}
 html body main.store-page > .menu-allergens:last-child{margin-bottom:0}
 html body main.store-page > .menu-allergens:last-child::after{display:none}
 html body main:has(> .menu-allergens:last-child) ~ .pattern-band::after{background:var(--sand)}
+
+/* ---------- Mobile hero: much larger logo in the panel (the logo file has built-in margins, so it bleeds slightly) ---------- */
+@media(max-width:700px){
+ html body .hero-copy{width:74%!important;max-width:310px!important}
+ html body .hero-copy .hero-logo{width:122%!important;max-width:none!important;margin:-14px -11% -10px!important;display:block}
+}
