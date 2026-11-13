@@ -26,7 +26,8 @@ export function validateContent(data,files){
  if(!data||typeof data!=='object'||!['events,menu,site','events,menu,preorders,site'].includes(Object.keys(data).sort().join(',')))fail('Content must contain site, menu and events only.');
  const {site,menu,events}=data;const preorders=data.preorders??[];
  if(!Array.isArray(preorders)||preorders.length>200)fail('Keep pre-orders below 200 entries.');
- const {showStandMenu,showPreorderMenu,pickupDates,...siteCore}=site;
+ const {showStandMenu,showPreorderMenu,pickupDates,pickupAddress,...siteCore}=site;
+ if(pickupAddress!==undefined&&(typeof pickupAddress!=='string'||pickupAddress.length>200))fail('Keep the pickup address under 200 characters.');
  // Pickup dates Cindy sets in the editor: each has a pickup time, an orders-close time and an optional time window.
  if(pickupDates!==undefined){
   if(!Array.isArray(pickupDates)||pickupDates.length>60)fail('Keep pickup dates below 60 entries.');

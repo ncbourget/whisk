@@ -95,7 +95,7 @@ class StorefrontTests(unittest.TestCase):
         runtime=cart.split('<script id="cart-data" type="application/json">')[1].split('</script>')[0]
         data=json.loads(runtime)
         for public_item in data['items']:
-            self.assertEqual(set(public_item),{'id','name','price','soldOut','image','imageAlt','linked'})
+            self.assertEqual(set(public_item),{'id','name','price','soldOut','image','imageAlt','linked','orderOpens','orderCloses'})
         self.assertNotIn('data-add-item=',pages['menu/'+item['id']+'/index.html'])
         self.assertNotIn(item['id'], [product['id'] for product in data['items']])
 
@@ -108,7 +108,7 @@ class StorefrontTests(unittest.TestCase):
         menu=pages['menu/index.html']
         self.assertGreater(menu.index('Specific allergen notice.'),menu.index('id="menu-items"'))
         self.assertIn('<option value="Seasonal pies">Seasonal pies</option>',menu)
-        self.assertIn('<section class="ingredients"><h2>Ingredients &amp; allergens</h2>',pages['menu/'+data['menu'][0]['id']+'/index.html'])
+        self.assertIn('<details class="ingredients"><summary>Ingredients &amp; allergens</summary>',pages['menu/'+data['menu'][0]['id']+'/index.html'])
         self.assertNotIn('From Cindy’s recipe book',menu)
         self.assertNotIn('From Cindy’s recipe book',pages['index.html'])
 
@@ -137,7 +137,9 @@ class StorefrontTests(unittest.TestCase):
         self.assertNotIn('Whole test pie',pages['menu/index.html'].split('<script id="cart-data"')[0])
         self.assertIn('data-add-item="preorder-test-pie"',pages['preorder/preorder-test-pie/index.html'])
         data['site']['cutoff']='Order by Sunday for Wednesday pickup.'
-        self.assertIn('Order by Sunday for Wednesday pickup.',build.render(data)['preorder/preorder-test-pie/index.html'])
+        rendered=build.render(data)
+        self.assertIn('Order by Sunday for Wednesday pickup.',rendered['preorder/index.html'])
+        self.assertNotIn('Order by Sunday for Wednesday pickup.',rendered['preorder/preorder-test-pie/index.html'])
         home=pages['index.html']
         self.assertLess(home.index('id="possibilities"'),home.index('id="preorders"'))
         self.assertLess(home.index('id="preorders"'),home.index('id="find-whisk"'))

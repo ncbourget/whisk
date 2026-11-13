@@ -2,7 +2,7 @@
 from html import escape as e
 import json
 import re
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from pathlib import Path
 from concept import render_concept, more_tile
 from product_photos import render_photo
@@ -18,11 +18,13 @@ def render_storefront(data, legacy):
     home=home.replace(f'href="{e(base)}/about/"',f'href="{e(base)}/#about"')
     home=home.replace(f'href="{e(base)}/find-us/"',f'href="{e(base)}/#find-whisk"')
     # Public cart contains no administrative data, credentials, or payment information.
-    catalog=[{k:i[k] for k in ['id','name','price','soldOut','image','imageAlt']} for i in preorders] if site.get('showPreorderMenu',True) else []
+    catalog=[{**{k:i[k] for k in ['id','name','price','soldOut','image','imageAlt']},'orderOpens':i.get('orderOpens',''),'orderCloses':i.get('orderCloses','')} for i in preorders] if site.get('showPreorderMenu',True) else []
     for item,source in zip(catalog,preorders): item['linked']=bool(source.get('squareVariationId'))
-    runtime=json.dumps({'items':catalog,'currency':site['currency'],'base':base,'demo':site['demo']}).replace('<','\\u003c')
+    runtime=json.dumps({'items':catalog,'currency':site['currency'],'base':base,'demo':site['demo'],'siteOpens':site.get('orderOpens',''),'siteCloses':site.get('orderCloses',''),'timezone':site.get('timezone','America/New_York')}).replace('<','\\u003c')
     scripts=f'<script id="cart-data" type="application/json">{runtime}</script><script defer src="{e(base)}/assets/js/cart.js"></script>'
-    home=home.replace('</head>',f'<link rel="stylesheet" href="{e(base)}/assets/css/storefront.css"><link rel="stylesheet" href="{e(base)}/assets/css/identity.css"></head>')
+    home=home.replace('</head>',f'<link rel="stylesheet" href="{e(base)}/assets/css/storefront.css"><link rel="stylesheet" href="{e(base)}/assets/css/identity.css"><link rel="stylesheet" href="{e(base)}/assets/css/system.css"></head>')
+    # Brand pattern: a decorative wallpaper band above the footer (never behind reading text).
+    home=home.replace('<footer class="main-footer">','<div class="pattern-band" aria-hidden="true"></div><footer class="main-footer">',1)
     home=home.replace('</body>',scripts+'</body>')
     home=home.replace('</div></nav></header>',f'<a class="cart-link" href="{e(base)}/cart/">Cart <span data-cart-count>0</span></a></div></nav></header>')
     if not site['demo'] and site['domain']:
@@ -42,7 +44,9 @@ def render_storefront(data, legacy):
         return render_photo(i,base)
     def card(i, collection="menu"):
         link=f'{base}/{collection}/{i["id"]}/'
-        return f'<article class="bake" data-category="{e(i["category"])}"><a href="{e(link)}" aria-label="{e(i["name"])}">{photo(i)}</a><div class="bake-copy"><h3><a href="{e(link)}">{e(i["name"].rstrip("."))}</a></h3><p>{e(i["description"])}</p><span class="sample-price">${i["price"]:.2f}'+(' · Sold out' if i['soldOut'] else '')+'</span></div></article>'
+        status='<span class="status-overlay" aria-hidden="true"><strong>Sold out</strong></span>' if i['soldOut'] else ''
+        live=f' data-item="{e(i["id"])}"' if collection=='preorder' else ''
+        return f'<article class="bake" data-category="{e(i["category"])}"{live}><a class="bake-photo" href="{e(link)}" aria-label="{e(i["name"])}">{photo(i)}{status}</a><div class="bake-copy"><h3><a href="{e(link)}">{e(i["name"].rstrip("."))}</a></h3><p>{e(i["description"])}</p><span class="sample-price">${i["price"]:.2f}'+(' · Sold out' if i['soldOut'] else '')+'</span></div></article>'
     categories=sorted({i['category'] for i in data['menu'] + data.get('preorders', [])} | {'Pastries','Cookies','Cakes','Pies'})
     filters='<div class="menu-filter" hidden><label for="menu-category">Filter by</label><span class="filter-control"><select id="menu-category" aria-controls="menu-items"><option value="">All baked goods</option>'+''.join(f'<option value="{e(category)}">{e(category)}</option>' for category in categories)+'</select><span class="filter-arrow" aria-hidden="true">↓</span></span></div>'
     menu='<h1>The menu.</h1>'+filters+'<div class="bakes" id="menu-items">'+''.join(map(card,items))+'</div><p class="sr-only" id="menu-filter-status" role="status"></p>'
@@ -58,9 +62,10 @@ def render_storefront(data, legacy):
     notice=paragraphs(site['cutoff'])  # Cindy's own "Pre-order notice" text from the editor
     preorder_intro='<p>Whole bakes, planned ahead.</p>'+notice
     preorder_empty='<p>Pre-orders are not open yet.</p>' if not preorders else ''
-    preorder_section=f'<section class="recipe preorder-section" id="preorders" aria-labelledby="preorder-heading"><div class="menu-heading-line"><h2 id="preorder-heading">Pre-order from Whisk.</h2><div class="menu-rule"><a href="{e(base)}/preorder/">View pre-order menu →</a></div></div>{preorder_intro}<div class="bakes homepage-menu-grid">{preorder_preview}</div>{preorder_empty}</section>'
+    launch_strip='<p class="launch-strip" data-launch-strip hidden></p>'
+    preorder_section=f'<section class="recipe preorder-section" id="preorders" aria-labelledby="preorder-heading">{launch_strip}<div class="menu-heading-line"><h2 id="preorder-heading">Pre-order from Whisk.</h2><div class="menu-rule"><a href="{e(base)}/preorder/">View pre-order menu →</a></div></div>{preorder_intro}<div class="bakes homepage-menu-grid">{preorder_preview}</div>{preorder_empty}</section>'
     home=home.replace('<section class="find find-plain"',(preorder_section if site.get('showPreorderMenu',True) else '')+'<section class="find find-plain"',1)
-    outputs={'preorder/index.html':page('Pre-order', '<h1>Pre-order from Whisk.</h1>'+preorder_note+preorder_intro+'<p>Some of these bakes may also be available at the stand on any given day, but availability isn’t guaranteed.</p>'+filters+'<div class="bakes" id="menu-items">'+preorder_cards+'</div>'+preorder_empty+'<p class="sr-only" id="menu-filter-status" role="status"></p>'+allergen_notice, '/preorder/'),'index.html':home,'menu/index.html':page('Menu',menu,'/menu/')}
+    outputs={'preorder/index.html':page('Pre-order', '<h1>Pre-order from Whisk.</h1>'+launch_strip+preorder_intro+filters+'<div class="bakes" id="menu-items">'+preorder_cards+'</div>'+preorder_empty+'<p class="sr-only" id="menu-filter-status" role="status"></p>'+allergen_notice, '/preorder/'),'index.html':home,'menu/index.html':page('Menu',menu,'/menu/')}
     for route,title in [('about','About Cindy'),('find-us','Find Whisk'),('faq','Good to know'),('contact','Contact Cindy')]:
         body=re.search(r'<main[^>]*>(.*?)</main>',legacy[route+'/index.html'],re.S).group(1)
         if route=='about':
@@ -85,6 +90,10 @@ def render_storefront(data, legacy):
             location_details=paragraphs(site['statusNote'])
             if site['hours'] and not site['hours'].startswith('Opening hours will be announced'):
                 location_details+=paragraphs(site['hours'])
+            address=site.get('pickupAddress','').strip()
+            if address:
+                maps='https://www.google.com/maps/search/?api=1&query='+quote(address)
+                location_details+=f'<div class="pickup-address"><p class="mono">Pickup address</p><p class="address">{e(address)}</p><a href="{e(maps)}" target="_blank" rel="noopener noreferrer">Get directions ↗</a></div>'
             if site['serviceArea']:location_details+=paragraphs(site['serviceArea'])
             # Preserve editor-managed events, including dates, addresses and directions.
             if 'class="event"' in stops:location_details+='<div class="homepage-stops">'+stops+'</div>'
@@ -98,10 +107,11 @@ def render_storefront(data, legacy):
         is_preorder=i in preorders
         collection='preorder' if is_preorder else 'menu'
         disabled=' disabled' if i['soldOut'] else ''
-        controls=f'''{notice}<label for="quantity">Quantity</label><input id="quantity" type="number" min="1" max="20" value="1" step="1"><button type="button" data-add-item="{e(i['id'])}"{disabled}>{'Sold out' if i['soldOut'] else 'Add to cart'}</button><p role="status" id="cart-message"></p><a href="{e(base)}/cart/">View cart →</a>''' if is_preorder else ('<p>Sold out</p>' if i['soldOut'] else '<p>Available at the stand.</p>')
-        body=f'''<a href="{e(base)}/{collection}/">← Back to the menu</a><div class="item-detail"><div>{render_photo(i,base,detail=True)}</div><section><p class="mono">{e(i['category'])}</p><h1>{e(i['name'].rstrip('.'))}</h1><p>{e(i['description'])}</p><p>${i['price']:.2f}</p>{controls}<section class="ingredients"><h2>Ingredients &amp; allergens</h2><p>{e(i['allergens'] or site['allergens'])}</p></section><p>{e(i['notes'])}</p><p>{e(i['storage'])}</p></section></div>'''
+        pickup_line=f'<p><strong>Pickup:</strong> {e(site.get("pickupAddress","").strip())}</p>' if site.get('pickupAddress','').strip() else ''
+        controls=f'''<label for="quantity">Quantity</label><input id="quantity" type="number" min="1" max="20" value="1" step="1"><button type="button" data-add-item="{e(i['id'])}"{disabled}>{'Sold out' if i['soldOut'] else 'Add to cart'}</button><p role="status" id="cart-message"></p><a href="{e(base)}/cart/">View cart →</a>''' if is_preorder else ('<p>Sold out</p>' if i['soldOut'] else '<p>Available at the stand.</p>')
+        body=f'''<a href="{e(base)}/{collection}/">← Back to the menu</a><div class="item-detail"><div class="item-photo"{' data-item="'+e(i['id'])+'"' if is_preorder else ''}>{render_photo(i,base,detail=True)}{'<span class="status-overlay" aria-hidden="true"><strong>Sold out</strong></span>' if i['soldOut'] else ''}</div><section><p class="mono">{e(i['category'])}</p><h1>{e(i['name'].rstrip('.'))}</h1><p>{e(i['description'])}</p><p class="item-price">${i['price']:.2f}</p>{controls}<details class="ingredients"><summary>Ingredients &amp; allergens</summary><p>{e(i['allergens'] or site['allergens'])}</p></details><p>{e(i['notes'])}</p><p>{e(i['storage'])}</p></section></div>'''
         outputs[f'{collection}/{i["id"]}/index.html']=page(i['name'],body,f'/{collection}/{i["id"]}/')
-    outputs['cart/index.html']=page('Your cart',f'''<p class="mono">A little something for later</p><h1>Your cart.</h1><div id="cart-items"></div><p id="cart-total"></p><p role="status" id="cart-message"></p><div class="store-note"><h2>Pickup &amp; payment</h2>{notice}<p>Payment is completed securely on Square.</p><p id="checkout-status" role="status">Checkout is not open yet.</p><form id="square-checkout" hidden><label>Pickup date<select name="pickup" required></select></label><label>Your name<input name="name" autocomplete="name" maxlength="100" required></label><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel" required></label><label class="notes-field">Special instructions (optional)<textarea name="notes" maxlength="400" rows="3"></textarea></label><button type="submit" disabled>Checkout</button></form></div><a href="{e(base)}/preorder/">Continue browsing →</a><noscript>Enable JavaScript to use your cart.</noscript>''','/cart/')
+    outputs['cart/index.html']=page('Your cart',f'''<p class="mono">A little something for later</p><h1>Your cart.</h1><div id="cart-items"></div><p id="cart-total"></p><p role="status" id="cart-message"></p><div class="store-note"><h2>Pickup &amp; payment</h2>{notice}<p>Payment is completed securely on Square.</p><p id="checkout-status" role="status">Checkout is not open yet.</p><form id="square-checkout" hidden><label>Pickup date<select name="pickup" required></select></label><p class="pickup-where" id="pickup-where" hidden></p><label>Your name<input name="name" autocomplete="name" maxlength="100" required></label><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel" required></label><label class="notes-field">Special instructions (optional)<textarea name="notes" maxlength="400" rows="3"></textarea></label><button type="submit" disabled>Checkout</button></form></div><a href="{e(base)}/preorder/">Continue browsing →</a><noscript>Enable JavaScript to use your cart.</noscript>''','/cart/')
     outputs['order/index.html']=page('Order',f'<h1>Pre-order from Whisk.</h1>{notice}'+('' if site['orderingEnabled'] and not site['demo'] else '<p>Ordering is not open yet.</p>')+f'<a href="{e(base)}/preorder/">Browse pre-orders →</a><a href="{e(base)}/cart/">View your cart →</a>','/order/')
     # Not-found page in the current design (the server also reuses it for "unavailable" item and menu pages).
     missing=page('Page not found',f'<p class="mono">404</p><h1>Page not found.</h1><p>The page may have moved, or the link may be incorrect.</p><div class="page-actions"><a href="{e(base)}/">Back to Whisk →</a><a href="{e(base)}/menu/">See the menu →</a><a href="{e(base)}/contact/">Contact Cindy →</a></div>','/404.html')
@@ -123,13 +133,16 @@ def render_storefront(data, legacy):
         attrs, label = match.groups()
         if not any(arrow in label for arrow in ('→', '↗', '←')):
             return match.group(0)
-        label = label.replace('← ', '').replace('→', '↗')
+        back = label.startswith('←')  # "Back" links point back, not out
+        label = label.replace('← ', '').replace('←', '').replace('→', '↗')
         if '↗' not in label: label += ' ↗'
         if 'class="' in attrs:
             attrs = attrs.replace('class="', 'class="action-link ', 1)
         else:
             attrs += ' class="action-link"'
         label = label.replace('↗', '').strip().lower()
+        if back:
+            return '<a' + attrs.replace('class="action-link', 'class="action-link action-back', 1) + '><span class="action-arrow" aria-hidden="true">←</span><span class="action-label">' + label + '</span></a>'
         return '<a' + attrs + '><span class="action-label">' + label + '</span><span class="action-arrow" aria-hidden="true">↗</span></a>'
     for path in outputs:
         outputs[path] = re.sub(r'<a(\s[^>]*?)>([^<]+)</a>', action_link, outputs[path])

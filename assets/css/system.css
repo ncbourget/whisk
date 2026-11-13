@@ -1,0 +1,106 @@
+/* Whisk design system, following Meredith Taylor's Brand Guidelines v1.0 (Summer 2026).
+   Loaded last on storefront pages. Rules of the road:
+   - Surfaces stay light: White, Whisk Blue tints, Sand Dune. Whisk Blue 100% for signature moments (hero panel, footer).
+   - Ink: Deep Blue on light surfaces; Espresso on Sand Dune / Apricot; White on Deep Blue / Espresso.
+   - Willow + Apricot are small accents only (never body text, never green on blue).
+   - Type: Quincy for headlines; Bryant Bold ALL CAPS, tracking .14em for labels; Bryant Medium for body.
+   - Buttons are for actions (add to cart, checkout). Navigation is a quiet underlined text link. */
+:root{
+ --whisk-blue-10:#f4f7fb; --whisk-blue-20:#e9eff8; --whisk-blue-30:#dee7f4;
+ --track:.14em;
+}
+
+/* ---------- Body copy: Bryant Medium, per the guidelines ---------- */
+html body p,html body li,html body .bake p,html body .store-page p:not(.eyebrow):not(.mono):not(.meta){font-weight:500!important}
+html body .store-page p,html body .bake p{color:var(--deep-blue)}
+html body p a:not(.action-link){text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+
+/* ---------- Labels / eyebrows: Bryant Bold caps, tracked within 0.1–0.2 ---------- */
+html body .eyebrow,html body .mono,html body .meta,html body .ingredients h2{letter-spacing:var(--track)!important;font-weight:700!important}
+
+/* ---------- Navigation links: quiet text links with an underline, not blocks ---------- */
+html body main a.action-link:not(.button):not(.x),html body main a.sun-link:not(.button):not(.x){
+ display:inline-flex;align-items:center;justify-content:flex-start;gap:10px;
+ min-height:0;padding:8px 0;margin-right:28px;
+ background:none!important;border:0!important;box-shadow:none;
+ color:var(--deep-blue)!important;
+ font:700 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase!important;
+}
+html body main a.action-link:not(.button):not(.x) .action-label,html body main a.sun-link:not(.button):not(.x) .action-label{
+ border-bottom:1.5px solid currentColor;padding-bottom:4px;letter-spacing:var(--track)!important;transition:border-color .15s ease,border-width .15s ease;
+}
+html body main a.action-link:not(.button):not(.x) .action-arrow,html body main a.sun-link:not(.button):not(.x) .action-arrow{font-size:14px!important;line-height:1!important;transition:transform .15s ease}
+html body main a.action-link:not(.button):not(.x):hover,html body main a.sun-link:not(.button):not(.x):hover{background:none!important}
+html body main a.action-link:not(.button):not(.x):hover .action-label,html body main a.sun-link:not(.button):not(.x):hover .action-label{border-bottom-color:var(--whisk-blue);border-bottom-width:3px}
+html body main a.action-link:not(.button):not(.x):hover .action-arrow,html body main a.sun-link:not(.button):not(.x):hover .action-arrow{transform:translate(2px,-2px)}
+html body main a.action-link:not(.button):not(.x):focus-visible{outline:2px solid var(--deep-blue);outline-offset:6px}
+html body .page-actions{gap:8px 0}
+html body .page-actions a.action-link:last-child{margin-right:0}
+
+/* ---------- Action buttons: Deep Blue with white type (approved pairing), lighter footprint ---------- */
+html body .store-page button:not([data-photo-index]){
+ min-height:46px;padding:12px 24px;gap:10px;
+ background:var(--deep-blue);color:#fff!important;border:0!important;
+ font:700 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase!important;
+}
+html body .store-page button:not([data-photo-index]):not(:disabled):hover{background:#04213e}
+/* Small utility buttons (remove from cart) read as links, not blocks. */
+html body .store-page .cart-row button{background:none!important;color:var(--deep-blue)!important;min-height:0;padding:6px 0!important;border-bottom:1.5px solid currentColor!important}
+html body .store-page .cart-row button:hover{background:none!important;border-bottom-color:var(--whisk-blue)!important}
+
+/* ---------- Form controls: outlined, not filled ---------- */
+html body .menu-filter select{background:#fff;color:var(--deep-blue);border:1.5px solid var(--deep-blue);text-transform:none}
+html body .filter-arrow{color:var(--deep-blue)}
+html body .store-page input,html body .store-page select,html body .store-page textarea{border-width:1.5px}
+
+/* ---------- Accent chips: Espresso on Apricot (approved pairing) instead of green on blue ---------- */
+html body .homepage-find-copy>.mono,html body .status-badge{
+ background:var(--apricot);color:var(--espresso)!important;padding:6px 10px;letter-spacing:var(--track)!important;font-weight:700!important;
+}
+
+/* ---------- Surfaces ---------- */
+html body .find-plain{background:var(--whisk-blue-20)}
+html body .menu-allergens,html body .menu-allergens::before,html body .menu-allergens::after{background:var(--sand)}
+html body .menu-allergens,html body .menu-allergens p{color:var(--espresso)}
+
+/* ---------- Countdown strip: Deep Blue paper tag, white numerals, Apricot labels ---------- */
+html body .launch-strip{background:var(--deep-blue);color:#fff}
+html body .launch-strip span{color:var(--apricot)!important;font-weight:700!important;letter-spacing:var(--track)!important}
+html body .launch-strip strong{color:#fff}
+
+/* ---------- Pattern: decoration only, never behind reading text ---------- */
+.pattern-band{position:relative;height:150px;background:var(--whisk-blue-10);overflow:hidden}
+.pattern-band::before{content:"";position:absolute;inset:0;background:url('../brand/final/pattern-whisk-blue.svg') center/360px auto repeat;opacity:.55}
+@media(max-width:700px){.pattern-band{height:96px}.pattern-band::before{background-size:260px auto}}
+/* Order confirmation: a white card on a patterned field. */
+html body .store-page:has(.order-confirmed){position:relative;background:var(--whisk-blue-10)}
+html body .store-page:has(.order-confirmed)::before{content:"";position:absolute;inset:0;background:url('../brand/final/pattern-whisk-blue.svg') center/420px auto repeat;opacity:.5;pointer-events:none}
+html body .order-confirmed{position:relative;max-width:820px;background:#fff;padding:44px 48px;border-top:6px solid var(--whisk-blue)}
+@media(max-width:700px){html body .order-confirmed{padding:28px 22px}}
+html body main a.action-back:not(.button):not(.x):hover .action-arrow{transform:translateX(-3px)}
+
+/* ---------- Item page: clear price, notice set apart from the description ---------- */
+html body .item-detail .item-price{font:400 30px/1.2 var(--font-display)!important;letter-spacing:-.01em!important;margin:18px 0 22px}
+html body .item-detail .item-notice{background:var(--whisk-blue-10);border-left:3px solid var(--whisk-blue);padding:12px 16px;margin-bottom:22px}
+html body .item-detail .item-notice p{font-size:15px!important;margin:0}
+/* The confirmation page already sits on the pattern; skip the footer band there. */
+main:has(.order-confirmed) ~ .pattern-band{display:none}
+html body .order-confirmed .order-facts dt{font-weight:700;letter-spacing:var(--track)}
+
+/* ---------- Pickup address ---------- */
+html body .pickup-address{margin:26px 0 6px;padding:18px 20px;background:#fff;border-left:3px solid var(--whisk-blue);max-width:440px}
+html body .pickup-address .mono{margin:0 0 6px}
+html body .pickup-address .address{font:400 24px/1.25 var(--font-display)!important;letter-spacing:-.01em!important;margin:0 0 4px}
+html body .pickup-where{margin:-4px 0 4px;font-size:15px!important}
+html body #square-checkout select{background:#fff;color:var(--deep-blue)}
+html body .order-confirmed .order-facts dd{font-weight:500}
+
+/* ---------- Ingredients & allergens: a tidy reveal link ---------- */
+html body .store-page details.ingredients{border:0;padding:0;margin-top:26px}
+html body .store-page details.ingredients summary{list-style:none;display:inline-flex;align-items:center;gap:10px;cursor:pointer;
+ font:700 13px/1.3 var(--font-body)!important;letter-spacing:var(--track)!important;text-transform:uppercase;color:var(--deep-blue);padding-bottom:4px;border-bottom:1.5px solid currentColor}
+html body .store-page details.ingredients summary::-webkit-details-marker{display:none}
+html body .store-page details.ingredients summary::after{content:"+";font-size:16px;line-height:1;transition:transform .15s ease}
+html body .store-page details.ingredients[open] summary::after{content:"–"}
+html body .store-page details.ingredients summary:hover{border-bottom-color:var(--whisk-blue)}
+html body .store-page details.ingredients p{margin-top:14px}

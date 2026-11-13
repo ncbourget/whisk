@@ -190,3 +190,13 @@ test('Ordering windows give a specific reason in the cart and at checkout',async
  const hidden=content();hidden.preorders[0].available=false;
  await assert.rejects(checkout(request(),env,hidden,client,now),/no longer on the pre-order menu/);
 });
+
+test('The site pickup address reaches the Square receipt note and confirmation when a date has no own location',async()=>{
+ const d=content();d.site.pickupAddress='10 Sierra Drive, Chelmsford, MA';
+ const calls=[];const client={catalog:async()=>[product],api:async(path,body)=>{calls.push(body);return {payment_link:{url:'https://square.link/u/test',order_id:'ORDER1'}};}};
+ await checkout(request(),env,d,client,now);
+ assert.equal(calls[0].order.line_items[0].note,'Pickup: Sunday, November 15, 10am–2pm at 10 Sierra Drive, Chelmsford, MA');
+ const own=content();own.site.pickupAddress='Default St';own.site.pickupDates[0].location='Town Green';
+ assert.equal(pickupSlots(own.site,now)[0].location,'Town Green');
+ validateContent(d,new Set(d.menu.map(i=>i.image)));
+});

@@ -176,8 +176,8 @@ export function pickupSlots(site,now=Date.now()){
  const short=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
  return list.filter(p=>p&&typeof p.pickupAt==='string'&&typeof p.closesAt==='string'&&Date.parse(p.closesAt)>now&&Date.parse(p.pickupAt)>now)
   .sort((a,b)=>Date.parse(a.pickupAt)-Date.parse(b.pickupAt))
-  .map(p=>{const at=new Date(p.pickupAt),location=String(p.location||'').trim(),when=day.format(at)+', '+(String(p.window||'').trim()||time.format(at));
-   return {at:p.pickupAt,when,location,label:when+(location?' · '+location:'')+' (order by '+short.format(new Date(p.closesAt))+')'};});
+  .map(p=>{const at=new Date(p.pickupAt),location=String(p.location||'').trim()||String(site?.pickupAddress||'').trim(),when=day.format(at)+', '+(String(p.window||'').trim()||time.format(at));
+   return {at:p.pickupAt,when,location,label:when+' (order by '+short.format(new Date(p.closesAt))+')'};});
 }
 export async function verifySquareWebhook(request,env){
  if(!env.SQUARE_WEBHOOK_SIGNATURE_KEY||request.url!==env.SQUARE_WEBHOOK_URL)fail(403,'Webhook unavailable.');

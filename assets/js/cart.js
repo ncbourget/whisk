@@ -30,7 +30,7 @@
  }
  document.querySelectorAll('[data-add-item]').forEach(button=>button.addEventListener('click',()=>{
   const id=button.dataset.addItem,p=products.get(id),q=Number(document.getElementById('quantity').value);
-  if(!p||p.soldOut)return;
+  if(!p||p.soldOut||blocked(p))return;
   if(!Number.isInteger(q)||q<1||q>20||(cart[id]||0)+q>20){say('Choose up to 20 of each item.');return;}
   cart[id]=(cart[id]||0)+q;save();say(p.name+' added to your cart.');
  }));
@@ -54,6 +54,9 @@
    const select=form.elements.pickup;select.replaceChildren();
    const prompt=node('option','Choose a pickup date');prompt.value='';select.append(prompt);
    commerce.slots.forEach(slot=>{const option=node('option',slot.label);option.value=slot.at;select.append(option);});
+   const where=document.getElementById('pickup-where');
+   const showWhere=()=>{const slot=commerce.slots.find(s=>s.at===select.value);if(where){where.hidden=!slot?.location;where.textContent=slot?.location?'Pickup at '+slot.location:'';}};
+   select.addEventListener('change',showWhere);showWhere();
    form.hidden=false;status.textContent=commerce.notice?'Pre-orders: '+commerce.notice+'. Your cart is saved.':commerce.slots.length?'Review your cart, then choose a pickup date. Nothing is charged until you pay on Square.':'No pickup dates are currently available. Please check back.';render();
   }catch{status.textContent='Checkout is unavailable right now. Please try again later. Your cart is saved.';commerce=null;updateCheckout();}
  }
@@ -83,6 +86,7 @@
   const list=document.createElement('dl');list.className='order-facts';
   const fact=(term,value)=>{if(!value)return;list.append(node('dt',term),node('dd',value));};
   fact('Pickup',r.when);fact('Where',r.location||r.pickupInstructions);
+  const maps=r.location?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.location):'';
   const items=(r.items||[]).map(i=>(i.quantity&&i.quantity!=='1'?i.quantity+' × ':'')+i.name).join(', ');
   fact('Your order',items);
   if(Number.isSafeInteger(r.total?.amount))fact('Paid',new Intl.NumberFormat('en-US',{style:'currency',currency:r.total.currency||'USD'}).format(r.total.amount/100));
@@ -90,6 +94,7 @@
   section.append(node('p','Square has emailed your receipt. Questions or changes? Contact Cindy.'));
   const actions=document.createElement('div');actions.className='page-actions';
   const link=(href,label)=>{const a=document.createElement('a');a.className='action-link';a.href=href;const l=node('span',label);l.className='action-label';const arrow=node('span','↗');arrow.className='action-arrow';arrow.setAttribute('aria-hidden','true');a.append(l,arrow);actions.append(a);};
+  if(maps)link(maps,'get directions');
   if(r.receipt?.url)link(r.receipt.url,'view receipt');
   link(data.base+'/contact/','contact cindy');link(data.base+'/','back to whisk');
   section.append(actions);
@@ -112,6 +117,60 @@
    await new Promise(r=>setTimeout(r,2000));
   }
   status.textContent='Payment has not been confirmed here yet. Check your Square receipt email before trying to pay again.';
+ }
+ // ---- Live item status: sold out, "only N left", countdown until ordering opens, ordering closed ----
+ const time=v=>{const t=v?Date.parse(v):NaN;return Number.isFinite(t)?t:null;};
+ const opensAt=p=>Math.max(time(data.siteOpens)||0,time(p.orderOpens)||0)||null;
+ const closesAt=p=>{const t=[time(data.siteCloses),time(p.orderCloses)].filter(Boolean);return t.length?Math.min(...t):null;};
+ function itemStatus(p,now=Date.now()){
+  if(!p)return null;
+  if(p.soldOut||p.left===0)return {kind:'soldout'};
+  const opens=opensAt(p),closes=closesAt(p);
+  if(opens&&opens>now)return {kind:'soon',at:opens};
+  if(closes&&closes<=now)return {kind:'closed'};
+  if(p.left!=null&&p.left<=3)return {kind:'low',left:p.left};
+  return null;
+ }
+ function blocked(p){const s=itemStatus(p);return !!s&&s.kind!=='low';}
+ let zone=data.timezone||'America/New_York';try{new Intl.DateTimeFormat('en-US',{timeZone:zone});}catch{zone='America/New_York';}
+ const when=t=>new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(t));
+ const clock=ms=>{const s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400),pad=n=>String(n).padStart(2,'0');return (d?d+'d ':'')+pad(Math.floor(s%86400/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60);};
+ function paint(holder,p,now){
+  const photo=holder.matches('.item-photo')?holder:holder.querySelector('.bake-photo');if(!photo)return;
+  const s=itemStatus(p,now);
+  let overlay=photo.querySelector('.status-overlay'),badge=photo.querySelector('.status-badge');
+  if(s&&s.kind==='low'){overlay?.remove();if(!badge){badge=node('span','');badge.className='status-badge';photo.append(badge);}badge.textContent='Only '+s.left+' left';}
+  else badge?.remove();
+  if(!s||s.kind==='low')overlay?.remove();
+  else{
+   if(!overlay){overlay=document.createElement('span');overlay.className='status-overlay';overlay.setAttribute('aria-hidden','true');photo.append(overlay);}
+   const parts=s.kind==='soldout'?[['strong','Sold out']]:s.kind==='closed'?[['strong','Ordering closed']]:[['span','Opens in'],['strong',clock(s.at-now)],['span',when(s.at)]];
+   overlay.replaceChildren(...parts.map(([tag,text])=>node(tag,text)));
+  }
+  const button=document.querySelector('[data-add-item="'+CSS.escape(p.id)+'"]');
+  if(button&&holder.matches('.item-photo')){
+   button.disabled=!!s&&s.kind!=='low';
+   button.textContent=!s||s.kind==='low'?'Add to cart':s.kind==='soldout'?'Sold out':s.kind==='closed'?'Ordering closed':'Opens '+when(s.at);
+  }
+ }
+ const holders=[...document.querySelectorAll('[data-item]')],strip=document.querySelector('[data-launch-strip]');
+ function paintStrip(now){
+  if(!strip)return;
+  const site=time(data.siteOpens),future=[site,...data.items.map(i=>time(i.orderOpens))].filter(t=>t&&t>now);
+  const opens=site&&site>now?site:(future.length?Math.min(...future):null),closes=time(data.siteCloses);
+  let label,target;
+  if(opens){label='Pre-orders open in';target=opens;}
+  else if(closes&&closes>now){label='Pre-orders close in';target=closes;}
+  if(!target){strip.hidden=true;return;}
+  strip.replaceChildren(node('span',label),node('strong',clock(target-now)),node('span',when(target)));strip.hidden=false;
+ }
+ function paintAll(){const now=Date.now();holders.forEach(h=>paint(h,products.get(h.dataset.item),now));paintStrip(now);}
+ if(holders.length||strip){
+  paintAll();setInterval(paintAll,1000);
+  // Live sold-out and stock counts from Square (the cart page loads these through loadCommerce instead).
+  if(!form)fetch(data.base+'/commerce/catalog',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(live=>{
+   for(const l of live?.items||[]){const p=products.get(l.id);if(p){p.soldOut=!!l.soldOut;p.left=l.left??null;}}paintAll();
+  }).catch(()=>{});
  }
  loadCommerce().then(confirmReturn);
  // An item or menu page left open in a tab (or restored with Back) re-checks itself with the server.
