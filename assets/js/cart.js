@@ -144,6 +144,7 @@
   if(!s||s.kind==='low')overlay?.remove();
   else{
    if(!overlay){overlay=document.createElement('span');overlay.className='status-overlay';overlay.setAttribute('aria-hidden','true');photo.append(overlay);}
+   overlay.dataset.kind=s.kind;
    const parts=s.kind==='soldout'?[['strong','Sold out']]:s.kind==='closed'?[['strong','Ordering closed']]:[['span','Opens in'],['strong',clock(s.at-now)],['span',when(s.at)]];
    overlay.replaceChildren(...parts.map(([tag,text])=>node(tag,text)));
   }

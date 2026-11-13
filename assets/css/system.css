@@ -151,3 +151,10 @@ html body .item-detail #cart-message{margin:12px 0 0}
 html body .item-detail section>a.action-link:not(.button):not(.x){display:flex;width:fit-content;margin:22px 0 0}
 html body .store-page .item-detail details.ingredients{margin-top:22px}
 html body .item-detail details.ingredients+p{margin-top:16px}
+
+/* Countdown overlay steps aside on hover so the photo shows (pointer devices only). */
+.status-overlay{transition:opacity .25s ease}
+@media(hover:hover){.bake:hover .status-overlay[data-kind=soon],.bake:focus-within .status-overlay[data-kind=soon],.item-photo:hover .status-overlay[data-kind=soon]{opacity:0}}
+
+/* Pre-order page: filter gets the same space above it as the intro text has below the countdown strip. */
+html body main.store-page>.menu-filter{margin-top:34px}
