@@ -1,7 +1,5 @@
-/* Privileged editor. Every data request requires server-side authorization. No credentials live here. */
 'use strict';
 let data, current = 'site', local = false, hosted = false, dirty = false, revision = '', removeAction;
-// Drafts: hosted edits autosave to the server (no website build). Only Publish website changes the live site.
 let drafts = false, draftVersion = 0, saving = null, saveTimer = 0, retryDelay = 0, draftStopped = false, squarePending = false, liveSquare = false;
 const pendingPhotos = new Set();
 const fields = document.getElementById('editor-fields');
@@ -46,7 +44,6 @@ function markDirty(){dirty=true;if(drafts){scheduleSave();return;}say(hosted?'Un
 const clock=at=>new Date(at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
 function draftSaved(at){say('Draft saved at '+clock(at)+'. Not on the website yet: click Publish website when you’re ready.');}
 function scheduleSave(delay=1200){if(draftStopped)return;clearTimeout(saveTimer);if(!saving)say('Saving your draft…');saveTimer=setTimeout(()=>saveDraft().catch(()=>{}),delay);}
-// Saves the whole draft. Overlapping saves are queued, never sent in parallel, so versions stay in order.
 async function saveDraft(){
  clearTimeout(saveTimer);
  while(saving)await saving.catch(()=>{});
@@ -59,7 +56,6 @@ async function saveDraft(){
    draftVersion=result.version;retryDelay=0;document.getElementById('discard').hidden=false;if(!dirty)draftSaved(result.updatedAt);
   }catch(error){
    dirty=true;
-   // A conflict needs a reload; anything else is retried, and the error stays on screen until it saves.
    if(error.status===409||error.status===400||error.status===413){draftStopped=true;say('Not saved: '+error.message,true);throw error;}
    retryDelay=Math.min((retryDelay||2500)*2,60000);
    say('Not saved yet: '+error.message+' Retrying in '+Math.round(retryDelay/1000)+' seconds. Keep this tab open.',true);
@@ -149,7 +145,6 @@ function photoDeckEditor(object){
  return section;
 }
 function addFields(defs,object,prefix){const grid=el('div',undefined,'field-grid');defs.forEach(def=>grid.append(field(def,object,prefix)));if(defs.some(def=>def[2]==='photo'))grid.append(photoDeckEditor(object));return grid;}
-// Pickup dates: Cindy adds each pickup day, its time window and when orders close. Customers only see dates still open.
 const pickupFields=[['pickupAt','Pickup date & start time','datetime'],['window','Time window shown to customers (optional)','text','For example 10am–2pm. Leave empty to show the start time.'],['location','Pickup location (optional)','text','For example “Groton Farmers Market, 123 Main St”. Leave empty to use the Pickup address.'],['closesAt','Orders close','datetime']];
 function pickupSection(){
  const section=el('section',undefined,'editor-section');section.append(el('h2','Pickup dates'),el('p','Customers choose one of these at checkout. Each date disappears from the cart once its orders close.'));
@@ -264,7 +259,6 @@ document.getElementById('import').addEventListener('change',async event=>{
  try{if(file.name!==current+'.json')throw Error(`Choose ${current}.json for this tab.`);const parsed=JSON.parse(await file.text());const valid=current==='site'?parsed&&typeof parsed==='object'&&!Array.isArray(parsed):Array.isArray(parsed);if(!valid)throw Error('That file has the wrong format.');if(current==='site'&&Object.keys(data.site).some(k=>!(k in parsed)))throw Error('That bakery file is missing fields.');if(current!=='site'&&parsed.some(item=>!item||typeof item!=='object'||typeof item.id!=='string'||typeof item.name!=='string'||(['menu','preorders'].includes(current)&&!Array.isArray(item.dietary))))throw Error('That file has incomplete entries.');data[current]=parsed;markDirty();render();say('Imported into your draft. Review the fields before saving.');}catch(error){say('Could not import: '+error.message,true);}event.target.value='';
 });
 window.addEventListener('beforeunload',event=>{if(dirty||saving){event.preventDefault();event.returnValue='';}});
-// Save straight away when the tab is hidden (switching apps, closing the laptop).
 document.addEventListener('visibilitychange',()=>{if(drafts&&document.visibilityState==='hidden'&&dirty)saveDraft().catch(()=>{});});
 function showDraftNotice(){
  if(!drafts)return;
@@ -273,8 +267,6 @@ function showDraftNotice(){
 }
 (async()=>{
  try{
-  // Authorization is enforced by the server, never inferred from the hostname.
-  // No public JSON fallback: an expired/absent session must fail closed.
   const res=await fetch('/api/content',{credentials:'same-origin',cache:'no-store'});
   if(!res.headers.get('Content-Type')?.includes('application/json'))throw Error('The content request did not return editor data. Open /api/content in this signed-in browser to check its Access login or error page.');
   const result=await responseData(res);
@@ -294,7 +286,6 @@ function showDraftNotice(){
  }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();
 
-// Show the server's step and status with every Square failure, so it is never silent or vague.
 function squareFailure(result,status){const bits=[result?.step&&'step: '+result.step,result?.httpStatus&&'Square HTTP '+result.httpStatus,result?.squareCode&&'Square code '+result.squareCode,'server status '+status].filter(Boolean);return Error((typeof result?.error==='string'?result.error:'Square sync failed.')+' ['+bits.join(', ')+']');}
 async function squarePanel(button){
  if(uploading||(!drafts&&dirty)){say('Publish or reload your draft before syncing Square.',true);return;}

@@ -1,4 +1,3 @@
-/* A browsing cart only. Prices and availability must be revalidated by the payment server. */
 'use strict';
 (()=>{
  const data=JSON.parse(document.getElementById('cart-data').textContent), key='whisk-preorder-cart-v1';
@@ -65,7 +64,6 @@
   submitting=true;updateCheckout();status.textContent='Checking prices and preparing Square checkout…';
   try{
    const payload={items:Object.entries(cart).map(([id,quantity])=>({id,quantity,unitPrice:Math.round(products.get(id).price*100)})),pickupAt:form.elements.pickup.value,recipient:{name:form.elements.name.value,email:form.elements.email.value,phone:form.elements.phone.value},notes:form.elements.notes?.value||''};
-   // Retry the same request with the same key, without persisting personal information.
    const fingerprint=JSON.stringify(payload);
    if(form._checkoutFingerprint!==fingerprint){form._checkoutFingerprint=fingerprint;form._checkoutKey=crypto.randomUUID();}
    payload.key=form._checkoutKey;
@@ -75,7 +73,6 @@
    location.assign(result.url);
   }catch(error){status.textContent=error.message+' Reload this page to refresh prices and availability.';submitting=false;updateCheckout();}
  });
- // After Square payment: show a clear "You're all set" screen with pickup details.
  function showConfirmation(r){
   const main=document.querySelector('main');if(!main)return;
   const section=document.createElement('section');section.className='order-confirmed';
@@ -103,7 +100,6 @@
  async function confirmReturn(){
   if(!status||new URLSearchParams(location.search).get('checkout')!=='returned')return;
   status.textContent='Checking your payment with Square…';
-  // Square can take a moment to record the payment, so check a few times before giving up.
   for(let attempt=0;attempt<4;attempt++){
    try{
     const response=await fetch(data.base+'/commerce/order-status',{cache:'no-store'}),result=await response.json();
@@ -118,7 +114,6 @@
   }
   status.textContent='Payment has not been confirmed here yet. Check your Square receipt email before trying to pay again.';
  }
- // ---- Live item status: sold out, "only N left", countdown until ordering opens, ordering closed ----
  const time=v=>{const t=v?Date.parse(v):NaN;return Number.isFinite(t)?t:null;};
  const opensAt=p=>Math.max(time(data.siteOpens)||0,time(p.orderOpens)||0)||null;
  const closesAt=p=>{const t=[time(data.siteCloses),time(p.orderCloses)].filter(Boolean);return t.length?Math.min(...t):null;};
@@ -157,7 +152,6 @@
  const holders=[...document.querySelectorAll('[data-item]')],strip=document.querySelector('[data-launch-strip]');
  function paintStrip(now){
   if(!strip)return;
-  // The banner follows only the site-wide "Ordering opens / closes" times from the editor.
   const opens=time(data.siteOpens),closes=time(data.siteCloses);
   let label,target;
   if(opens&&opens>now){label='Pre-orders open in';target=opens;}
@@ -168,14 +162,11 @@
  function paintAll(){const now=Date.now();holders.forEach(h=>paint(h,products.get(h.dataset.item),now));paintStrip(now);}
  if(holders.length||strip){
   paintAll();setInterval(paintAll,1000);
-  // Live sold-out and stock counts from Square (the cart page loads these through loadCommerce instead).
   if(!form)fetch(data.base+'/commerce/catalog',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(live=>{
    for(const l of live?.items||[]){const p=products.get(l.id);if(p){p.soldOut=!!l.soldOut;p.left=l.left??null;}}paintAll();
   }).catch(()=>{});
  }
  loadCommerce().then(confirmReturn);
- // An item or menu page left open in a tab (or restored with Back) re-checks itself with the server.
- // If the item was hidden or its menu turned off, the page is replaced by the current "unavailable" message.
  if(/^\/(menu|preorder)\//.test(location.pathname.slice(data.base.length))){
   let last=0;
   const recheck=async()=>{

@@ -1,6 +1,3 @@
-/* WHISK BRAND — provisional system, ready for Cindy's daughter's approved assets.
-   Exactly three text roles. The logo is an SVG asset, never a UI font.
-   All fonts are self-hosted, SIL OFL; see assets/fonts/. */
 @font-face {
   font-family: 'Fraunces';
   src: url('../fonts/fraunces-latin-variable.woff2') format('woff2');
@@ -23,7 +20,6 @@
   font-display: swap;
 }
 :root {
-  /* WHISK BRAND: replace with final approved color values. Not screenshot samples. */
   --whisk-blue: #b7c4e8;
   --ink: #20283f;
   --paper: #f8f7f2;
@@ -34,8 +30,7 @@
   --muted: #596175;
   --border: #c4c8d0;
   --focus: var(--ink);
-  --accent: var(--ink); /* Compatibility alias; no separate accent color. */
-  /* WHISK BRAND: font roles. Update these and @font-face together. */
+  --accent: var(--ink);
   --font-display: 'Fraunces', Georgia, serif;
   --font-heading: var(--font-display);
   --font-body: 'Public Sans', Arial, sans-serif;

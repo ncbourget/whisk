@@ -10,7 +10,6 @@
  window.matchMedia('(min-width: 701px)').addEventListener('change',event=>{if(event.matches&&menu.open)menu.close();});
 })();
 
-// Native select supports touch, keyboard, and screen-reader category filtering.
 (()=>{
  const select=document.getElementById('menu-category');
  if(!select)return;
@@ -25,7 +24,6 @@
  filter();
 })();
 
-// Facebook's plugin needs an explicit pixel width, including on narrow screens.
 (()=>{
  const frame=document.querySelector('.social-feed iframe[src^="https://www.facebook.com/plugins/page.php"]');
  if(!frame)return;
@@ -39,7 +37,6 @@
  observer.observe(frame);
 })();
 
-// The photo remains a normal image link if JavaScript is unavailable.
 (()=>{
  const link=document.querySelector('.about-photo-zoom');
  if(!link)return;
@@ -54,7 +51,6 @@
  dialog.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;link.focus({preventScroll:true});});
 })();
 
-// Decorative previews never change the link or product information.
 (()=>{
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  document.querySelectorAll('[data-more-tile]').forEach(tile=>{
@@ -73,7 +69,6 @@
  });
 })();
 
-// Optional product photos share a three-second crossfade on cards and detail pages.
 (()=>{
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  document.querySelectorAll('[data-card-slideshow],[data-product-gallery]').forEach(gallery=>{

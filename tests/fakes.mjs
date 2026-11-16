@@ -1,10 +1,8 @@
-// In-memory fakes for D1 and the GitHub git-data API (not a test file: no .test suffix).
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 const fixture = JSON.parse(await readFile(new URL('./fixtures/content.json', import.meta.url)));
 
-// Minimal D1 binding backed by real SQLite, so the SQL itself is exercised.
 export function d1() {
   const db = new DatabaseSync(':memory:');
   return {prepare(sql) {
@@ -19,7 +17,6 @@ export function d1() {
   }};
 }
 
-// Stateful fake of the GitHub git-data API: blobs, trees, commits and a non-force ref.
 export function github(content = fixture, extraFiles = []) {
   let id = 0; const next = p => p + (++id);
   const blobs = new Map(), trees = new Map(), commits = new Map();
@@ -29,7 +26,6 @@ export function github(content = fixture, extraFiles = []) {
   trees.set('t0', files); commits.set('c0', {tree: 't0', parents: []});
   const repo = {head: 'c0', calls: [], refUpdates: 0, raceOnce: false};
   repo.read = key => JSON.parse(blobs.get(trees.get(commits.get(repo.head).tree).get('data/' + key + '.json')).toString());
-  // Someone else commits to main (another tab, Nate's push).
   repo.push = (key, change) => {
     const value = repo.read(key); change(value);
     const tree = new Map(trees.get(commits.get(repo.head).tree)); tree.set('data/' + key + '.json', blob(JSON.stringify(value, null, 2) + '\n'));

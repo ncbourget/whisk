@@ -1,4 +1,3 @@
-// This module is server-only. Never bundle it into browser JavaScript.
 import {createRemoteJWKSet, jwtVerify} from 'jose';
 
 const keySets = new Map();
@@ -10,7 +9,7 @@ export function settings(env) {
   const audience = env.ACCESS_AUD;
   const host = env.ADMIN_HOSTNAME;
   let emails;
-  try { emails = JSON.parse(env.ADMIN_EMAILS); } catch { /* Fail closed below. */ }
+  try { emails = JSON.parse(env.ADMIN_EMAILS); } catch { }
   if (!/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(issuer || '') ||
       !/^[a-zA-Z0-9_-]{32,128}$/.test(audience || '') ||
       !/^(?=.{1,253}$)[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?$/.test(host || '') ||
@@ -25,8 +24,6 @@ export function settings(env) {
 export async function authorize(request, env) {
   const config = settings(env);
   const url = new URL(request.url);
-  // One exact administrative hostname. Alternate pages.dev/preview/custom hosts
-  // cannot use a valid token to reach the admin application.
   if (url.protocol !== 'https:' || url.hostname !== config.host || url.port) {
     throw new AccessError(403, 'Administrative access is not available on this hostname.');
   }
@@ -44,7 +41,6 @@ export async function authorize(request, env) {
       requiredClaims: ['exp', 'iat', 'sub', 'email'], clockTolerance: 0,
     }));
   } catch {
-    // Invalid signatures, expired/wrong-audience tokens and JWKS failures all deny.
     throw new AccessError(401, 'Cloudflare Access sign-in required.');
   }
   if (typeof payload.sub !== 'string' || !payload.sub ||
@@ -52,6 +48,5 @@ export async function authorize(request, env) {
       typeof payload.email !== 'string' || !config.emails.includes(payload.email.toLowerCase())) {
     throw new AccessError(403, 'This account is not authorized.');
   }
-  // Never trust Cf-Access-Authenticated-User-Email or a decoded unsigned JWT.
   return {email: payload.email, subject: payload.sub};
 }

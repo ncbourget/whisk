@@ -1,5 +1,4 @@
 import {squareImage} from './square-images.mjs';
-// Server-side validation for the only content files the editor can publish.
 export class PublishError extends Error { constructor(status,message){super(message);this.status=status;} }
 const fail=message=>{throw new PublishError(400,message);};
 const siteStrings='name tagline status statusNote heroHeading heroText aboutHeading aboutText aboutNote hours pickup cutoff refunds allergens footerNote domain basePath currency timezone email phone instagram facebook squareUrl serviceArea socialImage socialImageAlt orderOpens orderCloses'.split(' ');
@@ -28,7 +27,6 @@ export function validateContent(data,files){
  if(!Array.isArray(preorders)||preorders.length>200)fail('Keep pre-orders below 200 entries.');
  const {showStandMenu,showPreorderMenu,pickupDates,pickupAddress,...siteCore}=site;
  if(pickupAddress!==undefined&&(typeof pickupAddress!=='string'||pickupAddress.length>200))fail('Keep the pickup address under 200 characters.');
- // Pickup dates Cindy sets in the editor: each has a pickup time, an orders-close time and an optional time window.
  if(pickupDates!==undefined){
   if(!Array.isArray(pickupDates)||pickupDates.length>60)fail('Keep pickup dates below 60 entries.');
   const seen=new Set();
@@ -54,7 +52,6 @@ export function validateContent(data,files){
  if(i.price<0||i.price>100000||!Number.isInteger(i.position))fail('Invalid price or position.');
  if(!['square','portrait','landscape'].includes(i.imageShape))fail('Invalid image shape.');asset(i.image);if(i.image&&!i.imageAlt.trim())fail('Describe each product photo.');url(i.squareUrl,true);window(i);}
  ids=new Set();for(const v of events){shape(v,eventStrings);if(!/^[a-z0-9-]+$/.test(v.id)||ids.has(v.id)||!v.name.trim())fail('Each stop needs a unique ID and name.');ids.add(v.id);const start=date(v.start),end=date(v.end);if(start===null||end===null||start>=end)fail('A stop needs a start and later end time.');if(!['confirmed','cancelled','tentative'].includes(v.status))fail('Invalid stop status.');url(v.mapUrl);}
- // Say exactly which launch requirement is missing (the editor shows this message).
  if(!site.demo&&!site.domain)fail('Not published: with demo mode off, fill in Launch settings → Production domain (for example https://whisk-dnh.pages.dev).');
  if(!site.demo&&site.orderingEnabled&&!site.email)fail('Not published: with ordering enabled, fill in Contact & social → Contact email.');
  if(!site.demo&&site.orderingEnabled&&!(site.squareUrl||menu.some(i=>i.squareUrl)||preorders.some(i=>i.squareVariationId)))fail('Not published: with ordering enabled, link at least one pre-order item to Square (Pre-orders → Sync both menus from Square).');

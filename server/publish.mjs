@@ -1,10 +1,8 @@
 import {squareClient,squareReady,autoSyncSquare} from './square.mjs';
-// Fixed repository and branch: never accept Git paths or API URLs from a client.
 import {PublishError,validateContent,readLimited,digest,imageExtension} from './content.mjs';
 import {draftStore,draftsEnabled} from './drafts.mjs';
 import {mergeContent} from './merge.mjs';
 const keys=['site','menu','events','preorders'];
-// Same key order everywhere, so a revision always describes exactly the files that get written.
 const ordered=data=>({site:data.site,menu:data.menu,events:data.events,preorders:data.preorders??[]});
 const photoPath=/^assets\/food\/upload-[a-f0-9]{64}\.(jpg|png|webp)$/;
 const root='https://api.github.com/repos/ncbourget/whisk';
@@ -32,7 +30,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
  async function commitChanges(current,entries,message){
   const tree=await api('/git/trees','POST',{base_tree:current.tree,tree:entries});
   const commit=await api('/git/commits','POST',{message,tree:tree.sha,parents:[current.head]});
-  // No force: a concurrent push rejects this update instead of losing changes.
   try{await api('/git/refs/heads/main','PATCH',{sha:commit.sha,force:false});}
   catch(error){if(error.status===409)error.moved=true;throw error;}
   return commit.sha;
@@ -63,9 +60,7 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   }
   return {path};
  }
- // mode 'preview' changes nothing and returns the report; 'apply' publishes the merged content.
  async function syncSquare(mode='apply',revision){
-  // Label which step failed so the editor can show it (no secrets).
   const step=async(name,work)=>{try{return await work();}catch(error){if(error&&typeof error==='object'&&!error.step)error.step=name;throw error;}};
   const current=await step('github-read',snapshot);
   if(revision!==undefined&&revision!==current.revision)throw Object.assign(new PublishError(409,'Content changed. Reload the editor before syncing.'),{step:'revision-check'});
@@ -77,7 +72,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   const saved=await step('github-save',()=>save(new Request('https://internal/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision:current.revision})})));
   return {...saved,report};
  }
- // ---- Drafts (D1). Autosave never touches GitHub, so it never starts a Cloudflare build. ----
  const need=()=>{if(!store)throw new PublishError(503,'Draft saving is not set up. Ask Nate to bind the DRAFTS database.');return store;};
  async function body(request,max=300*1024){
   if(request.headers.get('content-type')?.split(';')[0]!=='application/json')throw new PublishError(415,'Expected JSON content.');
@@ -96,7 +90,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   const db=need();const input=await body(request);const v=version(input?.version);const data=draftShape(input?.data);
   if(v===0){
    let current=await snapshot();
-   // Right after a publish GitHub can briefly report the previous commit; look once more before refusing.
    if(input.revision!==current.revision){await new Promise(r=>setTimeout(r,retryWait));current=await snapshot();}
    if(input.revision!==current.revision)throw new PublishError(409,'The website was just published from somewhere else. Reload the editor to get the latest content, then make your change again.');
    return db.saveDraft({data,base:current.data,baseRevision:current.revision,by},0);
@@ -115,7 +108,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   const db=need();const v=version((await body(request,1024))?.version);
   const [draft,squareSince,pending]=await Promise.all([db.draft(),db.squarePending(),db.photos()]);
   if(draft&&draft.version!==v||!draft&&v!==0)throw new PublishError(409,'This draft was changed or published in another tab. Reload the editor to see the latest draft, then publish.');
-  // Square changes wait for Publish: read the catalog once, apply it on top of the draft below.
   let products=null,squareNote='';
   if(squareSince!==null){
    if(!squareReady(env))squareNote='Square reported changes, but Square is not connected here, so they were not included.';
@@ -153,7 +145,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   const db=need();const bytes=await readLimited(request,5*1024*1024);const ext=imageExtension(bytes,request.headers.get('content-type'));
   const path='assets/food/upload-'+await digest(bytes)+'.'+ext;
   let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-  // A blob is stored without a commit, so uploading starts no build. Publish adds it to the tree.
   const blob=await api('/git/blobs','POST',{content:btoa(binary),encoding:'base64'});
   await db.addPhoto(path,blob.sha);
   return {path,pending:true};
@@ -163,8 +154,6 @@ export function publisher(env,transport=(url,options)=>globalThis.fetch(url,opti
   const sha=(await need().photos()).get(path);if(!sha)return null;
   return {bytes:await api('/git/blobs/'+sha,'GET',undefined,true),type:{jpg:'image/jpeg',png:'image/png',webp:'image/webp'}[path.split('.').pop()]};
  }
- // Square for drafts: the webhook only records that Square changed; the editor can preview or
- // pull those changes into the draft, and Publish includes them.
  async function squareDraft(mode,v){
   const db=need();const [current,draft,squareSince]=await Promise.all([snapshot(),db.draft(),db.squarePending()]);
   if(draft&&draft.version!==v||!draft&&v!==0)throw Object.assign(new PublishError(409,'Your draft changed in another tab. Reload the editor before syncing.'),{step:'revision-check'});

@@ -6,7 +6,6 @@
 
 @media(max-width:650px){.hero-copy{top:78px}.hero-phrase{display:none}h1{font-size:clamp(98px,25vw,150px)}h1 .mono{margin-top:14px}.intro{margin:16px 0 0 3%}.hero-copy>.sun-link{margin-top:8px}.hero-image img{object-position:67% bottom}}
 
-/* Recipe-book layout and type refinement, isolated to the concept. */
 :root{--ink:var(--ink)}
 h1,h2,h3,.hero-phrase,.recipe-end p,.footer-word,.nav-brand{font-family:'Quincy CF',Georgia,serif;font-weight:400;letter-spacing:-.035em}
 em{font-style:normal;font-weight:400}
@@ -29,14 +28,12 @@ h3 a,.footer-word,.nav-brand{font-family:'Quincy CF',Georgia,serif;text-transfor
 .bake p{font-size:12px;line-height:1.45;max-width:none;margin:12px 0}
 .menu-detail{font-size:11px}.recipe-end{margin:65px 0 0}.recipe-end p{font-size:32px}
 .drawing-two{display:none}
-/* A small repeating SVG alpha mask supplies irregular paper fibres, not a wave. */
 .recipe:before,.recipe:after,footer:before,.homepage-about:before,.menu-allergens:before,.menu-allergens:after{content:'';position:absolute;left:0;width:100%;height:22px;background:var(--paper);pointer-events:none;z-index:3;mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24'%3E%3Cpath fill='white' d='M0 11L7 8 13 10 20 6 27 9 32 7 39 12 46 9 51 10 58 5 65 8 70 6 77 10 85 7 91 11 98 9 104 13 111 8 118 10 123 6 131 9 139 5 146 8 152 7 159 12 166 9 174 11 181 6 187 8 193 4 200 8 207 6 213 11 220 8 227 10 234 7 240 12 246 9 253 11 260 6 267 8 274 5 281 9 289 7 295 10 300 11V24H0Z'/%3E%3C/svg%3E");mask-size:300px 24px;mask-repeat:repeat-x}
 .recipe:before,footer:before,.homepage-about:before{top:-21px}.recipe:after{bottom:-21px;transform:rotate(180deg)}
 .find{background:#b8d3df}.outdoor-detail{top:0;bottom:0;right:0;transform:none}.find-note{background:var(--paper)}
 @media(max-width:800px){.bakes{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 20px}.recipe-intro{align-items:start}.menu-note{width:auto;max-width:260px}.recipe h2{font-size:44px}.bake h3,.bake-2 h3,.bake-4 h3{font-size:24px}}
 @media(max-width:650px){.recipe{padding:35px 6% 45px}.recipe-intro{gap:15px}.recipe h2{font-size:39px}.menu-note{width:100%;max-width:none}.menu-note a{margin-top:12px}.bakes{margin-top:25px;gap:28px 16px}.food-space{margin-bottom:12px}.food-space span{font-size:35px}.bake h3,.bake-2 h3,.bake-4 h3{font-size:21px;overflow-wrap:normal}.bake p{font-size:11px}.menu-detail{font-size:10px}.outdoor-detail{top:430px;bottom:0;width:100%}.hero-copy>.sun-link{font-size:12px}h1{font-size:clamp(87px,23vw,145px)}}
 
-/* Photo menu and continuous meadow, matching the composition reference. */
 .recipe-intro{display:block}.recipe-intro>.mono{margin-bottom:18px}
 .menu-heading-line{display:flex;align-items:baseline;gap:22px;width:100%}
 .recipe h2{font-size:clamp(30px,3.2vw,50px);white-space:nowrap;max-width:none;line-height:1.15;flex-shrink:0}
@@ -55,7 +52,6 @@ h3 a,.footer-word,.nav-brand{font-family:'Quincy CF',Georgia,serif;text-transfor
 @media(max-width:650px){.recipe h2{font-size:34px;max-width:320px}.food-photo{margin-bottom:12px}.find{min-height:440px;padding:55px 6% 130px}.find-copy{display:block}.find h2{font-size:39px}.stop-details{border:0;padding:20px 0 0;max-width:280px}.field-image{object-position:43% center}.recipe{padding-bottom:42px}.sample-price{font-size:12px}}
 @media(max-width:800px){.menu-heading-line>h2{flex:0 1 100%;min-width:0;max-width:100%;overflow-wrap:break-word}}
 
-/* One consistent caption/link treatment; no animated underline effects. */
 header{justify-content:flex-end}
 .hero-logo{display:block;width:min(100%,440px);height:auto}
 .hero-copy h1{font-size:inherit;line-height:1}
@@ -67,32 +63,24 @@ a:not(.footer-word):not(.nav-brand):not(h3 a),.mono,.intro,.bake p,.sample-price
 }
 @media(max-width:1000px){.hero-logo{width:330px}.hero-copy{top:13%}}
 @media(max-width:650px){header nav{max-width:none;gap:10px 18px;justify-content:center}header{justify-content:center}.hero-copy{top:88px}.hero-logo{width:210px}.hero-copy .intro{margin-top:16px}.hero-copy>.sun-link{margin-top:6px}.hero-copy{width:86%}}
-/* Prices share the bottom baseline of each responsive menu row. */
 .bake{display:flex;flex-direction:column}
 .bake-copy{display:flex;flex-direction:column;flex:1}
 .bake-copy .sample-price{margin-top:auto;padding-top:12px}
-/* Preserve the meadow foreground; crop excess sky first at every width. */
 .field-image{object-position:center bottom}
 @media(max-width:650px){.field-image{object-position:43% bottom}}
 
-/* Split navigation, with fixed-size monochrome social marks. */
 header .split-nav{width:100%;max-width:none;display:flex;justify-content:space-between;align-items:center;gap:20px}
 .nav-left,.nav-right{display:flex;align-items:center;gap:28px}.social-icon{display:inline-flex;width:24px;height:28px;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}.social-icon svg{display:block}
 @media(max-width:650px){header .split-nav{align-items:flex-start;flex-wrap:nowrap;gap:16px}.nav-left,.nav-right{gap:10px 14px;flex-wrap:wrap}.nav-left{justify-content:flex-start;max-width:150px}.nav-right{justify-content:flex-end;max-width:150px}.hero-copy{top:112px}}
-/* Lower the meadow framing by 30px while keeping the section fully covered. */
 .field-image{height:calc(100% + 30px)}
 
-/* Keep brand artwork from being selected or dragged; home links remain clickable. */
 .hero-logo,.mobile-brand,.footer-logo,.mobile-brand img,.footer-logo img{-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
 
-/* Keep the splashscreen image from being selected or dragged. */
 .hero-image,.hero-image img{-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
 
-/* Frame the hydrangeas lower, keeping the pale fence behind the heading. */
 .field-image{height:100%;object-position:center top}
 @media(max-width:650px){.field-image{object-position:43% top}}
 
-/* White highlights only for the captions over the hydrangea photograph. */
 .find-copy .mono,.find-copy .stop-details p,.find-copy .sun-link{
  background:#fff;
  box-shadow:4px 0 #fff,-4px 0 #fff;

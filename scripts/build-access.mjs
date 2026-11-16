@@ -1,4 +1,3 @@
-// Bundle the private editor into Cloudflare's server module, NOT static assets.
 import {build} from 'esbuild';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {resolve} from 'node:path';

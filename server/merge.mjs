@@ -1,6 +1,3 @@
-// Three-way merge of editor content: `base` is what the draft started from, `ours` is the draft,
-// `theirs` is what is on GitHub now. Fields only one side changed are kept; when both sides changed
-// the same field differently, the draft wins and the field is reported so the editor can say so.
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const collections = {menu: 'Main menu', preorders: 'Pre-orders', events: 'Upcoming stops'};
 
@@ -21,8 +18,8 @@ function mergeList(base = [], ours = [], theirs = [], label, conflicts) {
   const name = item => label + ' → ' + (item.name || item.id);
   const out = [];
   for (const item of ours) {
-    if (!b.has(item.id)) { out.push(item); continue; } // added in the draft
-    if (!t.has(item.id)) { // removed on the website meanwhile
+    if (!b.has(item.id)) { out.push(item); continue; }
+    if (!t.has(item.id)) {
       if (!same(item, b.get(item.id))) { out.push(item); conflicts.push(name(item) + ' (removed elsewhere; your edited copy was kept)'); }
       continue;
     }
@@ -30,7 +27,7 @@ function mergeList(base = [], ours = [], theirs = [], label, conflicts) {
   }
   for (const item of theirs) {
     if (o.has(item.id)) continue;
-    if (!b.has(item.id)) { out.push(item); continue; } // added on the website meanwhile
+    if (!b.has(item.id)) { out.push(item); continue; }
     if (!same(item, b.get(item.id))) conflicts.push(name(item) + ' (you removed it; it was also changed elsewhere)');
   }
   return out;

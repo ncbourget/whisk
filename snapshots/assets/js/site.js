@@ -1,4 +1,3 @@
-/* Enhancements only. All menus, contact details, and checkout links exist in HTML. */
 'use strict';
 const filters = document.querySelector('.filters');
 if (filters) {
@@ -15,7 +14,6 @@ if (filters) {
     document.getElementById('filter-result').textContent = `${shown} ${shown === 1 ? 'item' : 'items'} shown`;
   });
 }
-// Keep the text fallback visible if a replaced photo cannot be loaded.
 document.querySelectorAll('.food-photo img').forEach(img => {
   const fallback = () => { img.parentElement.querySelector('.photo-fallback').hidden = false; img.remove(); };
   img.addEventListener('error', fallback, {once:true});
@@ -31,8 +29,6 @@ if (share) {
     catch { message.textContent = `Copy this link: ${home}`; }
   });
 }
-// A stale static page must never imply that a time-limited order is still open.
-// Square MUST separately enforce stock and cutoffs: these browser checks are UX, not inventory control.
 const configElement = document.getElementById('ordering-data');
 if (configElement) {
   const config = JSON.parse(configElement.textContent);

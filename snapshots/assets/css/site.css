@@ -1,4 +1,3 @@
-/* WHISK — three text roles, one material palette. Brand values live in brand.css. */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--type-body)/1.65 var(--font-body); -webkit-font-smoothing: antialiased; }
@@ -24,14 +23,12 @@ p { margin-bottom: 1rem; }
 [hidden] { display: none !important; }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 20; padding: 12px; background: var(--paper); }
 .skip-link:focus { top: 10px; }
-/* Flat printed-label actions. Color never carries the only state information. */
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 24px; border: 1px solid var(--ink); border-radius: var(--radius-small); background: var(--ink); color: var(--white); font-size: .9375rem; font-weight: 550; line-height: 1.5; text-decoration: none; text-align: center; }
 .button:hover { background: var(--paper); color: var(--ink); }
 .small-button { min-height: 44px; padding: 10px 20px; }
 .text-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: .9375rem; font-weight: 500; line-height: 1.5; text-decoration: underline; text-decoration-thickness: 1px; }
 .text-link:hover { text-decoration-thickness: 2px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
-/* Logo files are intentionally neutral placeholders, never general-purpose script. */
 .brand { display: inline-flex; align-items: center; text-decoration: none; flex-shrink: 0; }
 .brand img { width: 156px; height: auto; }
 .preview-ribbon { background: var(--ink); color: var(--white); padding: 6px 16px; text-align: center; font-size: .75rem; }
@@ -40,7 +37,6 @@ p { margin-bottom: 1rem; }
 .site-header nav { display: flex; gap: 34px; margin-left: auto; margin-right: 22px; }
 .site-header nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: .9375rem; text-decoration: none; }
 .site-header nav a:hover, .site-header nav a[aria-current] { text-decoration: underline; }
-/* Status belongs in the first screen, before the expressive hero. */
 .status-strip { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px 28px; padding: 12px 0; border-top: 1px solid var(--border); }
 .status-strip strong { white-space: nowrap; }
 .status-strip p { margin: 0; font-size: .875rem; line-height: 1.55; }
@@ -58,7 +54,6 @@ p { margin-bottom: 1rem; }
 .service-window:hover strong { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .service-window:focus-visible { outline-color: var(--white); outline-offset: -3px; }
 .trailer-brand { position: absolute; left: 44%; top: 62.6%; width: 16%; height: auto; }
-/* Featured menu: a lead image and two quieter companions, no enclosing cards. */
 .section { padding-block: 48px; }
 .featured-section { border-top: 1px solid var(--ink); padding-top: 30px; }
 .featured-heading { display: flex; align-items: baseline; gap: 28px; margin-bottom: 18px; }
@@ -77,7 +72,6 @@ p { margin-bottom: 1rem; }
 .food-photo.landscape { aspect-ratio: 3/2; }
 .food-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .food-photo img[src$='.svg'] { object-fit: contain; padding: 8%; }
-/* Warm color belongs to food; image surrounds stay material-neutral. */
 .photo-fallback { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 90%; text-align: center; font-family: var(--font-mono); font-size: var(--type-meta); color: var(--muted); }
 .photo-fallback > span { display: none; }
 .product-copy { padding-top: 18px; }
@@ -94,7 +88,6 @@ p { margin-bottom: 1rem; }
 .product summary { padding-block: 12px; font-size: .875rem; }
 .product details p { margin: 8px 0; }
 .menu-endnote { display: flex; justify-content: flex-end; margin-top: 22px; }
-/* One blue environment; navy type preserves contrast on this pale brand color. */
 .story-strip { position: relative; display: grid; grid-template-columns: .45fr 1fr 1.2fr; align-items: center; gap: 32px; background: var(--whisk-blue); padding: 42px 48px; margin-block: 14px 8px; }
 .story-mark img { width: 72px; height: 108px; object-fit: contain; margin: auto; transform: rotate(-16deg); }
 .story-strip h2 { margin: 0; max-width: 8ch; }
@@ -106,7 +99,6 @@ p { margin-bottom: 1rem; }
 .empty-stop p { max-width: 46ch; margin-bottom: 8px; }
 .hours-note { color: var(--muted); margin: 18px 0 0; max-width: 48ch; }
 .social-links { display: flex; flex-wrap: wrap; gap: 20px; }
-/* The footer is the reversed brand environment, not another slogan. */
 .site-footer { background: var(--ink); color: var(--white); --focus: var(--white); padding-top: 38px; }
 .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; padding-bottom: 28px; }
 .footer-top .brand img { width: 176px; }
@@ -117,7 +109,6 @@ p { margin-bottom: 1rem; }
 .footer-top a:hover { text-decoration: underline; }
 .footer-top .muted { color: var(--silver-light); }
 .footer-bottom { border-top: 1px solid var(--silver-dark); padding-block: 16px; font-size: .75rem; color: var(--silver-light); }
-/* Normal pages: direct titles, useful measures, and no automatic kicker everywhere. */
 .inner-page main { padding-bottom: 52px; }
 .page-heading { padding: 38px 0 30px; max-width: 920px; }
 .page-heading h1 { font-size: var(--type-page); margin-bottom: 16px; }
@@ -169,7 +160,6 @@ details[open] summary { text-decoration: underline; text-underline-offset: 4px; 
 .order-panel { max-width: 740px; background: var(--whisk-blue); padding: 32px; }
 .order-panel h2 { font-size: 2rem; }
 .order-panel .button { margin: 4px 0 22px; }
-/* Tablet: compress the main composition, never shrink its body text. */
 @media (max-width:1100px) {
   .wrap { width: calc(100% - 56px); }
   .site-header nav { gap: 24px; margin-right: 8px; }
@@ -218,7 +208,6 @@ details[open] summary { text-decoration: underline; text-underline-offset: 4px; 
   .info-pair { gap: 30px; }
   .footer-top { gap: 30px; grid-template-columns: 1.2fr 1fr 1fr; }
 }
-/* Phone: status, headline, action, trailer. No decorative copy to navigate around. */
 @media (max-width:600px) {
   .site-header { flex-wrap: wrap; padding-block: 16px 8px; gap: 12px; }
   .site-header nav { order: 3; width: 100%; justify-content: space-between; margin: 0; gap: 15px; }

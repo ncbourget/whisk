@@ -35,9 +35,7 @@ test('Marked Square values are replaced; editor-only text and unlinked items are
   assert.match(out, /<!--sq:other:name-->Keep/);
   const cart = JSON.parse(out.match(/<script id="cart-data" type="application\/json">(.*?)<\/script>/)[1]);
   assert.deepEqual(cart.items[0], {id: 'pie', name: 'Apple pie.', price: 32, soldOut: true, image: 'https://items-images.example/a.jpg', imageAlt: 'Pie'});
-  // An empty Square description keeps the website's text, as the editor sync does.
   assert.match(applyLive(html, content, {items: {V1: product({description: ''})}}), /<!--sq:pie:desc-->Old text<!--\/sq-->/);
-  // A product missing from the snapshot leaves the published page as it was.
   const untouched = applyLive(html, content, {items: {}}, '/preorder/pie/');
   assert.equal(untouched.split('<script')[0], html.split('<script')[0]); assert.match(untouched, /"name":"Old pie"/);
 });
@@ -59,7 +57,7 @@ test('Snapshots refresh once, then are served from storage; stale ones refresh i
   const pending = [];
   const stale = await live.snapshot({waitUntil: p => pending.push(p)});
   assert.equal(stale.items.V1.name, 'First');
-  await liveSquare(env, square.client, () => clock).snapshot({waitUntil: p => pending.push(p)}); // second view: lease already taken
+  await liveSquare(env, square.client, () => clock).snapshot({waitUntil: p => pending.push(p)});
   await Promise.all(pending);
   assert.equal(square.calls.catalog, 2);
   clock += 16000;
@@ -80,7 +78,6 @@ test('Public pages and the commerce catalog use the snapshot without calling Squ
     assert.equal(page.headers.get('content-length'), null);
     const catalog = await (await handler(new Request('https://bakery.example/commerce/catalog'), env)).json();
     assert.deepEqual(catalog.items.map(i => [i.id, i.price, i.left, i.soldOut]), [['pie', 32, 2, false]]);
-    // Without D1 the page is served untouched.
     const plain = await handler(new Request('https://bakery.example/'), {...env, DRAFTS: undefined});
     assert.match(await plain.text(), /Old pie/);
   } finally { globalThis.fetch = original; }

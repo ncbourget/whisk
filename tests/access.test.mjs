@@ -94,7 +94,6 @@ test('Disabled menus reject listing and saved item URLs without serving stale as
     const text=await response.text();
     assert.match(text,/currently unavailable/);assert.match(text,/href="\/contact\/"/);
   }
-  // Menu on, but the item is hidden, removed or never existed: friendly 404, never the old static page.
   const items = createHandler({content:{site:{showStandMenu:true,showPreorderMenu:true},menu:[{id:'today',available:true},{id:'yesterday',available:false}],preorders:[]}});
   for (const path of ['/menu/yesterday/','/menu/yesterday','/menu/gone/','/preorder/old-pie/']) {
     const response = await items(new Request('https://bakery.example'+path),env);
