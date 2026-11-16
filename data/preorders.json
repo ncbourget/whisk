@@ -78,7 +78,7 @@
     "price": 32,
     "category": "Pies",
     "available": true,
-    "soldOut": false,
+    "soldOut": true,
     "featured": true,
     "seasonal": true,
     "dietary": [],
