@@ -18,5 +18,3 @@ tests/type-study/
 .dev.vars.*
 .wrangler/
 
-# Preview images from Claude sessions (not part of the site)
-Claude outputs/
