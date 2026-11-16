@@ -52,6 +52,14 @@ Without the `DRAFTS` binding the editor falls back to the old behavior (every Pu
 
 Uploaded photos that are never published remain as unreferenced Git blobs; GitHub may eventually prune them, in which case Publish asks for that photo to be uploaded again.
 
+## 3b. Live Square details (no rebuilds)
+
+With `DRAFTS` bound and Square connected, Square webhooks save a snapshot of Square's products to D1, and the Worker fills in each linked item's name, price, description and photos on the homepage, menu, pre-order, item and cart pages as they are served. Stock and sold-out counts for `/commerce/catalog` come from the same snapshot, so page views no longer call Square. Checkout still re-checks price and stock with Square directly. If no webhook arrives for 30 minutes, the next page view refreshes the snapshot in the background.
+
+Square Developer Console → the Whisk app → **Production** → Webhooks → Subscriptions → edit the existing `/commerce/square-webhook` subscription and subscribe to both `catalog.version.updated` and `inventory.count.updated`. Edit, don't recreate: a new subscription has a new signature key.
+
+Still needs Publish: brand-new items (they arrive hidden and need their own page) and category changes (the menu filter is built at publish).
+
 ## 4. Deploy this code
 
 1. Run `npm test`, `python3 -m unittest discover -s tests`, and `npm run build` locally.

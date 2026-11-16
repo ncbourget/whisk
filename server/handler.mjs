@@ -2,6 +2,7 @@ import {orderingNotice,publicHost,squareReady,squareClient,jsonBody,verifySquare
 import {authorize, AccessError} from './access.mjs';
 import {publisher, publishingEnabled} from './publish.mjs';
 import {PublishError} from './content.mjs';
+import {liveSquare, applyLive, livePath, linkedItems} from './live.mjs';
 
 const securityHeaders = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -37,7 +38,8 @@ async function unavailable(request, env, url, kind, collection, site = {}) {
   return reply(request, html, kind === 'menu' ? 410 : 404, 'text/html; charset=utf-8');
 }
 export function createHandler({editorHtml, editorScript, editorStyle, content}) {
-  return async function fetch(request, env) {
+  const hasLinked = linkedItems(content).size > 0;
+  return async function fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Only the canonical admin routes have responses; no static admin fallback.
     const path = url.pathname;
@@ -54,9 +56,13 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
         if(url.protocol!=='https:'||url.hostname!==publicHost(env)||url.port)throw new PublishError(403,'Checkout is only available on '+publicHost(env)+'.');
         if(path==='/commerce/square-webhook'&&request.method==='POST'){
           const event=await verifySquareWebhook(request,env);
+          const live=liveSquare(env);
+          // Live sync: save Square's current details so public pages show them now, with no build.
+          if(live.enabled&&['catalog.version.updated','inventory.count.updated'].includes(event.type))await live.refresh();
           if(event.type==='catalog.version.updated'){
             if(!publishingEnabled(env))throw new PublishError(503,'Sync is not configured.');
-            // With drafts, Square changes wait for Cindy's next Publish instead of committing (and building) on every edit.
+            // With drafts, Square changes are also saved into the pages at Cindy's next Publish instead of
+            // committing (and building) on every edit.
             const service=publisher(env);
             if(service.drafts)await service.markSquarePending();else await service.syncSquare();
           }
@@ -64,13 +70,20 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
         }
         if(path==='/commerce/catalog'&&request.method==='GET'){
           if(content.site?.showPreorderMenu===false||content.site?.demo||!squareReady(env))return reply(request,JSON.stringify({enabled:false,items:[],slots:[]}));
-          const client=squareClient(env),products=await client.catalog();
           // Only explicitly published pre-orders are exposed; no raw seller catalog.
           const linked=(content.preorders||[]).filter(i=>i.available&&i.squareVariationId);
-          const tracked=linked.map(i=>products.find(p=>p.variationId===i.squareVariationId)).filter(p=>p?.trackInventory).map(p=>p.variationId);
-          const counts=await client.stock(tracked);
+          // The live snapshot (kept current by Square webhooks) saves calling Square on every page view.
+          // Checkout still re-checks price and stock with Square directly.
+          const snapshot=await liveSquare(env).snapshot(ctx);
+          let find,counts;
+          if(snapshot){find=id=>snapshot.items[id]&&{...snapshot.items[id],variationId:id};counts={get:id=>snapshot.items[id]?.left};}
+          else{
+            const client=squareClient(env),products=await client.catalog();
+            const tracked=linked.map(i=>products.find(p=>p.variationId===i.squareVariationId)).filter(p=>p?.trackInventory).map(p=>p.variationId);
+            find=id=>products.find(p=>p.variationId===id);counts=await client.stock(tracked);
+          }
           const items=linked.map(i=>{
-            const p=products.find(p=>p.variationId===i.squareVariationId),left=p?.trackInventory?(counts.get(p.variationId)??0):null;
+            const p=find(i.squareVariationId),left=p?.trackInventory?(counts.get(p.variationId)??0):null;
             return {id:i.id,price:p?.price??i.price,soldOut:i.soldOut||!p||p.soldOut||(left!==null&&left<1),left,notice:orderingNotice(i,Date.now(),content.site?.timezone)};
           });
           return reply(request,JSON.stringify({enabled:env.SQUARE_CHECKOUT_ENABLED==='true'&&content.site.orderingEnabled,items,slots:pickupSlots(content.site),notice:orderingNotice(content.site,Date.now(),content.site?.timezone)}));
@@ -80,7 +93,13 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
           if(request.headers.get('Origin')!==url.origin||request.headers.get('Sec-Fetch-Site')!=='same-origin')throw new PublishError(403,'Check out from the Whisk website.');
           // Latest published admin overrides, including deletions, apply before the next build.
           const latest=await publisher(env).snapshot();
-          const result=await checkout(request,env,latest.data);
+          let result;
+          try{result=await checkout(request,env,latest.data);}
+          catch(error){
+            // A price or stock surprise means the live snapshot is behind; refresh it for the next view.
+            if(error instanceof PublishError&&error.status===409){const live=liveSquare(env);if(live.enabled)ctx?.waitUntil?.(live.refresh().catch(()=>{}));}
+            throw error;
+          }
           return reply(request,JSON.stringify({url:result.url}),200,undefined,{'Set-Cookie':result.cookie});
         }
         return reply(request,'{"error":"Not found."}',404);
@@ -89,7 +108,12 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     const admin = /^\/(editor|api|data)(\/|$)/.test(path) || ['/assets/js/editor.js','/assets/css/editor.css'].includes(path);
     if (!admin) {
       if (!['GET','HEAD'].includes(request.method)) return reply(request, '{"error":"Method not allowed."}', 405);
-      return env.ASSETS.fetch(request);
+      const asset = await env.ASSETS.fetch(request);
+      if (!hasLinked || !livePath(path) || !asset.ok || !asset.headers.get('content-type')?.includes('text/html')) return asset;
+      const snapshot = await liveSquare(env).snapshot(ctx);
+      if (!snapshot) return asset;
+      const headers = new Headers(asset.headers); headers.delete('content-length'); headers.delete('etag');
+      return new Response(request.method === 'HEAD' ? null : applyLive(await asset.text(), content, snapshot, path), {status: asset.status, headers});
     }
     let who;
     try { who = await authorize(request, env); }
@@ -133,7 +157,7 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
       if(!writable)return reply(request, JSON.stringify({data: content, capabilities: {write: false}}));
       try{
         const service=publisher(env);
-        if(service.drafts)return reply(request,JSON.stringify({...await service.editorState(),capabilities:{write:true,mode:'publish',drafts:true}}));
+        if(service.drafts)return reply(request,JSON.stringify({...await service.editorState(),capabilities:{write:true,mode:'publish',drafts:true,liveSquare:liveSquare(env).enabled}}));
         const {data,revision}=await service.snapshot();return reply(request,JSON.stringify({data,revision,capabilities:{write:true,mode:'publish'}}));
       }
       catch(error){return reply(request,JSON.stringify({error:error instanceof PublishError?error.message:'Publishing content is unavailable.'}),503);}

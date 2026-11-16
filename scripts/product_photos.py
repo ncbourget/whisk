@@ -1,6 +1,15 @@
 """Shared product photography for both catalogs and the homepage."""
 from html import escape as e
 
+def live(item,field,html):
+    """Mark a Square-sourced value so the Worker can show Square's current value without a rebuild.
+    Kept in step with server/live.mjs. Unlinked items get no marker."""
+    return f'<!--sq:{item["id"]}:{field}-->{html}<!--/sq-->' if item.get('squareVariationId') else html
+
+def label(item):
+    """Attribute marker for aria-labels that repeat the item name (comments cannot go in attributes)."""
+    return f' data-sq-label="{e(item["id"])}"' if item.get('squareVariationId') else ''
+
 def image_url(path,base):
     return path if path.startswith("https://") else base+"/"+path
 

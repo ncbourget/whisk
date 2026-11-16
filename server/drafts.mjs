@@ -71,6 +71,17 @@ export function draftStore(db, now = () => Date.now()) {
       const result = await query(() => db.prepare('SELECT key, value FROM whisk_editor WHERE key LIKE \'photo:%\'').all());
       return new Map((result?.results || []).map(r => [r.key.slice(6), JSON.parse(r.value).sha]));
     },
+    // Plain JSON values (the live Square snapshot).
+    async value(key) { const found = await row(key); return found ? JSON.parse(found.value) : null; },
+    async setValue(key, value) {
+      await query(() => db.prepare('INSERT INTO whisk_editor (key, value, version, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, version = version + 1, updated_at = excluded.updated_at').bind(key, JSON.stringify(value), now()).run());
+    },
+    // A short lease so many page views at once start only one refresh. Returns true for the winner.
+    async claim(key, ms) {
+      const at = now();
+      const result = await query(() => db.prepare('INSERT INTO whisk_editor (key, value, version, updated_at) VALUES (?, \'{}\', 1, ?) ON CONFLICT(key) DO UPDATE SET updated_at = excluded.updated_at WHERE whisk_editor.updated_at <= ?').bind(key, at, at - ms).run());
+      return !!result?.meta?.changes;
+    },
     async removePhotos(paths) {
       for (const path of paths) await query(() => db.prepare('DELETE FROM whisk_editor WHERE key = ?').bind('photo:' + path).run());
     },

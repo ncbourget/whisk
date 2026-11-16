@@ -1,7 +1,7 @@
 """Isolated composition; ordering remains on the existing menu."""
 from html import escape as e
 from pathlib import Path
-from product_photos import render_photo, image_url
+from product_photos import render_photo, image_url, live, label
 
 def more_tile(items, base, collection):
     remaining=items[4:]
@@ -29,7 +29,7 @@ def render_concept(data):
         if item['image']:
             visual=f'<img class="food-photo" src="{url(item["image"])}" width="800" height="600" alt="{e(item["imageAlt"])}" loading="lazy">'
         visual=render_photo(item,base)
-        products+=f'''<article class="bake bake-{n}"><a href="{url('menu/'+item['id']+'/')}" aria-label="{e(item['name'])}">{visual}</a><div class="bake-copy"><h3><a href="{url('menu/'+item['id']+'/')}">{e(item['name'].rstrip('.'))}</a></h3><p>{e(item['description'])}</p><span class="sample-price" aria-label="Sample price: {item['price']:.2f} {e(site['currency'])}">${item['price']:.2f}</span></div></article>'''
+        products+=f'''<article class="bake bake-{n}"><a href="{url('menu/'+item['id']+'/')}"{label(item)} aria-label="{e(item['name'])}">{live(item,'photo',visual)}</a><div class="bake-copy"><h3><a href="{url('menu/'+item['id']+'/')}">{live(item,'name',e(item['name'].rstrip('.')))}</a></h3><p>{live(item,'desc',e(item['description']))}</p><span class="sample-price" aria-label="Sample price: {item['price']:.2f} {e(site['currency'])}">{live(item,'price','$'+format(item['price'],'.2f'))}</span></div></article>'''
     products+=more_tile(items,base,'menu')
     nav=''.join(f'<a href="{url(p)}">{t}</a>' for p,t in [('menu/','Menu'),('preorder/','Pre-order'),('about/','About'),('find-us/','Find us'),('faq/','FAQ'),('contact/','Contact')])
     icons={

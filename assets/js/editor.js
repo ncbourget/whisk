@@ -2,7 +2,7 @@
 'use strict';
 let data, current = 'site', local = false, hosted = false, dirty = false, revision = '', removeAction;
 // Drafts: hosted edits autosave to the server (no website build). Only Publish website changes the live site.
-let drafts = false, draftVersion = 0, saving = null, saveTimer = 0, retryDelay = 0, draftStopped = false, squarePending = false;
+let drafts = false, draftVersion = 0, saving = null, saveTimer = 0, retryDelay = 0, draftStopped = false, squarePending = false, liveSquare = false;
 const pendingPhotos = new Set();
 const fields = document.getElementById('editor-fields');
 const message = document.getElementById('editor-message');
@@ -268,7 +268,7 @@ window.addEventListener('beforeunload',event=>{if(dirty||saving){event.preventDe
 document.addEventListener('visibilitychange',()=>{if(drafts&&document.visibilityState==='hidden'&&dirty)saveDraft().catch(()=>{});});
 function showDraftNotice(){
  if(!drafts)return;
- document.getElementById('editor-mode').textContent='Signed-in publishing · Your changes save automatically as a draft. Nothing on the website changes until you click Publish website.'+(squarePending?' Square has changes since your last publish; they will be included when you publish.':'');
+ document.getElementById('editor-mode').textContent='Signed-in publishing · Your changes save automatically as a draft. Nothing on the website changes until you click Publish website.'+(liveSquare?' Names, prices, photos, descriptions and stock from Square update on the website automatically.':squarePending?' Square has changes since your last publish; they will be included when you publish.':'');
  document.getElementById('discard').hidden=!draftVersion;
 }
 (async()=>{
@@ -280,7 +280,7 @@ function showDraftNotice(){
   const result=await responseData(res);
   if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
   data=result.data;data.site.showStandMenu??=true;data.site.pickupDates??=[];data.site.pickupAddress??='';data.site.showPreorderMenu??=true;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
-  drafts=result.capabilities?.drafts===true;draftVersion=result.draft?.version||0;squarePending=!!result.squarePending;(result.pendingPhotos||[]).forEach(path=>pendingPhotos.add(path));
+  drafts=result.capabilities?.drafts===true;draftVersion=result.draft?.version||0;squarePending=!!result.squarePending;liveSquare=result.capabilities?.liveSquare===true;(result.pendingPhotos||[]).forEach(path=>pendingPhotos.add(path));
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
@@ -289,7 +289,7 @@ function showDraftNotice(){
    document.getElementById('publishing-help').textContent='Your edits and photos save automatically as a draft on the server, so you can close this page and come back. Publish website puts the whole draft live in one update; the site changes after Cloudflare finishes building (a few minutes). Square changes also wait for your next publish.';
    showDraftNotice();
    if(result.draft)say('Draft from '+new Date(result.draft.updatedAt).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})+' restored. Not on the website yet: click Publish website when you’re ready.'+(result.draft.behind?' The website changed since this draft started; publishing will combine both.':''));
-   else if(squarePending)say('Square has changes that are not on the website yet. Click Publish website to include them.');
+   else if(squarePending&&!liveSquare)say('Square has changes that are not on the website yet. Click Publish website to include them.');
   }
  }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();
