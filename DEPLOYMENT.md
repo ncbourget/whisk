@@ -56,7 +56,7 @@ Uploaded photos that are never published remain as unreferenced Git blobs; GitHu
 
 With `DRAFTS` bound and Square connected, Square webhooks save a snapshot of Square's products to D1, and the Worker fills in each linked item's name, price, description and photos on the homepage, menu, pre-order, item and cart pages as they are served. Stock and sold-out counts for `/commerce/catalog` come from the same snapshot, so page views no longer call Square. Checkout still re-checks price and stock with Square directly. If no webhook arrives for 30 minutes, the next page view refreshes the snapshot in the background.
 
-Square Developer Console → the Whisk app → **Production** → Webhooks → Subscriptions → edit the existing `/commerce/square-webhook` subscription and subscribe to both `catalog.version.updated` and `inventory.count.updated`. Edit, don't recreate: a new subscription has a new signature key.
+Square Developer Console → the Whisk app → **Production** → Webhooks → Subscriptions → a subscription for both `catalog.version.updated` and `inventory.count.updated`. Its URL must use the public checkout hostname (`PUBLIC_HOSTNAME`, currently `www.whiskbakedbycindy.com`), not `whisk-dnh.pages.dev`: all `/commerce/*` routes reject other hostnames. Set the Production variables `SQUARE_WEBHOOK_URL` (exactly the subscription URL, `https://www.whiskbakedbycindy.com/commerce/square-webhook`), `SQUARE_WEBHOOK_SIGNATURE_KEY` (secret) and `SQUARE_MERCHANT_ID`, then redeploy. Webhooks → Logs should show 200.
 
 Still needs Publish: brand-new items (they arrive hidden and need their own page) and category changes (the menu filter is built at publish).
 
