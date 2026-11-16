@@ -74,7 +74,7 @@
   {
     "id": "square-pw7x2kgwptyyhda2yrsvuxjv",
     "name": "Apple Pie",
-    "description": "Whole Apple pie filling in homemade pie crust, topped with a streusel of flour, sugar and butter. (Whipped cream not provided)",
+    "description": "Whole Apple pie filling in homemade pie crust, topped with a streusel of flour, sugar and butter. (Whipped cream not provided.)",
     "price": 32,
     "category": "Pies",
     "available": true,
@@ -122,7 +122,7 @@
   {
     "id": "square-quedgkroi63fk3jt5loqucf2",
     "name": "Hermit cookies (8 bars)",
-    "description": "Deep hermit bars with raisins, candied ginger and spices - 8 bars included",
+    "description": "Deep hermit bars with raisins, candied ginger and spices - 8 bars included.",
     "price": 15,
     "category": "Cookies",
     "available": true,
@@ -146,7 +146,7 @@
   {
     "id": "square-mz6lj3d6isaqi5qtz33fm6sj",
     "name": "Coconut Macaroons (package of 12)",
-    "description": "Soft, chewy cookies, packed with coconut.\nNaturally gluten free",
+    "description": "Soft, chewy cookies, packed with coconut.\nNaturally gluten free.",
     "price": 12,
     "category": "Cookies",
     "available": true,
@@ -170,7 +170,7 @@
   {
     "id": "square-d3rvww772kszaoadkwlpiftu",
     "name": "Coconut Macaroons Dipped in Chocolate  (package of 12)",
-    "description": "Soft, chewy cookies, packed with coconut and dipped in chocolate, with chocolate drizzle on top.\nNaturally gluten free",
+    "description": "Soft, chewy cookies, packed with coconut and dipped in chocolate, with chocolate drizzle on top.\nNaturally gluten free.",
     "price": 15,
     "category": "Cookies",
     "available": true,
@@ -194,7 +194,7 @@
   {
     "id": "square-7qzzphevq5asd4wgludbvw2g",
     "name": "Ginger molasses cookies (dozen)",
-    "description": "Chewy, rich ginger molasses cookies\nSold by the dozen",
+    "description": "Chewy, rich ginger molasses cookies.",
     "price": 24,
     "category": "Cookies",
     "available": true,
