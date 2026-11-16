@@ -1,12 +1,15 @@
 /* Privileged editor. Every data request requires server-side authorization. No credentials live here. */
 'use strict';
 let data, current = 'site', local = false, hosted = false, dirty = false, revision = '', removeAction;
+// Drafts: hosted edits autosave to the server (no website build). Only Publish website changes the live site.
+let drafts = false, draftVersion = 0, saving = null, saveTimer = 0, retryDelay = 0, draftStopped = false, squarePending = false;
+const pendingPhotos = new Set();
 const fields = document.getElementById('editor-fields');
 const message = document.getElementById('editor-message');
 const form = document.getElementById('content-form');
 let uploading = 0;
 const photoPreviews=new Map();
-function photoSource(path){return photoPreviews.get(path)||(path.startsWith('https://')?path:'../'+path);}
+function photoSource(path){return photoPreviews.get(path)||(path.startsWith('https://')?path:pendingPhotos.has(path)?'/api/photo/'+path.split('/').pop():'../'+path);}
 function rememberPhoto(path,file){
  const previous=photoPreviews.get(path);if(previous)URL.revokeObjectURL(previous);
  photoPreviews.set(path,URL.createObjectURL(file));
@@ -39,7 +42,32 @@ const menuFields = [['name','Item name','text'],['category','Category','select',
 const eventFields = [['name','Location / venue name','text'],['address','Street address or venue details','text'],['start','Starts','datetime'],['end','Ends','datetime'],['status','Status','select',{confirmed:'Confirmed',tentative:'Tentative',cancelled:'Cancelled'}],['mapUrl','Directions link','url'],['description','A note about this stop','textarea'],['menuNote','Special menu note','textarea']];
 function say(text,error=false){message.textContent=text;message.className=error?'error':'';}
 function el(tag, text, cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
-function markDirty(){dirty=true;say(hosted?'Unsaved changes. Publish when you’re ready.':'Unsaved changes. Save & preview when you’re ready.');}
+function markDirty(){dirty=true;if(drafts){scheduleSave();return;}say(hosted?'Unsaved changes. Publish when you’re ready.':'Unsaved changes. Save & preview when you’re ready.');}
+const clock=at=>new Date(at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+function draftSaved(at){say('Draft saved at '+clock(at)+'. Not on the website yet: click Publish website when you’re ready.');}
+function scheduleSave(delay=1200){if(draftStopped)return;clearTimeout(saveTimer);if(!saving)say('Saving your draft…');saveTimer=setTimeout(()=>saveDraft().catch(()=>{}),delay);}
+// Saves the whole draft. Overlapping saves are queued, never sent in parallel, so versions stay in order.
+async function saveDraft(){
+ clearTimeout(saveTimer);
+ while(saving)await saving.catch(()=>{});
+ if(!dirty||draftStopped)return;
+ saving=(async()=>{
+  dirty=false;
+  try{
+   const res=await fetch('/api/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,version:draftVersion,revision})});
+   const result=await responseData(res);if(!res.ok)throw Object.assign(Error(result.error||'Your draft could not be saved.'),{status:res.status});
+   draftVersion=result.version;retryDelay=0;document.getElementById('discard').hidden=false;if(!dirty)draftSaved(result.updatedAt);
+  }catch(error){
+   dirty=true;
+   // A conflict needs a reload; anything else is retried, and the error stays on screen until it saves.
+   if(error.status===409||error.status===400||error.status===413){draftStopped=true;say('Not saved: '+error.message,true);throw error;}
+   retryDelay=Math.min((retryDelay||2500)*2,60000);
+   say('Not saved yet: '+error.message+' Retrying in '+Math.round(retryDelay/1000)+' seconds. Keep this tab open.',true);
+   saveTimer=setTimeout(()=>saveDraft().catch(()=>{}),retryDelay);throw error;
+  }
+ })();
+ try{await saving;}finally{saving=null;}
+}
 function localDate(value){
  if(!value)return '';
  const parts=new Intl.DateTimeFormat('en-US',{timeZone:data.site.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(value));
@@ -92,7 +120,7 @@ function field(def, object, prefix){
    const file=upload.files[0];if(!file)return;
    if(file.size>5*1024*1024){say('Choose a JPG, PNG, or WebP smaller than 5 MB.',true);return;}
    uploadBusy(1);upload.disabled=true;say('Uploading photo… Please wait before publishing.');
-   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);rememberPhoto(result.path,file);object.image=result.path;markDirty();render();say('Photo uploaded and previewed below. Add a description, then click Publish website to attach it to this item on the live menu.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);upload.disabled=false;}
+   try{const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);if(result.pending)pendingPhotos.add(result.path);rememberPhoto(result.path,file);object.image=result.path;markDirty();render();say('Photo uploaded and previewed below. Add a description, then click Publish website to attach it to this item on the live menu.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);upload.disabled=false;}
   });wrapper.append(upload);}
   else wrapper.append(el('small','Upload the photo to assets/food in GitHub, then enter its path here.'));
  }
@@ -115,7 +143,7 @@ function photoDeckEditor(object){
   upload.addEventListener('change',async()=>{
    const files=[...upload.files];if(files.length+photos.length>7){say('Choose at most seven additional photos in total.',true);return;}
    upload.disabled=true;uploadBusy(1);
-   try{for(const file of files){if(file.size>5*1024*1024)throw Error('Each photo must be smaller than 5 MB.');const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);rememberPhoto(result.path,file);object.photos??=[];object.photos.push({image:result.path,alt:''});markDirty();}say('Photos uploaded. Describe each photo, then save or publish.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);render();}
+   try{for(const file of files){if(file.size>5*1024*1024)throw Error('Each photo must be smaller than 5 MB.');const res=await fetch('/api/photo',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});const result=await responseData(res);if(!res.ok)throw Error(result.error);if(result.pending)pendingPhotos.add(result.path);rememberPhoto(result.path,file);object.photos??=[];object.photos.push({image:result.path,alt:''});markDirty();}say('Photos uploaded. Describe each photo, then save or publish.');}catch(error){say(error.message,true);}finally{uploadBusy(-1);render();}
   });section.append(label,upload);
  }
  return section;
@@ -201,16 +229,48 @@ form.addEventListener('submit',async event=>{
   say('Not published yet: add a photo description for “'+missing.item.name+'”, then publish again.',true);return;
  }
  if(!form.reportValidity())return;
- const save=document.getElementById('save');save.disabled=true;say('Saving and checking your content…');
+ const save=document.getElementById('save');save.disabled=true;
+ if(drafts){
+  say('Publishing… Please keep this tab open.');
+  try{
+   if(draftStopped)throw Error('Reload the editor first. Your draft has changed somewhere else.');
+   await saveDraft();if(dirty)throw Error('Your latest changes are not saved yet, so nothing was published. Wait for “Draft saved”, then publish again.');
+   const res=await fetch('/api/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:draftVersion})});
+   const result=await responseData(res);if(!res.ok)throw Error((result.error||'Publishing failed.')+(res.status===400?'':' Your draft is still saved.'));
+   data=result.data;revision=result.revision;draftVersion=0;pendingPhotos.clear();squarePending=!!result.squareNote;
+   const lines=[result.published?'Published. Cloudflare is rebuilding the website; allow a few minutes, then open View website to check.':'Nothing new to publish: the website already matches your draft.'];
+   if(result.square&&(result.square.updated.length||result.square.added.length))lines.push('Included from Square: '+[...result.square.updated,...result.square.added.map(n=>n+' (new, hidden)')].join(', ')+'.');
+   if(result.conflicts?.length)lines.push('Someone also changed these while you were editing; your version was kept: '+result.conflicts.join('; ')+'.');
+   if(result.squareNote)lines.push(result.squareNote);
+   if(result.draftKept){lines.push('Another tab saved more changes during publishing. Reload to see them.');draftStopped=true;}
+   render();showDraftNotice();say(lines.join('\n'),!!result.squareNote||!!result.conflicts?.length);
+  }catch(error){say('Not published. '+error.message,true);}
+  finally{save.disabled=false;}
+  return;
+ }
+ say('Saving and checking your content…');
  try{const res=await fetch('/api/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,revision})});const result=await responseData(res);if(!res.ok)throw Error(result.error);revision=result.revision;dirty=false;say(hosted?(result.published?'Published to the repository. Cloudflare is rebuilding the website; allow a few minutes, then open View website to check. If it does not update, ask Nate to check the deployment.':'No content changes to publish.'):'Saved! Your local preview is ready. Open View website above to check it. Publish with GitHub Desktop when you’re happy.');}
  catch(error){say(error.message,true);}finally{save.disabled=false;}
+});
+document.getElementById('discard').addEventListener('click',async()=>{
+ if(!drafts||!confirm('Throw away all unpublished changes and go back to what is on the website now? This cannot be undone.'))return;
+ clearTimeout(saveTimer);await saving?.catch(()=>{});
+ try{const res=await fetch('/api/draft/discard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:draftVersion})});const result=await responseData(res);if(!res.ok)throw Error(result.error);dirty=false;location.reload();}
+ catch(error){say('Draft not discarded: '+error.message,true);}
 });
 document.getElementById('download').addEventListener('click',()=>{if(!form.reportValidity())return;const blob=new Blob([JSON.stringify(data[current],null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const a=el('a');a.href=url;a.download=current+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say(`Downloaded ${current}.json. This is a draft, not a published change. If you edited other tabs, download each of those too.`);});
 document.getElementById('import').addEventListener('change',async event=>{
  const file=event.target.files[0];if(!file)return;
  try{if(file.name!==current+'.json')throw Error(`Choose ${current}.json for this tab.`);const parsed=JSON.parse(await file.text());const valid=current==='site'?parsed&&typeof parsed==='object'&&!Array.isArray(parsed):Array.isArray(parsed);if(!valid)throw Error('That file has the wrong format.');if(current==='site'&&Object.keys(data.site).some(k=>!(k in parsed)))throw Error('That bakery file is missing fields.');if(current!=='site'&&parsed.some(item=>!item||typeof item!=='object'||typeof item.id!=='string'||typeof item.name!=='string'||(['menu','preorders'].includes(current)&&!Array.isArray(item.dietary))))throw Error('That file has incomplete entries.');data[current]=parsed;markDirty();render();say('Imported into your draft. Review the fields before saving.');}catch(error){say('Could not import: '+error.message,true);}event.target.value='';
 });
-window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(dirty||saving){event.preventDefault();event.returnValue='';}});
+// Save straight away when the tab is hidden (switching apps, closing the laptop).
+document.addEventListener('visibilitychange',()=>{if(drafts&&document.visibilityState==='hidden'&&dirty)saveDraft().catch(()=>{});});
+function showDraftNotice(){
+ if(!drafts)return;
+ document.getElementById('editor-mode').textContent='Signed-in publishing · Your changes save automatically as a draft. Nothing on the website changes until you click Publish website.'+(squarePending?' Square has changes since your last publish; they will be included when you publish.':'');
+ document.getElementById('discard').hidden=!draftVersion;
+}
 (async()=>{
  try{
   // Authorization is enforced by the server, never inferred from the hostname.
@@ -220,24 +280,32 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
   const result=await responseData(res);
   if(!res.ok)throw Error(typeof result.error==='string'?result.error:`Content request failed (${res.status}).`);
   data=result.data;data.site.showStandMenu??=true;data.site.pickupDates??=[];data.site.pickupAddress??='';data.site.showPreorderMenu??=true;data.preorders??=[];revision=result.revision||'';local=result.capabilities?.write===true;hosted=result.capabilities?.mode==='publish';
+  drafts=result.capabilities?.drafts===true;draftVersion=result.draft?.version||0;squarePending=!!result.squarePending;(result.pendingPhotos||[]).forEach(path=>pendingPhotos.add(path));
   document.getElementById('save').textContent=hosted?'Publish website':'Save & preview';
   document.getElementById('publishing-help').textContent=hosted?'Publish website sends your changes to Cloudflare through the repository. The live site updates after its build succeeds. Uploaded photos are stored immediately; publish the item to show its photo on the menu.':'Save & preview updates this computer only. Publish those changes using GitHub Desktop. Downloading a file does not publish it.';
   document.getElementById('editor-mode').textContent=hosted?'Signed-in publishing · Edit products and stops, upload photos, then Publish website. Changes go live after Cloudflare finishes building.':local?'Local notebook · Save & preview updates this computer only. Your live site changes after you publish through GitHub Desktop.':'Authenticated download mode · Changes stay in this browser until downloaded. Publish through GitHub Desktop, or use Start Whisk.command for local saving. Hosted saves and uploads are disabled.';
   document.getElementById('save').disabled=!local;document.getElementById('download').disabled=false;render();
+  if(drafts){
+   document.getElementById('publishing-help').textContent='Your edits and photos save automatically as a draft on the server, so you can close this page and come back. Publish website puts the whole draft live in one update; the site changes after Cloudflare finishes building (a few minutes). Square changes also wait for your next publish.';
+   showDraftNotice();
+   if(result.draft)say('Draft from '+new Date(result.draft.updatedAt).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})+' restored. Not on the website yet: click Publish website when you’re ready.'+(result.draft.behind?' The website changed since this draft started; publishing will combine both.':''));
+   else if(squarePending)say('Square has changes that are not on the website yet. Click Publish website to include them.');
+  }
  }catch(error){document.getElementById('editor-mode').textContent='Content unavailable';say('The notebook could not load. '+error.message+' Ask Nate for help.',true);}
 })();
 
 // Show the server's step and status with every Square failure, so it is never silent or vague.
 function squareFailure(result,status){const bits=[result?.step&&'step: '+result.step,result?.httpStatus&&'Square HTTP '+result.httpStatus,result?.squareCode&&'Square code '+result.squareCode,'server status '+status].filter(Boolean);return Error((typeof result?.error==='string'?result.error:'Square sync failed.')+' ['+bits.join(', ')+']');}
 async function squarePanel(button){
- if(dirty||uploading){say('Publish or reload your draft before syncing Square.',true);return;}
+ if(uploading||(!drafts&&dirty)){say('Publish or reload your draft before syncing Square.',true);return;}
+ if(drafts){try{await saveDraft();}catch{return;}}
  document.getElementById('square-preview')?.remove();
  button.disabled=true;say('Checking Square… nothing will change yet.');
- const call=async mode=>{const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,revision})});const result=await responseData(res);if(!res.ok)throw squareFailure(result,res.status);return result;};
+ const call=async mode=>{const res=await fetch('/api/square/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(drafts?{mode,version:draftVersion}:{mode,revision})});const result=await responseData(res);if(!res.ok)throw squareFailure(result,res.status);return result;};
  try{
   const {report}=await call('preview');
   const section=el('section',undefined,'editor-entry');section.id='square-preview';
-  section.append(el('h3','Square sync preview'),el('p','Nothing has changed yet. Review the list, then choose Apply and publish.'));
+  section.append(el('h3','Square sync preview'),el('p',drafts?'Nothing has changed yet. Review the list, then choose Add to my draft. The website changes when you publish.':'Nothing has changed yet. Review the list, then choose Apply and publish.'));
   const group=(title,rows,line)=>{if(!rows.length)return;section.append(el('h4',title+' ('+rows.length+')'));const ul=el('ul');rows.forEach(r=>ul.append(el('li',line(r))));section.append(ul);};
   group('Will update from Square',report.updated,r=>r.name+' — '+r.menu+(r.changed.length?' (changes: '+r.changed.join(', ')+')':' (already up to date)'));
   group('Will add as new hidden items',report.added,r=>r.name+' — '+r.menu+'. Review it, then turn on “Show on the menu”.');
@@ -247,10 +315,11 @@ async function squarePanel(button){
   const nothing=!report.updated.some(r=>r.changed.length)&&!report.added.length;
   if(nothing)section.append(el('p','Everything is already up to date. There is nothing to publish.'));
   else{
-   const apply=el('button','Apply and publish');apply.type='button';apply.onclick=async()=>{
-    if(dirty||uploading){say('Your draft changed. Publish it before syncing.',true);return;}
+   const apply=el('button',drafts?'Add to my draft':'Apply and publish');apply.type='button';apply.onclick=async()=>{
+    if(uploading||(!drafts&&dirty)){say('Your draft changed. Publish it before syncing.',true);return;}
+    if(drafts){try{await saveDraft();}catch{return;}}
     const controls=[...document.querySelectorAll('input,select,textarea,button')];const states=controls.map(c=>c.disabled);controls.forEach(c=>c.disabled=true);
-    say('Publishing the Square sync…');
+    say(drafts?'Adding Square changes to your draft…':'Publishing the Square sync…');
     try{await call('apply');location.reload();}
     catch(error){say(error.message,true);controls.forEach((c,i)=>c.disabled=states[i]);}
    };

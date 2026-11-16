@@ -47,7 +47,8 @@
 .editor-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-block: 20px; position: sticky; bottom: 0; z-index: 3; background: var(--paper); border-top: 1px solid var(--border); margin-top: 28px; }
 .import-label { display: flex; flex-direction: column; gap: 5px; max-width: 280px; }
 .import-label input { max-width: 100%; font-family: var(--font-body); font-size: .8125rem; }
-#editor-message { padding: 8px 0; min-height: 20px; white-space: pre-line; font-family: var(--font-mono); font-size: .875rem; }
+#editor-message { flex-basis: 100%; margin: 0; padding: 0 0 4px; min-height: 20px; white-space: pre-line; font-family: var(--font-mono); font-size: .875rem; }
+#discard[hidden] { display: none; }
 #editor-message.error { border-left: 3px solid var(--ink); padding-left: 14px; font-weight: 400; }
 .editor-help { border-top: 1px solid var(--border); margin-top: 30px; padding-top: 26px; }
 button:disabled { opacity: .55; cursor: not-allowed; }
@@ -64,6 +65,8 @@ dialog::backdrop { background: #20283fbb; }
   .editor-entry { padding: 16px; }
   .entry-header { align-items: flex-start; flex-direction: column; }
   .editor-actions { position: static; }
+  /* The actions bar is not sticky on phones, so keep a save or publish problem on screen. */
+  #editor-message.error { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; margin: 0; padding: 12px 16px; background: var(--paper); border-top: 1px solid var(--ink); border-left: 0; }
   .editor-wrap { padding: 26px 16px; }
   .editor-tabs button { flex: 1; padding-inline: 10px; font-size: .875rem; }
 }

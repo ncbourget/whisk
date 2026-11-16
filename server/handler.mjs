@@ -56,7 +56,9 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
           const event=await verifySquareWebhook(request,env);
           if(event.type==='catalog.version.updated'){
             if(!publishingEnabled(env))throw new PublishError(503,'Sync is not configured.');
-            await publisher(env).syncSquare();
+            // With drafts, Square changes wait for Cindy's next Publish instead of committing (and building) on every edit.
+            const service=publisher(env);
+            if(service.drafts)await service.markSquarePending();else await service.syncSquare();
           }
           return reply(request,'{"received":true}');
         }
@@ -89,14 +91,15 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
       if (!['GET','HEAD'].includes(request.method)) return reply(request, '{"error":"Method not allowed."}', 405);
       return env.ASSETS.fetch(request);
     }
-    try { await authorize(request, env); }
+    let who;
+    try { who = await authorize(request, env); }
     catch (error) {
       return reply(request, JSON.stringify({error: error instanceof AccessError ? error.message : 'Administrative access unavailable.'}), error instanceof AccessError ? error.status : 503);
     }
     // Authentication runs for EVERY method and endpoint before dispatch.
     const writable=publishingEnabled(env);
     if (!['GET','HEAD'].includes(request.method)) {
-      if(!writable || request.method!=='POST' || !['/api/content','/api/photo','/api/square/sync'].includes(path))
+      if(!writable || request.method!=='POST' || !['/api/content','/api/photo','/api/square/sync','/api/draft','/api/draft/discard','/api/publish'].includes(path))
         return reply(request, '{"error":"Hosted publishing is not enabled for this request."}', 405);
       if(request.headers.get('Origin')!==url.origin || (request.headers.has('Sec-Fetch-Site') && request.headers.get('Sec-Fetch-Site')!=='same-origin'))
         return reply(request, '{"error":"Publish from the signed-in editor on this website."}', 403);
@@ -104,11 +107,18 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
         const service=publisher(env);
         if(path==='/api/square/sync'){
           const input=await jsonBody(request);
-          if(!['preview','apply'].includes(input?.mode)||typeof input.revision!=='string')throw new PublishError(400,'Reload the editor and try the sync again.');
-          try{return reply(request,JSON.stringify(await service.syncSquare(input.mode,input.revision)));}
+          if(!['preview','apply'].includes(input?.mode)||(service.drafts?!Number.isInteger(input.version):typeof input.revision!=='string'))throw new PublishError(400,'Reload the editor and try the sync again.');
+          try{return reply(request,JSON.stringify(await (service.drafts?service.squareDraft(input.mode,input.version):service.syncSquare(input.mode,input.revision))));}
           catch(error){return reply(request,squareError(error),error instanceof PublishError&&error.status<500?error.status:503);}
         }
-        const result=await (path==='/api/content'?service.save(request):service.photo(request));
+        let result;
+        if(service.drafts){
+          // Autosave goes to D1; only /api/publish writes to GitHub (one commit, one build).
+          if(path==='/api/content')throw new PublishError(409,'The editor was updated. Reload it, then publish.');
+          result=await (path==='/api/draft'?service.saveDraft(request,who.email):path==='/api/draft/discard'?service.discardDraft(request):path==='/api/publish'?service.publishDraft(request):service.stagePhoto(request));
+        }
+        else if(path==='/api/content'||path==='/api/photo')result=await (path==='/api/content'?service.save(request):service.photo(request));
+        else throw new PublishError(503,'Draft saving is not set up. Ask Nate to bind the DRAFTS database.');
         return reply(request,JSON.stringify(result));
       } catch(error) {
         return reply(request,JSON.stringify({error:error instanceof PublishError?error.message:'Publishing unavailable. Reload to check your latest content before retrying.'}),error instanceof PublishError?error.status:503);
@@ -121,8 +131,18 @@ export function createHandler({editorHtml, editorScript, editorStyle, content}) 
     if(path==='/api/square/catalog'){try{const client=squareClient(env);const items=await client.catalog();return reply(request,JSON.stringify({items,stats:client.stats}));}catch(error){return reply(request,squareError(error),503);}}
     if (path === '/api/content') {
       if(!writable)return reply(request, JSON.stringify({data: content, capabilities: {write: false}}));
-      try{const {data,revision}=await publisher(env).snapshot();return reply(request,JSON.stringify({data,revision,capabilities:{write:true,mode:'publish'}}));}
+      try{
+        const service=publisher(env);
+        if(service.drafts)return reply(request,JSON.stringify({...await service.editorState(),capabilities:{write:true,mode:'publish',drafts:true}}));
+        const {data,revision}=await service.snapshot();return reply(request,JSON.stringify({data,revision,capabilities:{write:true,mode:'publish'}}));
+      }
       catch(error){return reply(request,JSON.stringify({error:error instanceof PublishError?error.message:'Publishing content is unavailable.'}),503);}
+    }
+    // Photos uploaded since the last publish are not on the website yet; the editor previews them here.
+    const staged=path.match(/^\/api\/photo\/(upload-[a-f0-9]{64}\.(?:jpg|png|webp))$/);
+    if(staged&&writable){
+      try{const found=await publisher(env).photoPreview('assets/food/'+staged[1]);if(found)return new Response(request.method==='HEAD'?null:found.bytes,{headers:{...securityHeaders,'Content-Type':found.type}});}
+      catch{return reply(request,'{"error":"Photo preview unavailable."}',503);}
     }
     // In particular /api/photo and all /data/*.json requests have no read handler.
     return reply(request, '{"error":"Not found."}', 404);

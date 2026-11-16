@@ -89,6 +89,16 @@ Square takes payment and sends the customer confirmation. Whisk’s website neve
 
 Square’s formal holiday-style **preorder** feature needs an eligible paid plan. A payment link by itself does not provide that feature or guarantee scheduled pickup. Ask Nate before changing plans.
 
+## Editing online: drafts save themselves
+
+In the signed-in notebook at your website’s `/editor/` address:
+
+- **Your changes save automatically** as a draft a second or two after you type. The bar next to **Publish website** says “Draft saved at …”. You can close the page and come back later; your draft will be there.
+- **Nothing on the website changes until you click Publish website.** Make all of today’s changes first (several items, photos, stops), then publish once. Each publish starts a website rebuild, and the hosting plan allows a limited number each month, so one publish per editing session is best.
+- **Square changes wait too.** When you change an item in Square, the notebook says Square has changes; they go live with your next publish.
+- **If something can’t save or publish, the bar next to Publish website says so** and what to do. Nothing is thrown away: the draft stays saved. If it says the draft changed in another tab, close the other tab and reload this one.
+- **Discard draft** throws away everything you haven’t published and returns to what’s on the website now.
+
 ## Preview, then publish
 
 1. Click **Save & preview**. This saves all three tabs and checks for missing or invalid details. If you see an error, fix the named field and save again. Nothing is published yet.

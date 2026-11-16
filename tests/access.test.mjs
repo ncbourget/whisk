@@ -27,7 +27,7 @@ async function request(path='/api/content', {jwt,method='GET',host='bakery.examp
   return handler(new Request(`https://${host}${path}`,{method,headers:{...(jwt?{'Cf-Access-Jwt-Assertion':jwt}:{}),...headers}}), config);
 }
 test('Access boundary rejects anonymous access to every administrative route and method',async()=>{
-  for(const path of ['/editor','/editor/','/editor/index.html','/editor/other','/assets/js/editor.js','/assets/css/editor.css','/api','/api/content','/api/photo','/api/future-write','/data/site.json']) {
+  for(const path of ['/editor','/editor/','/editor/index.html','/editor/other','/assets/js/editor.js','/assets/css/editor.css','/api','/api/content','/api/photo','/api/photo/upload-'+'a'.repeat(64)+'.png','/api/draft','/api/draft/discard','/api/publish','/api/future-write','/data/site.json']) {
     for(const method of ['GET','HEAD','POST','PUT','PATCH','DELETE','OPTIONS']) {
       const res=await request(path,{method}); assert.equal(res.status,401,`${method} ${path}`);
       assert.match(res.headers.get('cache-control'),/no-store/);
@@ -68,8 +68,8 @@ test('Missing configuration and alternate hostnames fail closed even with valid 
   for(const host of ['whisk.pages.dev','preview.whisk.pages.dev','other.example']) assert.equal((await request('/api/content',{jwt,host})).status,403);
 });
 test('Enabled publishing still requires signed authorization and exact same-origin writes',async()=>{
-  const config={...env,EDITOR_PUBLISH_ENABLED:'true',GITHUB_CONTENT_TOKEN:'not-a-real-token-for-testing'};
-  for(const path of ['/api/content','/api/photo']){
+  const config={...env,EDITOR_PUBLISH_ENABLED:'true',GITHUB_CONTENT_TOKEN:'not-a-real-token-for-testing',DRAFTS:{prepare(){throw Error('no database access expected');}}};
+  for(const path of ['/api/content','/api/photo','/api/draft','/api/draft/discard','/api/publish']){
     assert.equal((await request(path,{method:'POST',config})).status,401);
     const jwt=await token();
     for(const headers of [{},{Origin:'https://attacker.example'},{Origin:'https://bakery.example','Sec-Fetch-Site':'cross-site'}])

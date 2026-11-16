@@ -38,7 +38,19 @@ The implementation hardcodes repository `ncbourget/whisk` and branch `main`. It 
 
 An expiring repository token is the supported initial setup. A GitHub App with short-lived installation tokens is a future rotation improvement; automatic App-token minting is not implemented.
 
-Uploaded photos enter repository history immediately. Browser content edits remain unsaved until Publish. Do not upload private images or confidential drafts to a public repository. No new paid image-storage subscription is required.
+With the `DRAFTS` binding, uploaded photos enter repository history when published, and edits are saved as a private D1 draft until Publish. Without it, photos enter repository history immediately. Do not upload private images or confidential drafts to a public repository. No new paid image-storage subscription is required.
+
+## 3a. Editor drafts (D1, free plan)
+
+Edits autosave to a Cloudflare D1 database instead of the repository, so typing in the editor never starts a Pages build. Only **Publish website** commits (one commit, one build, however many items changed). Photo uploads are stored as GitHub blobs with no commit and are added at the next publish. Square catalog webhooks only record "Square changed"; those changes are included at the next publish.
+
+1. Cloudflare dashboard → **Storage & Databases → D1 → Create database**. Name it `whisk-drafts`. Stay on the Free plan (5 GB, 100,000 writes/day per account; an editing session uses a few hundred at most).
+2. Pages → whisk → Settings → **Bindings → Add → D1 database**, **Production** environment: variable name `DRAFTS`, database `whisk-drafts`. Leave Preview without the binding.
+3. Redeploy (Deployments → latest production deployment → Retry, or push). The Worker creates its single table (`whisk_editor`) on first use; there is no migration step.
+
+Without the `DRAFTS` binding the editor falls back to the old behavior (every Publish click and every photo upload commits). After binding, the editor's top notice reads "Your changes save automatically as a draft".
+
+Uploaded photos that are never published remain as unreferenced Git blobs; GitHub may eventually prune them, in which case Publish asks for that photo to be uploaded again.
 
 ## 4. Deploy this code
 
@@ -57,7 +69,9 @@ The `_worker.js` artifact contains private administrative content. It is for Clo
 - After login: editor says **Signed-in publishing** and offers **Publish website**, photo upload, Add a baked good and Add a stop.
 - From Cindy's phone: create a test product (keep “Show on the menu” off if it should not appear), upload a JPG/PNG/WebP under 5 MB, and publish. Verify the new commit and successful Cloudflare deployment. Then verify an intentionally visible test item's generated menu link and detail page. Remove the test entry afterward.
 - Publish a test event and verify the rendered date, timezone, address and directions. Remove it afterward.
-- Open two editor sessions, publish in one, then attempt a stale save in the other. It must reject with a conflict; download the draft before reloading.
+- Edit two items, close the tab, reopen `/editor/`: the draft must be restored, and Pages must show **no** new deployment. Publish: exactly one commit and one deployment.
+- Open two editor tabs and edit in both: the second must show "This draft was changed in another tab…" next to Publish website instead of silently overwriting. Reload it to continue.
+- Change an item in Square: no commit or deployment until the next Publish, which reports what it included from Square.
 - Confirm malformed images, invalid links and cross-origin writes fail; a publishing failure leaves the prior live deployment intact.
 - Confirm Square checkout remains disabled. Content publishing does not configure payments, inventory or seller notifications.
 
