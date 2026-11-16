@@ -1,11 +1,7 @@
 import {SignJWT,jwtVerify} from 'jose';
 import {squareImage} from './square-images.mjs';
-// Server-only Square client. Customer requests never supply prices, API URLs or credentials.
 import {PublishError, readLimited, digest} from './content.mjs';
-// Optional extra fields (step, httpStatus, squareCode) are safe diagnostics: never tokens or request bodies.
 const fail=(status,message,extra={})=>{throw Object.assign(new PublishError(status,message),extra);};
-// Customers shop on PUBLIC_HOSTNAME (e.g. www.whiskbakedbycindy.com). The editor stays on ADMIN_HOSTNAME behind Cloudflare Access.
-// Without PUBLIC_HOSTNAME, checkout uses the editor's hostname, as before.
 export const publicHost=env=>env.PUBLIC_HOSTNAME||env.ADMIN_HOSTNAME;
 export const squareReady=env=>['sandbox','production'].includes(env.SQUARE_ENVIRONMENT)&&!!env.SQUARE_ACCESS_TOKEN&&!!env.SQUARE_LOCATION_ID;
 export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,options)){
@@ -16,7 +12,6 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   const timer=setTimeout(()=>controller.abort(),15000);
   let r;
   try{
-   // Cloudflare Workers reject redirect:'error' (TypeError before any request is sent). Use 'manual' and check status below.
    r=await transport(origin+'/v2'+path,{method:body?'POST':'GET',redirect:'manual',signal:controller.signal,headers:{Authorization:'Bearer '+env.SQUARE_ACCESS_TOKEN,'Square-Version':'2026-01-22','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   }catch(error){
    fail(503,controller.signal.aborted?'Square request timed out. Please try again.':'Could not reach Square ('+String(error?.name||'Error')+': '+String(error?.message||'').slice(0,200)+').',{step:'square-request'});
@@ -25,8 +20,6 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   if(!r.ok){
    let squareCode='',squareField='',squareDetail='';try{const e=(await r.json())?.errors?.[0]||{};squareCode=String(e.code||'').slice(0,80);squareField=String(e.field||'').slice(0,80);squareDetail=String(e.detail||'').slice(0,160);}catch{}
    const info={step:'square-response',httpStatus:r.status,squareCode,squareField};
-   // Visible in Cloudflare's real-time logs. Square error details never contain the access token.
-   console.log('Square API error',JSON.stringify({path:path.split('?')[0],status:r.status,code:squareCode,field:squareField,detail:squareDetail}));
    if(r.status===401)fail(503,'Square rejected the access token. Check that SQUARE_ACCESS_TOKEN is a production token (SQUARE_ENVIRONMENT is production), then redeploy.',info);
    if(r.status===403)fail(503,'Square denied catalog access. Check the Square account permissions.',info);
    if(r.status===429)fail(503,'Square is rate limiting requests. Wait a minute and try again.',info);
@@ -44,7 +37,6 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
   if(cursor)fail(503,'Square catalog is too large for this connection.');
   const byId=new Map(objects.map(o=>[o.id,o])),products=[];
   const present=o=>!o.is_deleted&&(o.present_at_all_locations!==false||o.present_at_location_ids?.includes(env.SQUARE_LOCATION_ID))&&!o.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID);
-  // Square categories MAINMENU / PREORDER choose the website menu; other categories (Pies, Cookies…) are for display.
   const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const catNames=d=>[...new Set([d.reporting_category?.id,...(d.categories||[]).map(c=>c?.id),d.category_id].filter(Boolean))].map(id=>byId.get(id)?.category_data?.name).filter(Boolean);
   const menuOf=d=>{const n=catNames(d).map(norm),pre=n.includes('preorder'),main=n.includes('mainmenu');return pre&&main?'both':pre?'preorder':main?'main':null;};
@@ -62,12 +54,10 @@ export function squareClient(env,transport=(url,options)=>globalThis.fetch(url,o
     products.push({variationId:variation.id,itemId:item.id,name:d.name+((d.variations.length>1)?' — '+v.name:''),price:price.amount/100,currency:price.currency,category:display(d),menu:menuOf(d),photos,soldOut:override?.sold_out===true,trackInventory:override?.track_inventory??v.track_inventory??false,version:variation.version,description:d.description_plaintext||''});
    }
   }
-  // Safe counts so an empty list can be explained (e.g. wrong SQUARE_LOCATION_ID).
   const allItems=objects.filter(o=>o.type==='ITEM');
   stats={objects:objects.length,items:allItems.length,itemsAtLocation:allItems.filter(present).length,products:products.length};
   return products;
  }
- // Live stock (IN_STOCK at this location) for variations Square tracks. Missing counts mean 0.
  async function stock(variationIds){
   const ids=[...new Set(variationIds)],counts=new Map(ids.map(id=>[id,0]));
   if(!ids.length)return counts;
@@ -111,9 +101,6 @@ export function mergeSquare(data,products,links=[]){
  }
  return next;
 }
-// Automatic sync: Square products tagged MAINMENU or PREORDER are matched to website items by name
-// (ignoring capitals, spaces and punctuation). Matches are linked and updated; unmatched products are added hidden.
-// Website items with no Square match are left untouched. Nothing is deleted. Returns the new data plus a plain report.
 const nameKey=v=>String(v||'').toLowerCase().replace(/\s+/g,' ').trim();
 export function autoSyncSquare(data,products){
  const next=structuredClone(data);next.preorders??=[];
@@ -159,7 +146,6 @@ export async function jsonBody(request,max=16384){
  if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')fail(415,'Expected JSON.');
  try{return JSON.parse(new TextDecoder().decode(await readLimited(request,max)));}catch(e){if(e instanceof PublishError)throw e;fail(400,'Invalid request.');}
 }
-// Optional "Ordering opens / closes" limits (site-wide or per item). Returns null while open, otherwise a short customer-facing reason.
 export function orderingNotice(o,now=Date.now(),tz='America/New_York'){
  let zone=tz;try{new Intl.DateTimeFormat('en-US',{timeZone:zone});}catch{zone='America/New_York';}
  const fmt=v=>new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(v));
@@ -167,7 +153,6 @@ export function orderingNotice(o,now=Date.now(),tz='America/New_York'){
  if(o?.orderCloses&&Date.parse(o.orderCloses)<=now)return 'Ordering has closed';
  return null;
 }
-// Pickup dates come from the editor (site.pickupDates). A date is offered until its "orders close" time.
 export function pickupSlots(site,now=Date.now()){
  const list=Array.isArray(site?.pickupDates)?site.pickupDates:[];
  let tz=site?.timezone||'America/New_York';try{new Intl.DateTimeFormat('en-US',{timeZone:tz});}catch{tz='America/New_York';}
@@ -204,7 +189,6 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const products=await client.catalog(),lines=[],seen=new Set();
  for(const entry of input.items){
   const item=data.preorders?.find(i=>i.id===entry.id),p=products.find(p=>p.variationId===item?.squareVariationId);
-  // Say exactly which item failed and why.
   const name=item?.name||'An item in your cart';
   if(!item||!item.available)fail(409,name+' is no longer on the pre-order menu. Remove it from your cart.');
   if(item.soldOut||p?.soldOut)fail(409,name+' is sold out. Remove it from your cart.');
@@ -215,8 +199,6 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
   if(entry.unitPrice!==Math.round(p.price*100))fail(409,'A price has changed in Square. Refresh your cart to review it before checkout.');
   lines.push({catalog_object_id:p.variationId,quantity:String(entry.quantity),note:('Pickup: '+slot.when+(slot.location?' at '+slot.location:'')).slice(0,500),name:p.name,tracked:p.trackInventory});
  }
- // Stock is checked against Square's live counts right before the payment link is made.
- // Payment links do not reserve stock, so two buyers paying for the last item at the same moment can still both succeed.
  const tracked=lines.filter(l=>l.tracked);
  if(tracked.length){
   const counts=await client.stock(tracked.map(l=>l.catalog_object_id));
@@ -228,8 +210,6 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  const payload={location_id:env.SQUARE_LOCATION_ID,line_items:lines,pricing_options:{auto_apply_taxes:true},fulfillments:[{type:'PICKUP',state:'PROPOSED',pickup_details:{schedule_type:'SCHEDULED',pickup_at:slot.at,recipient:{display_name:recipient.name.trim(),email_address:recipient.email,phone_number:phone},note:'Whisk pre-order'+(notes?' — Special instructions: '+notes:'')}}]};
  const hash=await digest(new TextEncoder().encode(JSON.stringify({key:input.key,payload})));
  const result=await client.api('/online-checkout/payment-links',{idempotency_key:hash,order:payload,checkout_options:{redirect_url:'https://'+publicHost(env)+'/cart/?checkout=returned',allow_tipping:false}});
- // No pre_populated_data: Square rejects buyer_email alongside a fulfillment (CONFLICTING_PARAMETERS).
- // The buyer's email already travels with the pickup recipient above.
  const link=result.payment_link;
  if(!link?.url||!/^https:\/\/(square\.link|checkout\.square\.site)\//.test(link.url))fail(503,'Square did not return a checkout link. Please try again.');
  if(!link.order_id)fail(503,'Square did not return an order.');
@@ -237,7 +217,6 @@ export async function checkout(request,env,data,client=squareClient(env),now=Dat
  return {url:link.url,cookie:'__Host-whisk-checkout='+token+'; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400'};
 }
 
-// A return URL alone never proves payment. The signed cookie identifies only this buyer's order.
 export async function orderStatus(request,env,client=squareClient(env)){
  const token=(request.headers.get('Cookie')||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('__Host-whisk-checkout='))?.split('=')[1];
  if(!token||(env.SQUARE_CHECKOUT_SESSION_SECRET||'').length<32)fail(401,'No checkout session found. Check your Square receipt.');
@@ -256,7 +235,6 @@ export async function orderStatus(request,env,client=squareClient(env)){
  }
  const ok=Number.isSafeInteger(order.total_money?.amount)&&order.total_money.amount>0&&paid>=order.total_money.amount;
  if(!ok)return {paid:false};
- // Details for the "You're all set" screen. Only the buyer holding this signed cookie can see them.
  const str=(v,n)=>typeof v==='string'?v.slice(0,n):'';
  return {paid:true,name:str(payload.name,100),when:str(payload.when,120),location:str(payload.location,200),receipt,
   total:{amount:order.total_money.amount,currency:order.total_money.currency},

@@ -1,15 +1,9 @@
-// Live Square details on public pages, with no rebuild.
-// Square webhooks (and, as a fallback, a page view after 30 minutes) save a snapshot of every Square
-// product to D1. Public pages are served through the Worker, which swaps in the snapshot's name,
-// price, description and photos wherever the build marked a Square-linked value:
-//   <!--sq:<item id>:<field>-->…<!--/sq-->   (scripts/product_photos.py live())
-// Everything Cindy types in the editor (ingredients, notes, visibility…) stays as published.
 import {squareClient, squareReady} from './square.mjs';
 import {draftStore, draftsEnabled} from './drafts.mjs';
 
 const KEY = 'square-live', LOCK = 'square-live-lock';
 export const STALE = 30 * 60 * 1000;
-const memos = new WeakMap(); // per-isolate copy so busy pages don't read D1 on every view
+const memos = new WeakMap();
 
 export function liveSquare(env, client = () => squareClient(env), now = () => Date.now()) {
   const store = draftsEnabled(env) && squareReady(env) ? draftStore(env.DRAFTS, now) : null;
@@ -25,7 +19,6 @@ export function liveSquare(env, client = () => squareClient(env), now = () => Da
     remember(snapshot);
     return snapshot;
   }
-  // Returns the snapshot (or null). A stale one is still served while one request refreshes it.
   async function snapshot(ctx) {
     if (!store) return null;
     const cached = memo();
@@ -33,7 +26,7 @@ export function liveSquare(env, client = () => squareClient(env), now = () => Da
     try {
       if (!current) { current = await store.value(KEY); remember(current); }
       if ((!current || now() - current.at > STALE) && await store.claim(LOCK, 60000)) {
-        const work = refresh().catch(error => { console.log('Square live refresh failed', String(error?.message || error).slice(0, 200)); return null; });
+        const work = refresh().catch(() => null);
         if (!current) return await work;
         ctx?.waitUntil?.(work);
       }
@@ -45,7 +38,6 @@ export function liveSquare(env, client = () => squareClient(env), now = () => Da
 
 const esc = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 const imageUrl = (path, base) => path.startsWith('https://') ? path : base + '/' + path;
-// Mirror of scripts/product_photos.py render_photo (tests/live.test.mjs compares the two).
 export function renderPhoto(pictures, base = '', detail = false) {
   if (!pictures.length) return '<div class="food-space" aria-hidden="true"></div>';
   const images = pictures.map((p, n) => `<img class="food-photo" src="${esc(imageUrl(p.image, base))}" alt="${esc(p.alt)}" width="800" height="600" loading="lazy"` + (n ? ' hidden' : '') + '>').join('');
@@ -54,7 +46,6 @@ export function renderPhoto(pictures, base = '', detail = false) {
   return '<div class="product-gallery" ' + (detail ? 'data-product-gallery' : 'data-card-slideshow') + '><div class="product-frames">' + images + '</div>' + (detail ? '<div class="photo-deck">' + thumbs + '</div>' : '') + '</div>';
 }
 
-// Which website items are linked to which Square product (from the published content).
 export function linkedItems(content) {
   return new Map([...(content.menu || []), ...(content.preorders || [])].filter(i => i.squareVariationId).map(i => [i.id, i]));
 }
@@ -74,11 +65,9 @@ export function applyLive(html, content, snapshot, path = '') {
     return found ? `<!--sq:${id}:${field}-->${render[field](found)}<!--/sq-->` : match;
   });
   out = out.replace(/data-sq-label="([a-z0-9-]+)" aria-label="[^"]*"/g, (match, id) => { const found = live(id); return found ? `data-sq-label="${id}" aria-label="${esc(found.p.name)}"` : match; });
-  // Item page tab title.
   const page = path.match(/^\/(?:menu|preorder)\/([a-z0-9-]+)\/?(?:index\.html)?$/);
   const own = page && live(page[1]);
   if (own) out = out.replace(/<title>[^<]*\| Whisk<\/title>/, `<title>${esc(own.p.name)} | Whisk</title>`);
-  // The cart reads names, prices and photos from this JSON on every page.
   out = out.replace(/(<script id="cart-data" type="application\/json">)([\s\S]*?)(<\/script>)/, (match, open, json, close) => {
     try {
       const data = JSON.parse(json);
@@ -92,5 +81,4 @@ export function applyLive(html, content, snapshot, path = '') {
   return out;
 }
 
-// Paths whose HTML can show Square details.
 export const livePath = path => path === '/' || path === '/index.html' || /^\/(menu|preorder|cart)(\/|$)/.test(path);
